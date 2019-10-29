@@ -122,7 +122,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
-  ../ConfigReader/include
+  ../config_reader/include
   ${catkin_INCLUDE_DIRS}
 )
 
