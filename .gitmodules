@@ -1,0 +1,3 @@
+[submodule "ConfigReader"]
+	path = ConfigReader
+	url = ../ConfigReader.git

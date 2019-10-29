@@ -1,0 +1,3 @@
+<launch>
+<node launch-prefix="valgrind --leak-check=full" name="particle_filter_node" type="particle_filter_node" pkg="particle_filter"/>
+</launch>
