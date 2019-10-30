@@ -1,6 +1,7 @@
 #include <signal.h>
 #include <cmath>
 #include "cs/obstacle_avoidance/obstacle_detector.h"
+#include "cs/obstacle_avoidance/velocity_space.h"
 #include "cs/particle_filter/particle_filter.h"
 #include "cs/util/crash_handling.h"
 #include "cs/util/geometry.h"
@@ -36,6 +37,7 @@ struct ParticleFilterWrapper {
   ros::Publisher reference_pub;
   ros::Publisher dynamic_obs_pub;
   ros::Publisher dynamic_wall_pub;
+  ros::Publisher trajectory_pub;
 
   static constexpr auto kErrorFile = "error.csv";
 
@@ -56,6 +58,8 @@ struct ParticleFilterWrapper {
         "dynamic_observations", 10);
     dynamic_wall_pub =
         n->advertise<visualization_msgs::Marker>("dynamic_fitted_walls", 10);
+    trajectory_pub =
+        n->advertise<visualization_msgs::MarkerArray>("trajectories", 10);
     std::ofstream out(kErrorFile, std::fstream::out);
     out << "max_error_x,max_error_y,max_error_norm,max_error_theta,cent_error_"
            "x,cent_error_y,cent_error_norm,cent_error_theta\n";
@@ -152,6 +156,19 @@ struct ParticleFilterWrapper {
     reference_pub.publish(ref_arr);
   }
 
+  void TestTrajectories(const util::Pose& pose) {
+    visualization_msgs::MarkerArray arr;
+    static constexpr int kNumElems = 100;
+    for (int i = 0; i < kNumElems; ++i) {
+      const float rot =
+          -static_cast<float>(i - kNumElems / 2) / (kNumElems / 4);
+      cs::obstacle_avoidance::TrajectoryRollout tr(pose, {{1, 0}, 0},
+                                                   {{1, 0}, rot}, 2);
+      visualization::DrawTrajectoryRollout(tr, "map", "tst_tr", &arr);
+    }
+    trajectory_pub.publish(arr);
+  }
+
   void LaserCallback(const sensor_msgs::LaserScan::ConstPtr& msg) {
     util::LaserScan laser(*msg);
     particle_filter.UpdateObservation(laser, &sampled_laser_pub);
@@ -167,6 +184,7 @@ struct ParticleFilterWrapper {
     obstacle_detector.UpdateObservation(weighted_centroid, laser,
                                         &dynamic_obs_pub);
     obstacle_detector.DrawDynamic(&dynamic_wall_pub);
+    TestTrajectories(weighted_centroid);
   }
 
   void OdomCallback(const geometry_msgs::Twist::ConstPtr& msg) {

@@ -15,6 +15,9 @@ CONFIG_FLOAT(kRotateStdDev, "pf.kRotateStdDev");
 CONFIG_FLOAT(kTemporalConsistencyWeight, "pf.kTemporalConsistencyWeight");
 }  // namespace pf
 
+static constexpr float kRobotMaxAccel = 0.1;   // m/s^2.
+static constexpr float kRobotMaxVelocity = 1;  // m/s.
+
 static constexpr float kMinAngle = -kPi / 2;
 static constexpr float kMaxAngle = kPi / 2;
 static constexpr int kNumReadings = 100;

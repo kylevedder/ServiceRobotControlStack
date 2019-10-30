@@ -31,21 +31,23 @@ struct Pose {
   bool operator!=(const Pose& other) const { return !(*this == other); }
 
   Pose operator/(const float& other) const {
-    return {tra / other, rot / other};
+    return {tra / other, math_util::AngleMod(rot / other)};
   }
 
   void operator/=(const float& other) {
     tra /= other;
     rot /= other;
+    rot = math_util::AngleMod(rot);
   }
 
   Pose operator*(const float& other) const {
-    return {tra * other, rot * other};
+    return {tra * other, math_util::AngleMod(rot * other)};
   }
 
   void operator*=(const float& other) {
     tra *= other;
     rot *= other;
+    rot = math_util::AngleMod(rot);
   }
 
   util::Pose operator-() const { return {-tra, -rot}; }
@@ -71,6 +73,11 @@ struct Pose {
     transform.translate(tra);
     transform.rotate(rot);
     return transform;
+  }
+
+  bool IsFinite() const {
+    return std::isfinite(tra.x()) && std::isfinite(tra.y()) &&
+           std::isfinite(rot);
   }
 };
 }  // namespace util
