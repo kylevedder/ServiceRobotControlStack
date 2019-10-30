@@ -1,4 +1,5 @@
 #include "cs/util/map.h"
+#include "cs/util/visualization.h"
 
 #include <fstream>
 #include <sstream>
@@ -55,33 +56,22 @@ float Map::MinDistanceAlongRay(const util::Pose& ray, const float min_depth,
 }
 
 visualization_msgs::Marker Map::ToMarker() const {
-  visualization_msgs::Marker marker;
-  marker.header.frame_id = "map";
-  marker.header.stamp = ros::Time();
-  marker.ns = "map_ns";
-  marker.id = 0;
-  marker.type = visualization_msgs::Marker::LINE_LIST;
-  marker.action = visualization_msgs::Marker::ADD;
+  return visualization::DrawWalls(walls, "map", "map_ns");
+}
 
+float Map::MinDistanceToWall(const Eigen::Vector2f& observation) const {
+  float min_distance = std::numeric_limits<float>::max();
   for (const Wall& w : walls) {
-    geometry_msgs::Point p1;
-    p1.x = w.p1.x();
-    p1.y = w.p1.y();
-    geometry_msgs::Point p2;
-    p2.x = w.p2.x();
-    p2.y = w.p2.y();
-    marker.points.push_back(p1);
-    marker.points.push_back(p2);
+    const Eigen::Vector2f wall_dir = (w.p1 - w.p2).normalized();
+    const Eigen::Vector2f p1_to_obs = observation - w.p1;
+    const Eigen::Vector2f p2_to_obs = observation - w.p2;
+    const float dist_p1_sq =
+        (p1_to_obs - ((p1_to_obs).dot(wall_dir) * wall_dir)).squaredNorm();
+    const float dist_p2_sq =
+        (p2_to_obs - ((p2_to_obs).dot(wall_dir) * wall_dir)).squaredNorm();
+    min_distance = std::min({min_distance, dist_p1_sq, dist_p2_sq});
   }
-
-  marker.scale.x = 0.02;
-  marker.scale.y = 0.1;
-  marker.scale.z = 0.1;
-  marker.color.a = 1;
-  marker.color.r = 1;
-  marker.color.g = 0;
-  marker.color.b = 0;
-  return marker;
+  return std::sqrt(min_distance);
 }
 
 }  // namespace util

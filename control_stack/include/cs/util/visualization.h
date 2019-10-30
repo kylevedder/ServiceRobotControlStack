@@ -8,6 +8,39 @@
 #include "cs/util/pose.h"
 
 namespace visualization {
+
+visualization_msgs::Marker DrawWalls(const std::vector<util::Wall>& walls,
+                                     const std::string& frame_id,
+                                     const std::string& ns) {
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = frame_id;
+  marker.header.stamp = ros::Time();
+  marker.ns = ns;
+  marker.id = 0;
+  marker.type = visualization_msgs::Marker::LINE_LIST;
+  marker.action = visualization_msgs::Marker::ADD;
+
+  for (const auto& w : walls) {
+    geometry_msgs::Point p1;
+    p1.x = w.p1.x();
+    p1.y = w.p1.y();
+    geometry_msgs::Point p2;
+    p2.x = w.p2.x();
+    p2.y = w.p2.y();
+    marker.points.push_back(p1);
+    marker.points.push_back(p2);
+  }
+
+  marker.scale.x = 0.02;
+  marker.scale.y = 0.1;
+  marker.scale.z = 0.1;
+  marker.color.a = 1;
+  marker.color.r = 1;
+  marker.color.g = 0;
+  marker.color.b = 0;
+  return marker;
+}
+
 void DrawPose(const util::Pose& pose, const std::string& frame_id,
               const std::string& ns, const float r, const float g,
               const float b, const float alpha,
@@ -62,6 +95,114 @@ void DrawPose(const util::Pose& pose, const std::string& frame_id,
     marker.color.b = b;
     arr->markers.push_back(marker);
   }
+}
+
+std::tuple<float, float, float> IndexToDistinctRBG(const int idx) {
+  static const std::vector<std::tuple<float, float, float>> color_lst(
+      {std::make_tuple(0, 0, 0), std::make_tuple(1, 0, 0),
+       std::make_tuple(0, 1, 0), std::make_tuple(0, 0, 1),
+       std::make_tuple(1, 1, 0), std::make_tuple(0, 1, 1),
+       std::make_tuple(1, 0, 1), std::make_tuple(1, 1, 1),
+       std::make_tuple(0.5, 0, 0)});
+
+  if (idx >= 0 && idx < color_lst.size()) {
+    return color_lst[idx];
+  }
+
+  const int val = (idx + 500) * 5000;
+  const float r = static_cast<float>(val % 255) / 255;
+  const float g = static_cast<float>(val % (255 * 255)) / 255;
+  const float b = static_cast<float>(val % (255 * 255 * 255)) / 255;
+  return std::make_tuple(r, g, b);
+}
+
+void PointsToSpheres(const std::vector<Eigen::Vector2f>& points,
+                     const std::string& frame_id, const std::string& ns,
+                     visualization_msgs::MarkerArray* arr, const float r = 1,
+                     const float g = 0, const float b = 0, const float z = 0) {
+  for (const auto& v : points) {
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = frame_id;
+    marker.header.stamp = ros::Time();
+    marker.ns = ns;
+    marker.id = arr->markers.size();
+    marker.type = visualization_msgs::Marker::SPHERE;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.pose.position.x = v.x();
+    marker.pose.position.y = v.y();
+    marker.pose.position.z = z;
+    marker.scale.x = 0.1;
+    marker.scale.y = 0.1;
+    marker.scale.z = 0.1;
+    marker.color.a = 1;
+    marker.color.r = r;
+    marker.color.g = g;
+    marker.color.b = b;
+    arr->markers.push_back(marker);
+  }
+}
+
+visualization_msgs::Marker ToLine(const Eigen::Vector2f& p1,
+                                  const Eigen::Vector2f& p2,
+                                  const std::string& frame_id,
+                                  const std::string& ns, const int id = 0,
+                                  const float r = 1, const float g = 0,
+                                  const float b = 0) {
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = frame_id;
+  marker.header.stamp = ros::Time();
+  marker.ns = ns;
+  marker.id = id;
+  marker.type = visualization_msgs::Marker::LINE_LIST;
+  marker.action = visualization_msgs::Marker::ADD;
+  marker.scale.x = 0.1;
+  marker.color.a = 1;
+  marker.color.r = r;
+  marker.color.g = g;
+  marker.color.b = b;
+
+  geometry_msgs::Point start;
+  start.x = p1.x();
+  start.y = p1.y();
+  geometry_msgs::Point end;
+  end.x = p2.x();
+  end.y = p2.y();
+
+  marker.points.push_back(start);
+  marker.points.push_back(end);
+
+  return marker;
+}
+
+visualization_msgs::Marker ToLineList(
+    const std::vector<Eigen::Vector2f>& points, const util::Pose& robot_pose,
+    const std::string& frame_id, const std::string& ns, const float r = 1,
+    const float g = 0, const float b = 0) {
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = frame_id;
+  marker.header.stamp = ros::Time();
+  marker.ns = ns;
+  marker.id = 0;
+  marker.type = visualization_msgs::Marker::LINE_LIST;
+  marker.action = visualization_msgs::Marker::ADD;
+  marker.scale.x = 1;
+  marker.color.r = r;
+  marker.color.g = g;
+  marker.color.b = b;
+
+  for (const Eigen::Vector2f& v : points) {
+    geometry_msgs::Point start;
+    start.x = robot_pose.tra.x();
+    start.y = robot_pose.tra.y();
+    geometry_msgs::Point end;
+    end.x = v.x();
+    end.y = v.y();
+
+    marker.points.push_back(start);
+    marker.points.push_back(end);
+  }
+
+  return marker;
 }
 
 visualization_msgs::Marker ToLineList(

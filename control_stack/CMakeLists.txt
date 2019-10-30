@@ -160,6 +160,10 @@ add_library(util_lib
   src/util/map.cpp
 )
 
+add_library(obstacle_avoidance_lib
+  src/obstacle_avoidance/obstacle_detector.cpp
+        src/obstacle_avoidance/obstacle_detector.cpp)
+
 add_library(particle_filter_lib
   src/particle_filter/particle_filter.cpp
 )
@@ -169,8 +173,8 @@ target_link_libraries(particle_filter_lib
 )
 
 add_executable(particle_filter_sim_node src/particle_filter/particle_filter_sim_node.cpp)
-target_link_libraries(particle_filter_sim_node particle_filter_lib lua5.1 ${catkin_LIBRARIES})
-add_dependencies(particle_filter_sim_node particle_filter_lib)
+target_link_libraries(particle_filter_sim_node particle_filter_lib obstacle_avoidance_lib lua5.1 ${catkin_LIBRARIES})
+add_dependencies(particle_filter_sim_node particle_filter_lib obstacle_avoidance_lib)
 
 add_executable(particle_filter_production_node src/particle_filter/particle_filter_production_node.cpp)
 target_link_libraries(particle_filter_production_node particle_filter_lib lua5.1 ${catkin_LIBRARIES})

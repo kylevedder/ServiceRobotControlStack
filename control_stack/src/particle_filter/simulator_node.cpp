@@ -187,10 +187,11 @@ util::Pose CommandPointsLoop(const util::Pose& current_pose,
 }
 
 int main(int argc, char** argv) {
+  CONFIG_STRING(kMap, "sim.kMap");
   util::PrintCurrentWorkingDirectory();
   config_reader::ConfigReader reader(
-      {"src/particle_filter/config/pf_config.lua",
-       "src/particle_filter/config/sim_config.lua"});
+      {"src/ServiceRobotControlStack/control_stack/config/pf_sim_config.lua",
+       "src/ServiceRobotControlStack/control_stack/config/sim_config.lua"});
   ros::init(argc, argv, "simulator");
 
   ros::NodeHandle n;
@@ -205,7 +206,7 @@ int main(int argc, char** argv) {
 
   ros::Rate loop_rate(10);
 
-  const util::Map map("src/particle_filter/maps/loop_small_bumps.map");
+  const util::Map map(kMap);
   const std::vector<util::Pose> waypoints = {
       {{3.5, -3.5}, kPi},
       {{-3.5, -3.5}, kPi / 2},

@@ -32,19 +32,15 @@ class LaserScan {
 
       const float theta =
           ros_laser_scan_.angle_min + i * ros_laser_scan_.angle_increment;
-      const Eigen::Vector2f point(sin(theta) * depth, cos(theta) * depth);
+      const Eigen::Vector2f point(cos(theta) * depth, sin(theta) * depth);
       NP_FINITE(point.x());
       NP_FINITE(point.y());
-      robot_frame_points.push_back(point);
+      const Eigen::Vector2f transformed_point = transform * point;
+      NP_FINITE(transformed_point.x());
+      NP_FINITE(transformed_point.y());
+      robot_frame_points.push_back(transformed_point);
     }
 
-    for (auto& point : robot_frame_points) {
-      NP_FINITE(point.x());
-      NP_FINITE(point.y());
-      point = transform * point;
-      NP_FINITE(point.x());
-      NP_FINITE(point.y());
-    }
     return robot_frame_points;
   }
 
@@ -62,6 +58,52 @@ class LaserScan {
         obs_pose.tra;
     NP_CHECK((endpoint - obs_pose.tra).norm() <= range_max + kEpsilon);
     return endpoint;
+  }
+
+  struct LaserScanIterator {
+    const util::LaserScan* laser_scan_;
+    int index_;
+    LaserScanIterator() = delete;
+    LaserScanIterator(const util::LaserScan* laser_scan, int index)
+        : laser_scan_(laser_scan), index_(index) {}
+
+    bool operator==(const LaserScanIterator& other) const {
+      return (other.laser_scan_ == laser_scan_) && (other.index_ == index_);
+    }
+
+    bool operator!=(const LaserScanIterator& other) const {
+      return !(*this == other);
+    }
+
+    void operator++() { index_++; }
+
+    float Depth() const { return laser_scan_->ros_laser_scan_.ranges[index_]; }
+
+    float Angle() const {
+      return laser_scan_->ros_laser_scan_.angle_min +
+             index_ * laser_scan_->ros_laser_scan_.angle_increment;
+    }
+
+    struct DepthAngle {
+      float depth;
+      float angle;
+      DepthAngle() = delete;
+      DepthAngle(float depth, float angle) : depth(depth), angle(angle) {}
+    };
+
+    DepthAngle operator*() const { return {Depth(), Angle()}; }
+  };
+
+  LaserScanIterator begin() { return LaserScanIterator(this, 0); }
+
+  LaserScanIterator begin() const { return LaserScanIterator(this, 0); }
+
+  LaserScanIterator end() {
+    return LaserScanIterator(this, ros_laser_scan_.ranges.size());
+  }
+
+  LaserScanIterator end() const {
+    return LaserScanIterator(this, ros_laser_scan_.ranges.size());
   }
 };
 }  // namespace util
