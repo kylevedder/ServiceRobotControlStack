@@ -13,6 +13,8 @@
 #include "cs/util/util.h"
 #include "cs/util/visualization.h"
 
+#include "config_reader/config_reader.h"
+
 #include <tf/transform_broadcaster.h>
 #include <visualization_msgs/MarkerArray.h>
 

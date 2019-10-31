@@ -64,6 +64,18 @@ T AngleMod(T angle) {
   return angle;
 }
 
+// Check if angle is between min and max angle, moving in a counterclockwise
+// direction from min_angle to max_angle.
+template <typename T>
+bool IsAngleBetween(T query, T min_angle, T max_angle) {
+  if (min_angle < max_angle) {
+    // No wrap around.
+    return (query <= max_angle) && (query >= min_angle);
+  }
+
+  return (query > min_angle) || (query < max_angle);
+}
+
 template <typename T>
 T AngleDiff(T a0, T a1) {
   return AngleMod<T>(a0 - a1);

@@ -2,6 +2,7 @@
 
 #include <ros/ros.h>
 #include <vector>
+
 #include "cs/util/laser_scan.h"
 #include "cs/util/map.h"
 #include "cs/util/pose.h"
@@ -19,6 +20,8 @@ class ObstacleDetector {
                          ros::Publisher* pub);
 
   void DrawDynamic(ros::Publisher* pub) const;
+
+  const std::vector<util::Wall>& GetDynamicWalls() const;
 
  private:
   std::vector<Eigen::Vector2f> GetNonMapPoints(

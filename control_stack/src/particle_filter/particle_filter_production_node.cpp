@@ -7,6 +7,8 @@
 #include "cs/util/util.h"
 #include "cs/util/visualization.h"
 
+#include "config_reader/config_reader.h"
+
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>

@@ -3,7 +3,7 @@
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 
-#include "cs/obstacle_avoidance/velocity_space.h"
+#include "cs/obstacle_avoidance/trajectory_rollout.h"
 #include "cs/util/laser_scan.h"
 #include "cs/util/map.h"
 #include "cs/util/pose.h"
@@ -100,11 +100,21 @@ void DrawPose(const util::Pose& pose, const std::string& frame_id,
 
 void DrawTrajectoryRollout(const cs::obstacle_avoidance::TrajectoryRollout& tr,
                            const std::string& frame_id, const std::string& ns,
-                           visualization_msgs::MarkerArray* arr) {
-  DrawPose(tr.start_pose, frame_id, ns + "start_pose", 0, 1, 0, 1, arr);
-  DrawPose(tr.achieved_vel_pose, frame_id, ns + "achieved_pose", 0, 0, 1, 1,
-           arr);
-  DrawPose(tr.final_pose, frame_id, ns + "achieved_pose", 1, 0, 0, 1, arr);
+                           visualization_msgs::MarkerArray* arr,
+                           const bool is_colliding = false) {
+  DrawPose({tr.rotate_circle_center, 0}, frame_id, ns + "rotate_center", 0, 0,
+           1, 1, arr);
+  if (!is_colliding) {
+    DrawPose(tr.start_pose, frame_id, ns + "start_pose", 0, 1, 0, 1, arr);
+    DrawPose(tr.achieved_vel_pose, frame_id, ns + "achieved_pose", 0, 1, 0, 1,
+             arr);
+    DrawPose(tr.final_pose, frame_id, ns + "achieved_pose", 0, 1, 0, 1, arr);
+  } else {
+    DrawPose(tr.start_pose, frame_id, ns + "start_pose", 1, 0, 0, 1, arr);
+    DrawPose(tr.achieved_vel_pose, frame_id, ns + "achieved_pose", 1, 0, 0, 1,
+             arr);
+    DrawPose(tr.final_pose, frame_id, ns + "achieved_pose", 1, 0, 0, 1, arr);
+  }
 }
 
 std::tuple<float, float, float> IndexToDistinctRBG(const int idx) {

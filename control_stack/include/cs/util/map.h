@@ -3,11 +3,10 @@
 #include "eigen3/Eigen/Core"
 #include "eigen3/Eigen/Geometry"
 
-#include "cs/util/geometry.h"
-
 #include <visualization_msgs/Marker.h>
 #include <string>
 #include <vector>
+#include "cs/util/pose.h"
 
 namespace util {
 

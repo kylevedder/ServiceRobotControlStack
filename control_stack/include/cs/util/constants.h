@@ -2,18 +2,9 @@
 
 #include <iostream>
 
-#include "config_reader/config_reader.h"
-
 static constexpr bool kProduction = false;
 static constexpr float kPi = M_PI;
 static constexpr float kEpsilon = 0.001f;
-
-namespace pf {
-CONFIG_FLOAT(kLaserStdDev, "pf.kLaserStdDev");
-CONFIG_FLOAT(kArcStdDev, "pf.kArcStdDev");
-CONFIG_FLOAT(kRotateStdDev, "pf.kRotateStdDev");
-CONFIG_FLOAT(kTemporalConsistencyWeight, "pf.kTemporalConsistencyWeight");
-}  // namespace pf
 
 static constexpr float kRobotMaxAccel = 0.1;   // m/s^2.
 static constexpr float kRobotMaxVelocity = 1;  // m/s.
@@ -33,19 +24,31 @@ static constexpr float kMaxReading = 5.0f;
     exit(0);                                                            \
   }
 
+#define CHECK_PRINT_VAL(exp, val)                                       \
+  if (!(exp)) {                                                         \
+    std::cerr << __FILE__ << ":" << __LINE__ << " Assertion \"" << #exp \
+              << "\" (value: " << (val) << ")  failed!" << std::endl;   \
+    exit(0);                                                            \
+  }
+
 #define NP_CHECK(exp) \
   if (!kProduction) { \
     CHECK(exp);       \
   }
 
-#define NP_FINITE(exp)         \
+#define NP_CHECK_VAL(exp, val) \
   if (!kProduction) {          \
-    CHECK(std::isfinite(exp)); \
+    CHECK_PRINT_VAL(exp, val); \
   }
 
-#define NP_NOT_NAN(exp)      \
-  if (!kProduction) {        \
-    CHECK(!std::isnan(exp)); \
+#define NP_FINITE(exp)                          \
+  if (!kProduction) {                           \
+    CHECK_PRINT_VAL(std::isfinite(exp), (exp)); \
+  }
+
+#define NP_FINITE_2F(exp)                                        \
+  if (!kProduction) {                                            \
+    CHECK(std::isfinite((exp).x()) && std::isfinite((exp).y())); \
   }
 
 #define NP_NOT_NULL(exp)     \

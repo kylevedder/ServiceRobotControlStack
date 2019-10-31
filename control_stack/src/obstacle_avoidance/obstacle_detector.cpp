@@ -3,7 +3,6 @@
 
 #include <cs/util/visualization.h>
 #include <visualization_msgs/MarkerArray.h>
-#include "cs/util/geometry.h"
 #include "cs/util/laser_scan.h"
 
 namespace cs {
@@ -146,6 +145,10 @@ void ObstacleDetector::DrawDynamic(ros::Publisher* pub) const {
   ROS_INFO("Obstacle detector found: %zu obstacles", dynamic_walls_.size());
   pub->publish(
       visualization::DrawWalls(dynamic_walls_, "map", "dynamic_walls_ns"));
+}
+
+const std::vector<util::Wall>& ObstacleDetector::GetDynamicWalls() const {
+  return dynamic_walls_;
 }
 
 }  // namespace obstacle_avoidance

@@ -1,13 +1,14 @@
 #include <signal.h>
 #include <cmath>
 #include "cs/obstacle_avoidance/obstacle_detector.h"
-#include "cs/obstacle_avoidance/velocity_space.h"
+#include "cs/obstacle_avoidance/trajectory_rollout.h"
 #include "cs/particle_filter/particle_filter.h"
 #include "cs/util/crash_handling.h"
-#include "cs/util/geometry.h"
 #include "cs/util/math_util.h"
 #include "cs/util/util.h"
 #include "cs/util/visualization.h"
+
+#include "config_reader/config_reader.h"
 
 #include <geometry_msgs/Twist.h>
 #include <ros/ros.h>
@@ -156,15 +157,77 @@ struct ParticleFilterWrapper {
     reference_pub.publish(ref_arr);
   }
 
+  void TestTrajectoryCollsions() {
+    {
+      cs::obstacle_avoidance::TrajectoryRollout tr({{0, 0}, 0}, {{1, 0}, 0},
+                                                   {{1, 0}, 0}, 2);
+      util::Wall w1({3, -2}, {3, 2});
+      util::Wall w2({1, -2}, {1, 2});
+      util::Wall w3({2, -2}, {2, 2});
+      util::Wall w4({2.2, -2}, {2.2, 2});
+      NP_CHECK(!tr.IsColliding(w1, 0.1f));
+      NP_CHECK(tr.IsColliding(w2, 0.1f));
+      NP_CHECK(tr.IsColliding(w3, 0.1f));
+      NP_CHECK(!tr.IsColliding(w4, 0.1f));
+    }
+
+    {
+      const util::Pose start({0, 0}, 0);
+      const util::Pose velocity({1, 0}, kPi / 8);
+      cs::obstacle_avoidance::TrajectoryRollout tr(start, velocity, velocity,
+                                                   1);
+
+      std::cout << "Achieved velocity pose: " << tr.achieved_vel_pose.tra.x()
+                << ", " << tr.achieved_vel_pose.tra.x() << std::endl;
+
+      std::cout << "Final pose:             " << tr.final_pose.tra.x() << ", "
+                << tr.final_pose.tra.x() << std::endl;
+
+      std::cout << "circle center:          " << tr.rotate_circle_center.x()
+                << ", " << tr.rotate_circle_center.x() << std::endl;
+
+      util::Wall w1({1, -1}, {-1, -1});
+      util::Wall w2({1, -1.2}, {-1, -1.2});
+      NP_CHECK(tr.IsColliding(w1, 0.1f));
+      NP_CHECK(!tr.IsColliding(w2, 0.1f));
+    }
+  }
+
   void TestTrajectories(const util::Pose& pose) {
+    // TestTrajectoryCollsions();
     visualization_msgs::MarkerArray arr;
-    static constexpr int kNumElems = 100;
+    static constexpr int kNumElems = 1;
+    static constexpr float kRobotRadius = 0.1f;
+    static constexpr float kRolloutTime = 2;
+
+    static const util::Pose kInitialVelocity(0.9, 0, 0);
+
     for (int i = 0; i < kNumElems; ++i) {
-      const float rot =
-          -static_cast<float>(i - kNumElems / 2) / (kNumElems / 4);
-      cs::obstacle_avoidance::TrajectoryRollout tr(pose, {{1, 0}, 0},
-                                                   {{1, 0}, rot}, 2);
-      visualization::DrawTrajectoryRollout(tr, "map", "tst_tr", &arr);
+      //      const float rot = -static_cast<float>(i - kNumElems / 2) /
+      //                        (static_cast<float>(kNumElems) / 4.0f);
+      const float rot = kPi / 8;
+      const util::Pose commanded_velocity(1, 0, rot);
+      std::cout << "Making trajectory\n";
+      cs::obstacle_avoidance::TrajectoryRollout tr(
+          pose, kInitialVelocity, commanded_velocity, kRolloutTime);
+      std::cout << "Made trajectory\n";
+      bool is_colliding = false;
+      for (const auto& wall : obstacle_detector.GetDynamicWalls()) {
+        if (tr.IsColliding(wall, kRobotRadius)) {
+          is_colliding = true;
+          break;
+        }
+      }
+      if (!is_colliding) {
+        for (const auto& wall : map.walls) {
+          if (tr.IsColliding(wall, kRobotRadius)) {
+            is_colliding = true;
+            break;
+          }
+        }
+      }
+      visualization::DrawTrajectoryRollout(tr, "map", "test_tr", &arr,
+                                           is_colliding);
     }
     trajectory_pub.publish(arr);
   }

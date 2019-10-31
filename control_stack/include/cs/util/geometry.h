@@ -1,5 +1,4 @@
 #pragma once
-
 // Copyright 2017 - 2018 joydeepb@cs.umass.edu, slane@cs.umass.edu,
 // kvedder@umass.edu
 // College of Information and Computer Sciences,
@@ -33,6 +32,7 @@
 
 using math_util::AngleMod;
 using math_util::Cos;
+using math_util::IsAngleBetween;
 using math_util::Sin;
 using math_util::Sq;
 using std::sqrt;
@@ -217,29 +217,28 @@ T Angle(const Eigen::Matrix<T, 2, 1>& v) {
   return (atan2(v.y(), v.x()));
 }
 
-// Project a given point onto the line passing through vertex_a and vertex_b.
+// Project a given point onto a line segment.
+// The line is defined by its two vertices vertex_a and vertex_b
 template <typename T>
-void ProjectPointOntoLine(const Eigen::Matrix<T, 2, 1>& point,
-                          const Eigen::Matrix<T, 2, 1>& vertex_a,
-                          const Eigen::Matrix<T, 2, 1>& vertex_b,
-                          Eigen::Matrix<T, 2, 1>* projected_point) {
-  const Eigen::Matrix<T, 2, 1> line_dir = (vertex_b - vertex_a).normalized();
-  // const Eigen::Matrix<T, 2, 1> line_perp = Perp<T>(line_dir);
-  *projected_point = vertex_a + line_dir * line_dir.dot(point - vertex_a);
+Eigen::Matrix<T, 2, 1> ProjectPointOntoLine(
+    const Eigen::Matrix<T, 2, 1>& point, const Eigen::Matrix<T, 2, 1>& vertex_a,
+    const Eigen::Matrix<T, 2, 1>& vertex_b) {
+  Eigen::Matrix<T, 2, 1> line_segment = vertex_b - vertex_a;
+  Eigen::Matrix<T, 2, 1> point_vector = point - vertex_a;
+
+  // Project the point onto the line segment, capping it at the two end points
+  const float scalar_projection =
+      point_vector.dot(line_segment) / line_segment.squaredNorm();
+
+  return vertex_a + scalar_projection * line_segment;
 }
 
 // Project a given point onto a line segment.
 // The line segment is defined by its two vertices vertex_a and vertex_b
-// The pointers projected_point and distance define the return values
-// Projected point is the location ot the projection.
-// Squared Distance is the squared distance from the original point to the
-// starting point.
 template <typename T>
-void ProjectPointOntoLineSegment(const Eigen::Matrix<T, 2, 1>& point,
-                                 const Eigen::Matrix<T, 2, 1>& vertex_a,
-                                 const Eigen::Matrix<T, 2, 1>& vertex_b,
-                                 Eigen::Matrix<T, 2, 1>* projected_point,
-                                 float* squared_distance) {
+Eigen::Matrix<T, 2, 1> ProjectPointOntoLineSegment(
+    const Eigen::Matrix<T, 2, 1>& point, const Eigen::Matrix<T, 2, 1>& vertex_a,
+    const Eigen::Matrix<T, 2, 1>& vertex_b) {
   Eigen::Matrix<T, 2, 1> line_segment = vertex_b - vertex_a;
   Eigen::Matrix<T, 2, 1> point_vector = point - vertex_a;
 
@@ -249,151 +248,160 @@ void ProjectPointOntoLineSegment(const Eigen::Matrix<T, 2, 1>& point,
 
   scalar_projection = fmax(0, fmin(1, scalar_projection));
 
-  *projected_point = vertex_a + scalar_projection * line_segment;
-  *squared_distance = (point - (*projected_point)).squaredNorm();
-}
-
-// Determines whether a ray intersects with a given line segment.
-// Returns true if they intersect and false otherwise.
-// ray_soruce is the origin point of the ray_direction
-// ray_direction is a vector that indicates the direction that the ray is going
-// in
-// line_start is the start point of the line segment
-// line_end is the end point of the line segment
-// distance is defined to be the distance from the ray source to the intersect
-// If there is no intersection, it will be set to -1
-// intersect_point is the point at which the ray intersects the line segment
-// It will be set to -1, -1 if there is no collision
-template <typename T>
-bool RayIntersect(const Eigen::Matrix<T, 2, 1>& ray_source,
-                  const Eigen::Matrix<T, 2, 1>& ray_direction,
-                  const Eigen::Matrix<T, 2, 1>& segment_start,
-                  const Eigen::Matrix<T, 2, 1>& segment_end,
-                  T* squared_distance,
-                  Eigen::Matrix<T, 2, 1>* intersect_point) {
-  bool intersects = false;
-  *squared_distance = -1;
-  intersect_point->x() = -1;
-  intersect_point->y() = -1;
-
-  Eigen::Matrix<T, 2, 1> line_to_source = ray_source - segment_start;
-  Eigen::Matrix<T, 2, 1> line_direction = segment_end - segment_start;
-  Eigen::Matrix<T, 2, 1> perpendicular = Perp(ray_direction);
-
-  T denomenator = line_direction.dot(perpendicular);
-
-  T ray_intersect_param = Cross(line_direction, line_to_source) / denomenator;
-
-  T line_intersect_param = line_to_source.dot(perpendicular) / denomenator;
-
-  if (ray_intersect_param >= 0 && line_intersect_param >= 0 &&
-      line_intersect_param <= 1) {
-    intersects = true;
-    *intersect_point = (segment_start + line_intersect_param * line_direction);
-    *squared_distance = ((*intersect_point) - ray_source).squaredNorm();
-  }
-  return intersects;
+  return vertex_a + scalar_projection * line_segment;
 }
 
 template <typename T>
-bool RayIntersect(const Eigen::Matrix<T, 2, 1>& ray_source,
-                  const Eigen::Matrix<T, 2, 1>& ray_direction,
-                  const Eigen::Matrix<T, 2, 1>& line_start,
-                  const Eigen::Matrix<T, 2, 1>& line_end) {
-  bool intersects = false;
-
-  Eigen::Matrix<T, 2, 1> line_to_source = ray_source - line_start;
-  Eigen::Matrix<T, 2, 1> line_direction = line_end - line_start;
-  Eigen::Matrix<T, 2, 1> perpendicular = Perp(ray_direction);
-
-  T denomenator = line_direction.dot(perpendicular);
-
-  T ray_intersect_param = Cross(line_direction, line_to_source) / denomenator;
-
-  T line_intersect_param = line_to_source.dot(perpendicular) / denomenator;
-
-  if (ray_intersect_param >= 0 && line_intersect_param >= 0 &&
-      line_intersect_param <= 1) {
-    intersects = true;
+T MinDistanceLineLine(const Eigen::Matrix<T, 2, 1>& a0,
+                      const Eigen::Matrix<T, 2, 1>& a1,
+                      const Eigen::Matrix<T, 2, 1>& b0,
+                      const Eigen::Matrix<T, 2, 1>& b1) {
+  if (CheckLineLineCollision(a0, a1, b0, b1)) {
+    return 0;
   }
 
-  return intersects;
+  const auto a0_proj = ProjectPointOntoLineSegment(a0, b0, b1);
+  const auto a1_proj = ProjectPointOntoLineSegment(a1, b0, b1);
+  const auto b0_proj = ProjectPointOntoLineSegment(b0, a0, a1);
+  const auto b1_proj = ProjectPointOntoLineSegment(b1, a0, a1);
+
+  const auto a0_diff_sq = (a0 - a0_proj).squaredNorm();
+  const auto a1_diff_sq = (a1 - a1_proj).squaredNorm();
+  const auto b0_diff_sq = (b0 - b0_proj).squaredNorm();
+  const auto b1_diff_sq = (b1 - b1_proj).squaredNorm();
+
+  const auto min_diff_sq =
+      std::min({a0_diff_sq, a1_diff_sq, b0_diff_sq, b1_diff_sq});
+  return std::sqrt(min_diff_sq);
 }
 
-// Determines whether a ray intersects with a given circle
-
+// Check if line segment collides min and max angle on a circle, moving in a
+// counterclockwise direction from min_angle to max_angle.
 template <typename T>
-bool FurthestFreePointCircle(const Eigen::Matrix<T, 2, 1>& line_start,
-                             const Eigen::Matrix<T, 2, 1>& line_end,
-                             const Eigen::Matrix<T, 2, 1>& circle_center,
-                             const T radius, T* squared_distance,
-                             Eigen::Matrix<T, 2, 1>* free_point) {
-  bool collides = false;
+T MinDistanceLineArc(const Eigen::Matrix<T, 2, 1>& l0,
+                     const Eigen::Matrix<T, 2, 1>& l1,
+                     const Eigen::Matrix<T, 2, 1>& a_center, const T& a_radius,
+                     T a_angle_min, T a_angle_max) {
+  NP_FINITE_2F(l0);
+  NP_FINITE_2F(l1);
+  NP_FINITE_2F(a_center);
+  NP_FINITE(a_angle_min);
+  NP_FINITE(a_angle_max);
+  NP_CHECK(a_radius >= 0);
+  a_angle_min = AngleMod(a_angle_min);
+  a_angle_max = AngleMod(a_angle_max);
+  const auto proj_center_segment =
+      ProjectPointOntoLineSegment(a_center, l0, l1);
+  const auto proj_dir_segment = proj_center_segment - a_center;
 
-  if ((line_start - circle_center).squaredNorm() < Sq(radius)) {
-    *free_point = line_start;
-    collides = true;
-  } else {
-    Eigen::Matrix<T, 2, 1> projected_point;
-    T current_distance;
-    ProjectPointOntoLineSegment(circle_center, line_start, line_end,
-                                &projected_point, &current_distance);
+  const auto l0_dir = l0 - a_center;
+  const auto l1_dir = l1 - a_center;
 
-    if ((projected_point - circle_center).squaredNorm() >= Sq(radius)) {
-      *free_point = line_end;
-      collides = false;
-    } else {
-      collides = true;
-      Eigen::Matrix<T, 2, 1> translation_vector = projected_point - line_start;
-      T slide_back_distance =
-          sqrt(Sq(radius) - (projected_point - circle_center).squaredNorm());
-      translation_vector -=
-          (translation_vector.normalized()) * slide_back_distance;
-
-      *free_point = line_start + translation_vector;
+  if (proj_dir_segment.squaredNorm() >= Sq(a_radius) ||
+      (l0_dir.squaredNorm() < Sq(a_radius) &&
+       l1_dir.squaredNorm() < Sq(a_radius))) {
+    std::cout
+        << "Out of the circle, tangent to circle, or completely in circle."
+        << std::endl;
+    // Out of the circle, tangent to circle, or completely in circle.
+    const T angle = AngleMod(Angle<T>(proj_dir_segment));
+    NP_FINITE(angle);
+    if (IsAngleBetween(angle, a_angle_min, a_angle_max)) {
+      // Vector of the center projected onto line segment is in arc.
+      const float distance_to_proj = (proj_dir_segment.norm() - a_radius);
+      if (distance_to_proj >= 0) {
+        return distance_to_proj;
+      }
     }
+    // Vector of the center projected onto line segment is not in arc.
+    const auto a_angle_min_v = Heading(a_angle_min) * a_radius;
+    const auto a_angle_max_v = Heading(a_angle_max) * a_radius;
+    NP_FINITE_2F(a_angle_min_v);
+    NP_FINITE_2F(a_angle_max_v);
+    return std::sqrt(
+        std::min((proj_dir_segment - a_angle_min_v).squaredNorm(),
+                 (proj_dir_segment - a_angle_max_v).squaredNorm()));
   }
 
-  *squared_distance = ((*free_point) - line_start).squaredNorm();
-  return collides;
-}
+  const auto proj_center_line = ProjectPointOntoLine(a_center, l0, l1);
+  NP_FINITE_2F(proj_center_line);
+  const auto proj_dir_line = proj_center_line - a_center;
+  NP_FINITE_2F(proj_dir_line);
+  const T along_line_dist =
+      std::sqrt(Sq(a_radius) - proj_dir_line.squaredNorm());
+  NP_FINITE(along_line_dist);
 
-// Returns the Euclidean distance between the two input points
-template <typename T>
-T EuclideanDistance(const Eigen::Matrix<T, 2, 1>& pos1,
-                    const Eigen::Matrix<T, 2, 1>& pos2) {
-  if (fabs(pos1.x() - pos2.x()) > 1e-10 || fabs(pos1.y() - pos2.y()) > 1e-10) {
-    return (pos2 - pos1).norm();
-  } else {
+  static const auto direction_line_intersects_arc =
+      [&proj_center_line, &along_line_dist, &a_angle_min,
+       &a_angle_max](const Eigen::Matrix<T, 2, 1>& direction_line) -> bool {
+    const auto circle_intersect_point =
+        direction_line * along_line_dist + proj_center_line;
+    NP_FINITE_2F(circle_intersect_point);
+    const T angle = AngleMod(Angle<T>(circle_intersect_point));
+    NP_FINITE(angle);
+    return IsAngleBetween(angle, a_angle_min, a_angle_max);
+  };
+
+  static const auto no_arc_intersect_min_distance =
+      [&a_angle_min, &a_angle_max, &a_radius, &l0, &l1]() -> float {
+    const auto a_angle_min_v = Heading(a_angle_min) * a_radius;
+    NP_FINITE_2F(a_angle_min_v);
+    const auto a_angle_max_v = Heading(a_angle_max) * a_radius;
+    NP_FINITE_2F(a_angle_max_v);
+    const auto proj_a_angle_min_v =
+        ProjectPointOntoLineSegment<T>(a_angle_min_v, l0, l1);
+    NP_FINITE_2F(proj_a_angle_min_v);
+    const auto proj_a_angle_max_v =
+        ProjectPointOntoLineSegment<T>(a_angle_max_v, l0, l1);
+    NP_FINITE_2F(proj_a_angle_max_v);
+    return std::sqrt(
+        std::min((proj_a_angle_min_v - a_angle_min_v).squaredNorm(),
+                 (proj_a_angle_max_v - a_angle_max_v).squaredNorm()));
+  };
+
+  // l0 inside the circle, l1 outside the circle.
+  if (l0_dir.squaredNorm() < Sq(a_radius) &&
+      l1_dir.squaredNorm() >= Sq(a_radius)) {
+    std::cout << "l0 inside the circle, l1 outside the circle." << std::endl;
+    const auto direction_line =
+        GetNormalizedOrZero(Eigen::Matrix<T, 2, 1>(l1 - l0));
+    NP_FINITE_2F(direction_line);
+    if (direction_line_intersects_arc(direction_line)) {
+      // Arc intersects with line.
+      return 0;
+    }
+
+    return no_arc_intersect_min_distance();
+  }
+
+  // l1 inside the circle, l0 outside the circle.
+  if (l0_dir.squaredNorm() >= Sq(a_radius) &&
+      l1_dir.squaredNorm() < Sq(a_radius)) {
+    std::cout << "l1 inside the circle, l0 outside the circle." << std::endl;
+    const auto direction_line =
+        GetNormalizedOrZero(Eigen::Matrix<T, 2, 1>(l0 - l1));
+    NP_FINITE_2F(direction_line);
+    if (direction_line_intersects_arc(direction_line)) {
+      // Arc intersects with line.
+      return 0;
+    }
+    return no_arc_intersect_min_distance();
+  }
+
+  // Both l0 and l1 are not in the circle, but the line goes through the circle.
+  std::cout << "Both l0 and l1 are not in the circle, but the line goes "
+               "through the circle."
+            << std::endl;
+  const auto direction_line =
+      GetNormalizedOrZero(Eigen::Matrix<T, 2, 1>(l1 - l0));
+  NP_FINITE_2F(direction_line);
+  if (direction_line_intersects_arc(direction_line) ||
+      direction_line_intersects_arc(-direction_line)) {
+    // Arc intersects with line.
     return 0;
   }
-}
 
-template <typename T>
-T SquaredDistance(const Eigen::Matrix<T, 2, 1>& pos1,
-                  const Eigen::Matrix<T, 2, 1>& pos2) {
-  if (fabs(pos1.x() - pos2.x()) > 1e-10 || fabs(pos1.y() - pos2.y()) > 1e-10) {
-    return (pos2 - pos1).squaredNorm();
-  } else {
-    return 0;
-  }
-}
-
-template <typename T>
-T SafeVectorNorm(const Eigen::Matrix<T, 2, 1>& vector) {
-  if (fabs(vector.x()) > 1e-10 || fabs(vector.y()) > 1e-10) {
-    return vector.norm();
-  } else {
-    return 0;
-  }
-}
-
-// Returns the scalar projection of vector1 onto vector2
-// vector2 must be nonzero
-template <typename T>
-T ScalarProjection(const Eigen::Matrix<T, 2, 1>& vector1,
-                   const Eigen::Matrix<T, 2, 1>& vector2) {
-  return vector1.dot(vector2) / vector2.norm();
+  return no_arc_intersect_min_distance();
 }
 
 util::Pose FollowTrajectory(const util::Pose& pose_global_frame,

@@ -162,7 +162,7 @@ add_library(util_lib
 
 add_library(obstacle_avoidance_lib
   src/obstacle_avoidance/obstacle_detector.cpp
-        src/obstacle_avoidance/obstacle_detector.cpp)
+        src/obstacle_avoidance/trajectory_rollout.cpp)
 
 add_library(particle_filter_lib
   src/particle_filter/particle_filter.cpp

@@ -3,6 +3,7 @@
 #include "cs/particle_filter/particle_filter.h"
 #include "cs/util/constants.h"
 
+#include "config_reader/config_reader.h"
 #include "cs/util/array_util.h"
 #include "cs/util/geometry.h"
 #include "cs/util/math_util.h"
@@ -15,9 +16,43 @@
 
 #include "eigen3/Eigen/Geometry"
 
+namespace pf {
+CONFIG_FLOAT(kLaserStdDev, "pf.kLaserStdDev");
+CONFIG_FLOAT(kArcStdDev, "pf.kArcStdDev");
+CONFIG_FLOAT(kRotateStdDev, "pf.kRotateStdDev");
+CONFIG_FLOAT(kTemporalConsistencyWeight, "pf.kTemporalConsistencyWeight");
+}  // namespace pf
+
 namespace localization {
 
 MotionModel::MotionModel() : rd_(), gen_(0) {}
+
+util::Pose FollowTrajectory(const util::Pose& pose_global_frame,
+                            const float& distance_along_arc,
+                            const float& rotation) {
+  const Eigen::Rotation2Df robot_to_global_frame(pose_global_frame.rot);
+  const Eigen::Vector2f robot_forward_global_frame =
+      robot_to_global_frame * Eigen::Vector2f(1, 0);
+
+  if (rotation == 0) {
+    util::Pose updated_pose = pose_global_frame;
+    updated_pose.tra += robot_forward_global_frame * distance_along_arc;
+    return updated_pose;
+  }
+
+  const float circle_radius = distance_along_arc / rotation;
+
+  const float move_x_dist = Sin(rotation) * circle_radius;
+  const float move_y_dist =
+      (Cos(fabs(rotation)) * circle_radius - circle_radius);
+
+  const Eigen::Vector2f movement_arc_robot_frame(move_x_dist, move_y_dist);
+  const Eigen::Vector2f movement_arc_global_frame =
+      robot_to_global_frame * movement_arc_robot_frame;
+
+  return {movement_arc_global_frame + pose_global_frame.tra,
+          AngleMod(rotation + pose_global_frame.rot)};
+}
 
 util::Pose MotionModel::ForwardPredict(const util::Pose& pose_global_frame,
                                        const float translation_robot_frame,
@@ -32,8 +67,7 @@ util::Pose MotionModel::ForwardPredict(const util::Pose& pose_global_frame,
   const float distance_along_arc = distance_along_arc_dist(gen_);
   const float rotation = rotation_dist(gen_);
 
-  return geometry::FollowTrajectory(pose_global_frame, distance_along_arc,
-                                    rotation);
+  return FollowTrajectory(pose_global_frame, distance_along_arc, rotation);
 }
 
 SensorModel::SensorModel(const util::Map& map) : map_(map) {}

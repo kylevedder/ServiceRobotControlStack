@@ -4,6 +4,8 @@
 #include <fstream>
 #include <sstream>
 
+#include "cs/util/geometry.h"
+
 namespace util {
 
 Map::Map(const std::string& filepath) {
