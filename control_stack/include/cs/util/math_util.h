@@ -67,13 +67,26 @@ T AngleMod(T angle) {
 // Check if angle is between min and max angle, moving in a counterclockwise
 // direction from min_angle to max_angle.
 template <typename T>
-bool IsAngleBetween(T query, T min_angle, T max_angle) {
-  if (min_angle < max_angle) {
-    // No wrap around.
-    return (query <= max_angle) && (query >= min_angle);
-  }
+bool IsAngleBetween(T query, T start_angle, T end_angle,
+                    const int rotation_sign) {
+  NP_CHECK_VAL(rotation_sign == 1 || rotation_sign == -1 || rotation_sign == 0,
+               rotation_sign);
+  if (rotation_sign == 0) {
+    return (query == start_angle && start_angle == end_angle);
+  } else if (rotation_sign == 1) {
+    if (start_angle < end_angle) {
+      // No wrap around.
+      return (query <= end_angle) && (query >= start_angle);
+    }
 
-  return (query > min_angle) || (query < max_angle);
+    return (query > start_angle) || (query < end_angle);
+  } else {
+    // rotation_sign == -1
+    if (start_angle > end_angle) {
+      return (query <= start_angle) && (query >= end_angle);
+    }
+    return (query > end_angle) || (query < start_angle);
+  }
 }
 
 template <typename T>

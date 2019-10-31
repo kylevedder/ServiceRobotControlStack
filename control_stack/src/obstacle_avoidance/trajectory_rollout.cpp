@@ -15,18 +15,13 @@ float AchievedVelocityTime(const util::Pose& current_v,
 Eigen::Vector2f CircleCenter(const util::Pose& pose, const util::Pose& velocity,
                              const float& radius) {
   NP_FINITE(radius);
-  std::cout << "CircleCenter: " << velocity.tra.x() << ", " << velocity.rot
-            << std::endl;
   const int direction = math_util::Sign(velocity.rot);
   NP_FINITE(direction);
   const Eigen::Vector2f forward = geometry::Heading(pose.rot);
   NP_FINITE_2F(forward);
-  std::cout << "Forward: " << forward.x() << ", " << forward.y() << std::endl;
   const Eigen::Vector2f towards_center =
       (Eigen::Rotation2Df(kPi * direction / 2) * forward);
   NP_FINITE_2F(towards_center);
-  std::cout << "Towards center " << towards_center.x() << ", "
-            << towards_center.y() << std::endl;
   return pose.tra + towards_center * radius;
 }
 
@@ -157,9 +152,14 @@ bool TrajectoryRollout::IsColliding(const util::Wall& wall,
                              min_dist_threshold);
   }
 
+  const int rotation_sign = math_util::Sign(commanded_v.rot);
+  NP_CHECK_VAL(rotation_sign == 0 || rotation_sign == 1 || rotation_sign == -1,
+               rotation_sign);
+
   const float dist = geometry::MinDistanceLineArc(
       wall.p1, wall.p2, rotate_circle_center, rotate_circle_radius,
-      rotate_circle_achieved_vel_angle, rotate_circle_finale_pose_angle);
+      rotate_circle_achieved_vel_angle, rotate_circle_finale_pose_angle,
+      rotation_sign);
   NP_FINITE(dist);
   NP_CHECK_VAL(dist >= 0.0f, dist);
   return dist <= min_dist_threshold;

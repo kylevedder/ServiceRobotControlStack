@@ -281,15 +281,18 @@ template <typename T>
 T MinDistanceLineArc(const Eigen::Matrix<T, 2, 1>& l0,
                      const Eigen::Matrix<T, 2, 1>& l1,
                      const Eigen::Matrix<T, 2, 1>& a_center, const T& a_radius,
-                     T a_angle_min, T a_angle_max) {
+                     T a_angle_start, T a_angle_end, const int rotation_sign) {
+  static constexpr bool kDebug = false;
   NP_FINITE_2F(l0);
   NP_FINITE_2F(l1);
   NP_FINITE_2F(a_center);
-  NP_FINITE(a_angle_min);
-  NP_FINITE(a_angle_max);
+  NP_FINITE(a_angle_start);
+  NP_FINITE(a_angle_end);
   NP_CHECK(a_radius >= 0);
-  a_angle_min = AngleMod(a_angle_min);
-  a_angle_max = AngleMod(a_angle_max);
+  NP_CHECK_VAL(rotation_sign == 0 || rotation_sign == 1 || rotation_sign == -1,
+               rotation_sign);
+  a_angle_start = AngleMod(a_angle_start);
+  a_angle_end = AngleMod(a_angle_end);
   const auto proj_center_segment =
       ProjectPointOntoLineSegment(a_center, l0, l1);
   const auto proj_dir_segment = proj_center_segment - a_center;
@@ -300,13 +303,15 @@ T MinDistanceLineArc(const Eigen::Matrix<T, 2, 1>& l0,
   if (proj_dir_segment.squaredNorm() >= Sq(a_radius) ||
       (l0_dir.squaredNorm() < Sq(a_radius) &&
        l1_dir.squaredNorm() < Sq(a_radius))) {
-    std::cout
-        << "Out of the circle, tangent to circle, or completely in circle."
-        << std::endl;
+    if (kDebug) {
+      std::cout
+          << "Out of the circle, tangent to circle, or completely in circle."
+          << std::endl;
+    }
     // Out of the circle, tangent to circle, or completely in circle.
     const T angle = AngleMod(Angle<T>(proj_dir_segment));
     NP_FINITE(angle);
-    if (IsAngleBetween(angle, a_angle_min, a_angle_max)) {
+    if (IsAngleBetween(angle, a_angle_start, a_angle_end, rotation_sign)) {
       // Vector of the center projected onto line segment is in arc.
       const float distance_to_proj = (proj_dir_segment.norm() - a_radius);
       if (distance_to_proj >= 0) {
@@ -314,8 +319,8 @@ T MinDistanceLineArc(const Eigen::Matrix<T, 2, 1>& l0,
       }
     }
     // Vector of the center projected onto line segment is not in arc.
-    const auto a_angle_min_v = Heading(a_angle_min) * a_radius;
-    const auto a_angle_max_v = Heading(a_angle_max) * a_radius;
+    const auto a_angle_min_v = Heading(a_angle_start) * a_radius;
+    const auto a_angle_max_v = Heading(a_angle_end) * a_radius;
     NP_FINITE_2F(a_angle_min_v);
     NP_FINITE_2F(a_angle_max_v);
     return std::sqrt(
@@ -332,76 +337,153 @@ T MinDistanceLineArc(const Eigen::Matrix<T, 2, 1>& l0,
   NP_FINITE(along_line_dist);
 
   static const auto direction_line_intersects_arc =
-      [&proj_center_line, &along_line_dist, &a_angle_min,
-       &a_angle_max](const Eigen::Matrix<T, 2, 1>& direction_line) -> bool {
+      [](const Eigen::Matrix<T, 2, 1>& proj_center_line,
+         const T& along_line_dist, const T& a_angle_start, const T& a_angle_end,
+         const Eigen::Matrix<T, 2, 1>& a_center, const int& rotation_sign,
+         const Eigen::Matrix<T, 2, 1>& direction_line) -> bool {
+    NP_CHECK_VAL(
+        rotation_sign == 0 || rotation_sign == 1 || rotation_sign == -1,
+        rotation_sign);
     const auto circle_intersect_point =
         direction_line * along_line_dist + proj_center_line;
+    if (kDebug) {
+      std::cout << "Circle intersect point: " << circle_intersect_point.x()
+                << ", " << circle_intersect_point.y() << std::endl;
+    }
     NP_FINITE_2F(circle_intersect_point);
-    const T angle = AngleMod(Angle<T>(circle_intersect_point));
+    const T angle = AngleMod(Angle<T>(circle_intersect_point - a_center));
     NP_FINITE(angle);
-    return IsAngleBetween(angle, a_angle_min, a_angle_max);
+    if (kDebug) {
+      std::cout << "Query angle: " << angle << " Min angle: " << a_angle_start
+                << " Max angle: " << a_angle_end << " Sign: " << rotation_sign
+                << std::endl;
+      std::cout << "Is between: "
+                << (IsAngleBetween(angle, a_angle_start, a_angle_end,
+                                   rotation_sign)
+                        ? "true"
+                        : "false")
+                << std::endl;
+    }
+    return IsAngleBetween(angle, a_angle_start, a_angle_end, rotation_sign);
   };
 
   static const auto no_arc_intersect_min_distance =
-      [&a_angle_min, &a_angle_max, &a_radius, &l0, &l1]() -> float {
-    const auto a_angle_min_v = Heading(a_angle_min) * a_radius;
+      [](const Eigen::Matrix<T, 2, 1>& a_center, const T& a_angle_start,
+         const T& a_angle_end, const T& a_radius,
+         const Eigen::Matrix<T, 2, 1>& l0,
+         const Eigen::Matrix<T, 2, 1>& l1) -> float {
+    const auto a_angle_min_v = Heading(a_angle_start) * a_radius + a_center;
     NP_FINITE_2F(a_angle_min_v);
-    const auto a_angle_max_v = Heading(a_angle_max) * a_radius;
+    //    std::cout << "a_angle_min_v: " << a_angle_min_v.x() << ", "
+    //              << a_angle_min_v.y() << std::endl;
+    const auto a_angle_max_v = Heading(a_angle_end) * a_radius + a_center;
     NP_FINITE_2F(a_angle_max_v);
+    //    std::cout << "a_angle_max_v: " << a_angle_max_v.x() << ", "
+    //              << a_angle_max_v.y() << std::endl;
     const auto proj_a_angle_min_v =
         ProjectPointOntoLineSegment<T>(a_angle_min_v, l0, l1);
     NP_FINITE_2F(proj_a_angle_min_v);
+    //    std::cout << "proj_a_angle_min_v " << proj_a_angle_min_v.x() << ", "
+    //              << proj_a_angle_min_v.y() << std::endl;
     const auto proj_a_angle_max_v =
         ProjectPointOntoLineSegment<T>(a_angle_max_v, l0, l1);
     NP_FINITE_2F(proj_a_angle_max_v);
-    return std::sqrt(
-        std::min((proj_a_angle_min_v - a_angle_min_v).squaredNorm(),
-                 (proj_a_angle_max_v - a_angle_max_v).squaredNorm()));
+    //    std::cout << "proj_a_angle_max_v " << proj_a_angle_max_v.x() << ", "
+    //              << proj_a_angle_max_v.y() << std::endl;
+    const Eigen::Matrix<T, 2, 1> del_min_v = proj_a_angle_min_v - a_angle_min_v;
+    NP_FINITE_2F(del_min_v);
+    const T del_min_v_sq_norm = del_min_v.squaredNorm();
+    NP_FINITE(del_min_v_sq_norm);
+    const Eigen::Matrix<T, 2, 1> del_max_v = proj_a_angle_max_v - a_angle_max_v;
+    NP_FINITE_2F(del_max_v);
+    const T del_max_v_sq_norm = del_max_v.squaredNorm();
+    NP_FINITE(del_max_v_sq_norm);
+    if (kDebug) {
+      std::cout << "no_arc_intersect_min_distances: del_min_v "
+                << std::sqrt(del_min_v_sq_norm) << " " << del_min_v.norm()
+                << " del_max_v " << std::sqrt(del_max_v_sq_norm) << " "
+                << del_max_v.norm() << std::endl;
+    }
+    const T min_dist =
+        std::sqrt(std::min(del_min_v_sq_norm, del_max_v_sq_norm));
+    NP_FINITE(min_dist);
+    return min_dist;
   };
 
   // l0 inside the circle, l1 outside the circle.
   if (l0_dir.squaredNorm() < Sq(a_radius) &&
       l1_dir.squaredNorm() >= Sq(a_radius)) {
-    std::cout << "l0 inside the circle, l1 outside the circle." << std::endl;
+    if (kDebug) {
+      std::cout << "l0 inside the circle, l1 outside the circle." << std::endl;
+      std::cout << "l0: " << l0.x() << ", " << l0.y() << std::endl;
+      std::cout << "l1: " << l1.x() << ", " << l1.y() << std::endl;
+    }
     const auto direction_line =
         GetNormalizedOrZero(Eigen::Matrix<T, 2, 1>(l1 - l0));
     NP_FINITE_2F(direction_line);
-    if (direction_line_intersects_arc(direction_line)) {
+    if (direction_line_intersects_arc(proj_center_line, along_line_dist,
+                                      a_angle_start, a_angle_end, a_center,
+                                      rotation_sign, direction_line)) {
       // Arc intersects with line.
       return 0;
     }
 
-    return no_arc_intersect_min_distance();
+    return no_arc_intersect_min_distance(a_center, a_angle_start, a_angle_end,
+                                         a_radius, l0, l1);
   }
 
   // l1 inside the circle, l0 outside the circle.
   if (l0_dir.squaredNorm() >= Sq(a_radius) &&
       l1_dir.squaredNorm() < Sq(a_radius)) {
-    std::cout << "l1 inside the circle, l0 outside the circle." << std::endl;
+    if (kDebug) {
+      std::cout << "l1 inside the circle, l0 outside the circle." << std::endl;
+      std::cout << "l0: " << l0.x() << ", " << l0.y() << std::endl;
+      std::cout << "l1: " << l1.x() << ", " << l1.y() << std::endl;
+    }
     const auto direction_line =
         GetNormalizedOrZero(Eigen::Matrix<T, 2, 1>(l0 - l1));
     NP_FINITE_2F(direction_line);
-    if (direction_line_intersects_arc(direction_line)) {
+    if (direction_line_intersects_arc(proj_center_line, along_line_dist,
+                                      a_angle_start, a_angle_end, a_center,
+                                      rotation_sign, direction_line)) {
       // Arc intersects with line.
       return 0;
     }
-    return no_arc_intersect_min_distance();
+    return no_arc_intersect_min_distance(a_center, a_angle_start, a_angle_end,
+                                         a_radius, l0, l1);
   }
 
   // Both l0 and l1 are not in the circle, but the line goes through the circle.
-  std::cout << "Both l0 and l1 are not in the circle, but the line goes "
-               "through the circle."
-            << std::endl;
+  if (kDebug) {
+    std::cout << "Both l0 and l1 are not in the circle, but the line goes "
+                 "through the circle."
+              << std::endl;
+  }
   const auto direction_line =
       GetNormalizedOrZero(Eigen::Matrix<T, 2, 1>(l1 - l0));
   NP_FINITE_2F(direction_line);
-  if (direction_line_intersects_arc(direction_line) ||
-      direction_line_intersects_arc(-direction_line)) {
+
+  const bool positive_direction_intersect = direction_line_intersects_arc(
+      proj_center_line, along_line_dist, a_angle_start, a_angle_end, a_center,
+      rotation_sign, direction_line);
+  const bool negative_direction_intersect = direction_line_intersects_arc(
+      proj_center_line, along_line_dist, a_angle_start, a_angle_end, a_center,
+      rotation_sign, -direction_line);
+
+  if (positive_direction_intersect || negative_direction_intersect) {
     // Arc intersects with line.
+    if (kDebug) {
+      std::cout << "Arcs intersect" << std::endl;
+    }
     return 0;
   }
 
-  return no_arc_intersect_min_distance();
+  const T min_distance = no_arc_intersect_min_distance(
+      a_center, a_angle_start, a_angle_end, a_radius, l0, l1);
+  if (kDebug) {
+    std::cout << "Min distance: " << min_distance << std::endl;
+  }
+  return min_distance;
 }
 
 util::Pose FollowTrajectory(const util::Pose& pose_global_frame,

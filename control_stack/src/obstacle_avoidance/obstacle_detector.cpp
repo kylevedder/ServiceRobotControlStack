@@ -142,7 +142,7 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
 }
 
 void ObstacleDetector::DrawDynamic(ros::Publisher* pub) const {
-  ROS_INFO("Obstacle detector found: %zu obstacles", dynamic_walls_.size());
+  // ROS_INFO("Obstacle detector found: %zu obstacles", dynamic_walls_.size());
   pub->publish(
       visualization::DrawWalls(dynamic_walls_, "map", "dynamic_walls_ns"));
 }
