@@ -145,7 +145,7 @@ std::tuple<float, float, float> IndexToDistinctRBG(const size_t idx) {
        std::make_tuple(1, 0, 1), std::make_tuple(1, 1, 1),
        std::make_tuple(0.5, 0, 0)});
 
-  if (idx >= 0 && idx < color_lst.size()) {
+  if (idx < color_lst.size()) {
     return color_lst[idx];
   }
 
