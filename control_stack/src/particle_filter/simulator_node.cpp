@@ -120,9 +120,7 @@ util::Pose AddReadingOdomNoise(util::Pose move) {
   return move;
 }
 
-util::Pose CommandSpinCircle(const util::Pose& current_pose) {
-  return {{0.05f, 0}, -0.1f};
-}
+util::Pose CommandSpinCircle() { return {{0.05f, 0}, -0.1f}; }
 
 util::Pose DriveToPose(const util::Pose& current_pose,
                        const util::Pose& goal_pose) {

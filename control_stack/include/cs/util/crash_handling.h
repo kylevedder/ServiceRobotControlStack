@@ -50,7 +50,7 @@ std::string ExecuteCommand(const char* cmd) {
   return result;
 }
 
-void PrintStackTrace(FILE* file = stdout) {
+void PrintStackTrace() {
   static const int kMaxTraceDepth = 256;
   static const int kMaxStringLength = 4096;
   void* trace[kMaxTraceDepth];

@@ -150,8 +150,8 @@ TrajectoryRollout::TrajectoryRollout(const util::Pose& start_pose,
 
     NP_FINITE(rotate_circle_center.x());
     NP_FINITE(rotate_circle_center.y());
-    final_pose = RotateFinalPose(achieved_vel_pose, rotate_delta,
-                                 rotate_circle_radius);
+    final_pose =
+        RotateFinalPose(achieved_vel_pose, rotate_delta, rotate_circle_radius);
     NP_CHECK(final_pose.IsFinite());
   }
 }
