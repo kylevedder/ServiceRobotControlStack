@@ -1,9 +1,31 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(control_stack)
 
-set(CMAKE_CXX_COMPILER "clang++")
-set(CMAKE_C_COMPILER "clang")
-set(OPT_LEVEL "-O3")
+if(NOT ("" STREQUAL "${USER_CXX_COMPILER}"))
+    message("Setting custom C++ compiler! (${USER_CXX_COMPILER})")
+    set(CMAKE_CXX_COMPILER "${USER_CXX_COMPILER}")
+else()
+    message("Setting standard C++ compiler! (clang++)")
+    set(CMAKE_CXX_COMPILER "clang++")
+endif()
+
+if(NOT ("" STREQUAL "${USER_C_COMPILER}"))
+    message("Setting custom C compiler! (${USER_C_COMPILER})")
+    set(CMAKE_C_COMPILER "${USER_C_COMPILER}")
+else()
+    message("Setting standard C++ compiler! (clang)")
+    set(CMAKE_C_COMPILER "clang")
+endif()
+
+if(NOT ("" STREQUAL "${USER_OPT_LEVEL}"))
+    message("Setting custom optimization level! (${USER_OPT_LEVEL})")
+    set(OPT_LEVEL "${USER_OPT_LEVEL}")
+else()
+    message("Setting standard optimization level! (-O3)")
+    set(OPT_LEVEL "-O3")
+endif()
+
+
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror")
 
 message( "C++ Compiler: ${CMAKE_CXX_COMPILER}" )
