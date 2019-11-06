@@ -3,9 +3,14 @@ project(control_stack)
 
 set(CMAKE_CXX_COMPILER "clang++")
 set(CMAKE_C_COMPILER "clang")
+set(OPT_LEVEL "-O3")
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror")
+
+message( "C++ Compiler: ${CMAKE_CXX_COMPILER}" )
+message( "C Compiler: ${CMAKE_C_COMPILER}" )
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11 -g -Wall -Werror -O3)
+add_compile_options(-std=c++11 -g -Wall -Werror ${OPT_LEVEL})
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)

@@ -65,7 +65,7 @@ float RotationCircleRadius(const util::Pose& commanded_v) {
   return radius;
 }
 
-util::Pose RotateFinalPose(const util::Pose& start_pose, const float& time,
+util::Pose RotateFinalPose(const util::Pose& start_pose,
                            const float& rotate_radians, const float& radius) {
   const Eigen::Vector2f robot_frame_delta(
       math_util::Sin(fabs(rotate_radians)) * radius,
@@ -150,7 +150,7 @@ TrajectoryRollout::TrajectoryRollout(const util::Pose& start_pose,
 
     NP_FINITE(rotate_circle_center.x());
     NP_FINITE(rotate_circle_center.y());
-    final_pose = RotateFinalPose(achieved_vel_pose, rotate_time, rotate_delta,
+    final_pose = RotateFinalPose(achieved_vel_pose, rotate_delta,
                                  rotate_circle_radius);
     NP_CHECK(final_pose.IsFinite());
   }

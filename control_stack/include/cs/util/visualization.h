@@ -137,7 +137,7 @@ void DrawTrajectoryRollout(const cs::obstacle_avoidance::TrajectoryRollout& tr,
   }
 }
 
-std::tuple<float, float, float> IndexToDistinctRBG(const int idx) {
+std::tuple<float, float, float> IndexToDistinctRBG(const size_t idx) {
   static const std::vector<std::tuple<float, float, float>> color_lst(
       {std::make_tuple(0, 0, 0), std::make_tuple(1, 0, 0),
        std::make_tuple(0, 1, 0), std::make_tuple(0, 0, 1),
