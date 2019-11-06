@@ -1,9 +1,34 @@
-#include "geometry_msgs/Twist.h"
-#include "ros/ros.h"
-#include "sensor_msgs/LaserScan.h"
+// Copyright 2019 kvedder@seas.upenn.edu
+// School of Engineering and Applied Sciences,
+// University of Pennsylvania
+//
+//
+// This software is free: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License Version 3,
+// as published by the Free Software Foundation.
+//
+// This software is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// Version 3 in the file COPYING that came with this distribution.
+// If not, see <http://www.gnu.org/licenses/>.
+// ========================================================================
+#include <geometry_msgs/Twist.h>
+#include <ros/ros.h>
+#include <sensor_msgs/LaserScan.h>
+#include <tf/transform_broadcaster.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Geometry>
 
-#include "eigen3/Eigen/Core"
-#include "eigen3/Eigen/Geometry"
+#include <algorithm>
+#include <cmath>
+#include <random>
+#include <string>
+#include <vector>
 
 #include "cs/util/constants.h"
 #include "cs/util/geometry.h"
@@ -14,13 +39,6 @@
 #include "cs/util/visualization.h"
 
 #include "config_reader/config_reader.h"
-
-#include <tf/transform_broadcaster.h>
-#include <visualization_msgs/MarkerArray.h>
-
-#include <cmath>
-#include <random>
-#include <string>
 
 namespace sim {
 CONFIG_FLOAT(kLaserStdDev, "sim.kLaserStdDev");

@@ -1,5 +1,4 @@
 #pragma once
-
 // Copyright 2012, 2017 joydeepb@ri.cmu.edu
 // Robotics Institute, Carnegie Mellon University
 //
@@ -29,7 +28,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace util {

@@ -1,20 +1,36 @@
-#include "ros/ros.h"
+// Copyright 2019 kvedder@seas.upenn.edu
+// School of Engineering and Applied Sciences,
+// University of Pennsylvania
+//
+//
+// This software is free: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License Version 3,
+// as published by the Free Software Foundation.
+//
+// This software is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// Version 3 in the file COPYING that came with this distribution.
+// If not, see <http://www.gnu.org/licenses/>.
+// ========================================================================
+#include <ros/ros.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <eigen3/Eigen/Geometry>
 
-#include "cs/particle_filter/particle_filter.h"
-#include "cs/util/constants.h"
-
-#include "config_reader/config_reader.h"
-#include "cs/util/array_util.h"
-#include "cs/util/geometry.h"
-#include "cs/util/math_util.h"
-#include "cs/util/visualization.h"
-
-#include "visualization_msgs/MarkerArray.h"
-
+#include <algorithm>
 #include <iomanip>
 #include <limits>
 
-#include "eigen3/Eigen/Geometry"
+#include "config_reader/config_reader.h"
+#include "cs/particle_filter/particle_filter.h"
+#include "cs/util/array_util.h"
+#include "cs/util/constants.h"
+#include "cs/util/geometry.h"
+#include "cs/util/math_util.h"
+#include "cs/util/visualization.h"
 
 namespace pf {
 CONFIG_FLOAT(kLaserStdDev, "pf.kLaserStdDev");

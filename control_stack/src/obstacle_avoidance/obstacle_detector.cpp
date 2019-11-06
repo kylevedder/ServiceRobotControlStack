@@ -1,9 +1,27 @@
+// Copyright 2019 kvedder@seas.upenn.edu
+// School of Engineering and Applied Sciences,
+// University of Pennsylvania
+//
+//
+// This software is free: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License Version 3,
+// as published by the Free Software Foundation.
+//
+// This software is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// Version 3 in the file COPYING that came with this distribution.
+// If not, see <http://www.gnu.org/licenses/>.
+// ========================================================================
+#include <visualization_msgs/MarkerArray.h>
+#include <vector>
 
 #include "cs/obstacle_avoidance/obstacle_detector.h"
-
-#include <cs/util/visualization.h>
-#include <visualization_msgs/MarkerArray.h>
 #include "cs/util/laser_scan.h"
+#include "cs/util/visualization.h"
 
 namespace cs {
 namespace obstacle_avoidance {

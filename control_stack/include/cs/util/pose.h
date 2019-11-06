@@ -1,4 +1,22 @@
 #pragma once
+// Copyright 2019 kvedder@seas.upenn.edu
+// School of Engineering and Applied Sciences,
+// University of Pennsylvania
+//
+//
+// This software is free: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License Version 3,
+// as published by the Free Software Foundation.
+//
+// This software is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// Version 3 in the file COPYING that came with this distribution.
+// If not, see <http://www.gnu.org/licenses/>.
+// ========================================================================
 
 #include "eigen3/Eigen/Core"
 #include "eigen3/Eigen/Geometry"
@@ -12,7 +30,7 @@ namespace util {
 struct Pose {
   Eigen::Vector2f tra;
   float rot;
-  Pose() : tra(), rot(){};
+  Pose() : tra(), rot() {}
   explicit Pose(const geometry_msgs::Twist& twist)
       : tra(twist.linear.x, twist.linear.y), rot(twist.angular.z) {}
   explicit Pose(const geometry_msgs::Pose& pose)
@@ -22,13 +40,13 @@ struct Pose {
     const float cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z);
     rot = atan2(siny_cosp, cosy_cosp);
   }
-  Pose(const Eigen::Vector2f& tra, const float& rot) : tra(tra), rot(rot){};
+  Pose(const Eigen::Vector2f& tra, const float& rot) : tra(tra), rot(rot) {}
 
-  Pose(const float x, const float y, const float& rot) : tra(x, y), rot(rot){};
+  Pose(const float x, const float y, const float& rot) : tra(x, y), rot(rot) {}
 
   bool operator==(const Pose& other) const {
     return (tra == other.tra) && (rot == other.rot);
-  };
+  }
 
   bool operator!=(const Pose& other) const { return !(*this == other); }
 
@@ -71,10 +89,10 @@ struct Pose {
   }
 
   Eigen::Affine2f ToAffine() const {
-    Eigen::Affine2f transform(Eigen::Affine2f::Identity());
-    transform.translate(tra);
-    transform.rotate(rot);
-    return transform;
+    Eigen::Affine2f t(Eigen::Affine2f::Identity());
+    t.translate(tra);
+    t.rotate(rot);
+    return t;
   }
 
   bool IsFinite() const {

@@ -1,8 +1,7 @@
 #pragma once
-
-// Copyright 2017 - 2018 kvedder@umass.edu
-// College of Information and Computer Sciences,
-// University of Massachusetts Amherst
+// Copyright 2017 - 2019 kvedder@seas.upenn.edu
+// School of Engineering and Applied Sciences,
+// University of Pennsylvania
 //
 //
 // This software is free: you can redistribute it and/or modify

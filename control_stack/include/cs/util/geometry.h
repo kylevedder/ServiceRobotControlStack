@@ -1,9 +1,11 @@
 #pragma once
 // Copyright 2017 - 2018 joydeepb@cs.umass.edu, slane@cs.umass.edu,
-// kvedder@umass.edu
+// kvedder@seas.upenn.edu
 // College of Information and Computer Sciences,
 // University of Massachusetts Amherst
 //
+// School of Engineering and Applied Sciences,
+// University of Pennsylvania
 //
 // This software is free: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License Version 3,
@@ -19,12 +21,13 @@
 // If not, see <http://www.gnu.org/licenses/>.
 // ========================================================================
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <limits>
 #include <utility>
 
-#include "constants.h"
+#include "cs/util/constants.h"
 #include "cs/util/math_util.h"
 #include "cs/util/pose.h"
 #include "eigen3/Eigen/Dense"

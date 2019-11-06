@@ -1,10 +1,11 @@
 #pragma once
-
-// Copyright 2016 - 2018 kvedder@umass.edu, joydeepb@cs.umass.edu,
-// slane@cs.umass.edu
+// Copyright 2016 - 2019 kvedder@umass.edu, joydeepb@cs.umass.edu,
+// slane@cs.umass.edu, kvedder@seas.upenn.edu
 // College of Information and Computer Sciences,
 // University of Massachusetts Amherst
 //
+// School of Engineering and Applied Sciences,
+// University of Pennsylvania
 //
 // This software is free: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License Version 3,

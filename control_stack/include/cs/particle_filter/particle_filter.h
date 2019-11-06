@@ -1,4 +1,22 @@
 #pragma once
+// Copyright 2019 kvedder@seas.upenn.edu
+// School of Engineering and Applied Sciences,
+// University of Pennsylvania
+//
+//
+// This software is free: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License Version 3,
+// as published by the Free Software Foundation.
+//
+// This software is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// Version 3 in the file COPYING that came with this distribution.
+// If not, see <http://www.gnu.org/licenses/>.
+// ========================================================================
 #include <ros/ros.h>
 #include <array>
 #include <random>
@@ -28,7 +46,7 @@ class SensorModel {
   util::Map map_;
 
  public:
-  SensorModel(const util::Map& map);
+  explicit SensorModel(const util::Map& map);
   float GetProbability(const util::Pose& pose_global_frame,
                        const util::LaserScan& laser_scan,
                        util::LaserScan* filtered_laser_scan) const;
