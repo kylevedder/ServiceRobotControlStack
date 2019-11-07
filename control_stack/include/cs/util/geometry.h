@@ -43,8 +43,6 @@ using std::sqrt;
 
 namespace geometry {
 
-const float kEpsilon = 1e-6;
-
 // Returns a unit vector in the direction of the given angle.
 template <typename T>
 Eigen::Matrix<T, 2, 1> Heading(T angle) {

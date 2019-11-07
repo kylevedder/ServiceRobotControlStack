@@ -8,7 +8,7 @@ pf = {
   kInitX = 4;
   kInitY = 0;
   kInitTheta = 0;
-  kRobotRadius = 0.2;
+  kRobotRadius = 0.05;
   kCollisionRollout = 2;
 };
 

@@ -64,6 +64,7 @@ struct CallbackWrapper {
   // Debug pub/sub
   ros::Publisher particle_pub_;
   ros::Publisher map_pub_;
+  ros::Publisher detected_walls_pub_;
 
   CallbackWrapper() = delete;
 
@@ -84,6 +85,8 @@ struct CallbackWrapper {
       particle_pub_ =
           n->advertise<visualization_msgs::MarkerArray>("particles", 10);
       map_pub_ = n->advertise<visualization_msgs::Marker>("map", 10);
+      detected_walls_pub_ = n->advertise<visualization_msgs::MarkerArray>(
+          "detected_obstacles", 10);
     }
   }
 
@@ -91,7 +94,7 @@ struct CallbackWrapper {
     util::LaserScan laser(msg);
     particle_filter_.UpdateObservation(laser);
     const auto est_pose = particle_filter_.WeightedCentroid();
-    obstacle_detector_.UpdateObservation(est_pose, laser);
+    obstacle_detector_.UpdateObservation(est_pose, laser, &detected_walls_pub_);
     ROS_INFO("Laser update. Est pose: (%f, %f), %f", est_pose.tra.x(),
              est_pose.tra.y(), est_pose.rot);
     CommandVelocity({1, 0, 0});
