@@ -54,6 +54,7 @@ struct CallbackWrapper {
   cs::localization::ParticleFilter particle_filter_;
   cs::obstacle_avoidance::ObstacleDetector obstacle_detector_;
   ros::Time last_odom_update_;
+  tf::TransformBroadcaster br_;
 
   // Functionality pub/sub
   ros::Publisher velocity_pub_;
@@ -62,6 +63,7 @@ struct CallbackWrapper {
 
   // Debug pub/sub
   ros::Publisher particle_pub_;
+  ros::Publisher map_pub_;
 
   CallbackWrapper() = delete;
 
@@ -81,6 +83,7 @@ struct CallbackWrapper {
     if (kDebug) {
       particle_pub_ =
           n->advertise<visualization_msgs::MarkerArray>("particles", 10);
+      map_pub_ = n->advertise<visualization_msgs::Marker>("map", 10);
     }
   }
 
@@ -92,6 +95,7 @@ struct CallbackWrapper {
     ROS_INFO("Laser update. Est pose: (%f, %f), %f", est_pose.tra.x(),
              est_pose.tra.y(), est_pose.rot);
     CommandVelocity({1, 0, 0});
+    PublishTransforms();
     if (kDebug) {
       particle_filter_.DrawParticles(&particle_pub_);
     }
@@ -111,6 +115,7 @@ struct CallbackWrapper {
     particle_filter_.UpdateOdom(delta.tra.x(), delta.rot);
     if (kDebug) {
       particle_filter_.DrawParticles(&particle_pub_);
+      map_pub_.publish(map_.ToMarker());
     }
     last_odom_update_ = current_time;
     obstacle_detector_.UpdateOdom(particle_filter_.WeightedCentroid(),
@@ -123,6 +128,24 @@ struct CallbackWrapper {
     velocity_pub_.publish(safe_cmd.ToTwist());
     ROS_INFO("Command (%f, %f), %f sent", safe_cmd.tra.x(), safe_cmd.tra.y(),
              safe_cmd.rot);
+  }
+
+  void PublishTransforms() {
+    br_.sendTransform(tf::StampedTransform(
+        tf::Transform::getIdentity(), ros::Time::now(), "laser", "base_link"));
+
+    const util::Pose current_pose = particle_filter_.WeightedCentroid();
+    NP_FINITE_2F(current_pose.tra);
+    NP_FINITE(current_pose.rot);
+    tf::Transform transform;
+    transform.setOrigin(
+        tf::Vector3(current_pose.tra.x(), current_pose.tra.y(), 0.0));
+    tf::Quaternion q;
+    q.setRPY(0, 0, current_pose.rot);
+    transform.setRotation(q);
+    br_.sendTransform(tf::StampedTransform(
+        transform.inverse(), ros::Time::now(), "base_link", "map"));
+    ROS_INFO("Transforms published!");
   }
 };
 

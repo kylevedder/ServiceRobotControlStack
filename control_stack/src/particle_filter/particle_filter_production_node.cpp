@@ -178,7 +178,7 @@ int main(int argc, char** argv) {
   util::PrintCurrentWorkingDirectory();
   config_reader::ConfigReader reader(
       {"src/ParticleFilterCpp/particle_filter/config/"
-       "pf_production_config.lua"});
+       "pf_sim_config.lua"});
   ros::init(argc, argv, "particle_filter", ros::init_options::NoSigintHandler);
 
   if (signal(SIGINT, util::crash::FatalSignalHandler) == SIG_ERR) {

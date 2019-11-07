@@ -18,8 +18,8 @@
 // If not, see <http://www.gnu.org/licenses/>.
 // ========================================================================
 
-#include "eigen3/Eigen/Core"
-#include "eigen3/Eigen/Geometry"
+#include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Geometry>
 
 #include "cs/util/math_util.h"
 #include "geometry_msgs/Point.h"
@@ -92,6 +92,13 @@ struct Pose {
     Eigen::Affine2f t(Eigen::Affine2f::Identity());
     t.translate(tra);
     t.rotate(rot);
+    return t;
+  }
+
+  Eigen::Affine3f ToAffine3f() const {
+    Eigen::Affine3f t(Eigen::Affine3f::Identity());
+    t.translate(Eigen::Vector3f(tra.x(), tra.y(), 0));
+    t.rotate(Eigen::AngleAxisf(rot, Eigen::Vector3f::UnitZ()));
     return t;
   }
 

@@ -20,7 +20,6 @@
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
 #include <sensor_msgs/LaserScan.h>
-#include <tf/transform_broadcaster.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Geometry>
@@ -71,7 +70,7 @@ sensor_msgs::LaserScan MakeScan(const util::Pose& robot_pose,
   std::normal_distribution<> noise_dist(0.0f, noise_stddev);
 
   sensor_msgs::LaserScan scan;
-  scan.header = MakeHeader("base_link");
+  scan.header = MakeHeader("laser");
   scan.angle_min = kMinAngle;
   scan.angle_max = kMaxAngle;
   scan.angle_increment = kAngleDelta;
@@ -90,18 +89,6 @@ sensor_msgs::LaserScan MakeScan(const util::Pose& robot_pose,
   }
 
   return scan;
-}
-
-void PublishTransforms(const util::Pose& current_pose) {
-  static tf::TransformBroadcaster br;
-  tf::Transform transform;
-  transform.setOrigin(
-      tf::Vector3(current_pose.tra.x(), current_pose.tra.y(), 0.0));
-  tf::Quaternion q;
-  q.setRPY(0, 0, current_pose.rot);
-  transform.setRotation(q);
-  br.sendTransform(
-      tf::StampedTransform(transform, ros::Time::now(), "map", "base_link"));
 }
 
 util::Pose AddExecutionOdomNoise(util::Pose move) {
@@ -166,14 +153,12 @@ int main(int argc, char** argv) {
     current_pose = geometry::FollowTrajectory(
         current_pose, executed_move.tra.x(), executed_move.rot);
 
-    PublishTransforms(current_pose);
     scan_pub.publish(MakeScan(current_pose, map, sim::kLaserStdDev));
     nav_msgs::Odometry odom_msg;
     odom_msg.header = MakeHeader("base_link");
     odom_msg.twist.twist = (reported_move * kLoopRate).ToTwist();
     odom_pub.publish(odom_msg);
     initial_pose_pub.publish(current_pose.ToTwist());
-    map_pub.publish(map.ToMarker());
     visualization_msgs::MarkerArray arr;
     visualization::DrawPose(current_pose, "map", "true_pose_vis", 1, 1, 1, 1,
                             &arr);

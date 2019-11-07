@@ -39,15 +39,17 @@ add_compile_options(-std=c++11 -g -Wall -Werror ${OPT_LEVEL})
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   tf
+  tf_conversions
   roscpp
   rospy
   rosbag
   std_msgs
 )
 
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-
+find_package(Eigen3 REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -138,7 +140,7 @@ catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES control_stack
 #  CATKIN_DEPENDS roscpp rospy std_msgs
-#  DEPENDS system_lib
+  DEPENDS Eigen3
 )
 
 ###########
@@ -151,6 +153,7 @@ include_directories(
   include
   ../config_reader/include
   ${catkin_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library

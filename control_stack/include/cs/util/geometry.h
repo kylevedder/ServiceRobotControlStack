@@ -21,6 +21,9 @@
 // If not, see <http://www.gnu.org/licenses/>.
 // ========================================================================
 
+#include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/Geometry>
+
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -30,8 +33,6 @@
 #include "cs/util/constants.h"
 #include "cs/util/math_util.h"
 #include "cs/util/pose.h"
-#include "eigen3/Eigen/Dense"
-#include "eigen3/Eigen/Geometry"
 
 using math_util::AngleMod;
 using math_util::Cos;

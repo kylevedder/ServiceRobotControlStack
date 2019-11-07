@@ -17,6 +17,11 @@
 // Version 3 in the file COPYING that came with this distribution.
 // If not, see <http://www.gnu.org/licenses/>.
 // ========================================================================
+
+#include <tf_conversions/tf_eigen.h>
+#include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Geometry>
+
 #include <unistd.h>
 #include <iostream>
 
@@ -29,6 +34,12 @@ void PrintCurrentWorkingDirectory() {
   } else {
     std::cerr << "Error calling getcwd()" << std::endl;
   }
+}
+
+tf::Transform EigenAffineToTFTransform(const Eigen::Affine3f& aff) {
+  tf::Transform tf = tf::Transform::getIdentity();
+  tf::transformEigenToTF(aff.cast<double>(), tf);
+  return tf;
 }
 
 }  // namespace util
