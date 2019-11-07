@@ -36,7 +36,7 @@ static constexpr float kMaxReading = 5.0f;
 
 static constexpr auto kCommandVelocityTopic = "/mobile_base/commands/velocity";
 static constexpr auto kOdomTopic = "/odom";
-static constexpr auto kLaserTopic = "/laser";
+static constexpr auto kLaserTopic = "/scan";
 
 #define CHECK(exp)                                                      \
   if (!(exp)) {                                                         \
