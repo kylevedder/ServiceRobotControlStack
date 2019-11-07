@@ -208,27 +208,32 @@ const std::vector<util::Wall>& ObstacleDetector::GetDynamicWalls() const {
 bool ObstacleDetector::IsCommandColliding(const util::Pose& commanded_velocity,
                                           const float rollout_duration,
                                           const float robot_radius) const {
+  static constexpr bool kDebug = false;
   const TrajectoryRollout tr(current_pose_, current_velocity_,
                              commanded_velocity, rollout_duration);
   for (const auto& w : dynamic_walls_) {
     if (tr.IsColliding(w, robot_radius)) {
-      ROS_INFO("Current command: (%f, %f), %f", commanded_velocity.tra.x(),
-               commanded_velocity.tra.y(), commanded_velocity.rot);
-      ROS_INFO("End pose: (%f, %f), %f", tr.final_pose.tra.x(),
-               tr.final_pose.tra.y(), tr.final_pose.rot);
-      ROS_INFO("Colliding with observed wall: (%f, %f) <-> (%f, %f)", w.p1.x(),
-               w.p1.y(), w.p2.x(), w.p2.y());
+      if (kDebug) {
+        ROS_INFO("Current command: (%f, %f), %f", commanded_velocity.tra.x(),
+                 commanded_velocity.tra.y(), commanded_velocity.rot);
+        ROS_INFO("End pose: (%f, %f), %f", tr.final_pose.tra.x(),
+                 tr.final_pose.tra.y(), tr.final_pose.rot);
+        ROS_INFO("Colliding with observed wall: (%f, %f) <-> (%f, %f)",
+                 w.p1.x(), w.p1.y(), w.p2.x(), w.p2.y());
+      }
       return true;
     }
   }
   for (const auto& w : map_.walls) {
     if (tr.IsColliding(w, robot_radius)) {
-      ROS_INFO("Current command: (%f, %f), %f", commanded_velocity.tra.x(),
-               commanded_velocity.tra.y(), commanded_velocity.rot);
-      ROS_INFO("End pose: (%f, %f), %f", tr.final_pose.tra.x(),
-               tr.final_pose.tra.y(), tr.final_pose.rot);
-      ROS_INFO("Colliding with map wall: (%f, %f) <-> (%f, %f)", w.p1.x(),
-               w.p1.y(), w.p2.x(), w.p2.y());
+      if (kDebug) {
+        ROS_INFO("Current command: (%f, %f), %f", commanded_velocity.tra.x(),
+                 commanded_velocity.tra.y(), commanded_velocity.rot);
+        ROS_INFO("End pose: (%f, %f), %f", tr.final_pose.tra.x(),
+                 tr.final_pose.tra.y(), tr.final_pose.rot);
+        ROS_INFO("Colliding with map wall: (%f, %f) <-> (%f, %f)", w.p1.x(),
+                 w.p1.y(), w.p2.x(), w.p2.y());
+      }
       return true;
     }
   }
@@ -238,12 +243,15 @@ bool ObstacleDetector::IsCommandColliding(const util::Pose& commanded_velocity,
 util::Pose ObstacleDetector::MakeCommandSafe(
     const util::Pose& commanded_velocity, const float rollout_duration,
     const float robot_radius) {
-  ROS_INFO("Current position: (%f, %f), %f", current_pose_.tra.x(),
-           current_pose_.tra.y(), current_pose_.rot);
-  ROS_INFO("Current velocity: (%f, %f), %f", current_velocity_.tra.x(),
-           current_velocity_.tra.y(), current_velocity_.rot);
-  ROS_INFO("Current command: (%f, %f), %f", commanded_velocity.tra.x(),
-           commanded_velocity.tra.y(), commanded_velocity.rot);
+  static constexpr bool kDebug = false;
+  if (kDebug) {
+    ROS_INFO("Current position: (%f, %f), %f", current_pose_.tra.x(),
+             current_pose_.tra.y(), current_pose_.rot);
+    ROS_INFO("Current velocity: (%f, %f), %f", current_velocity_.tra.x(),
+             current_velocity_.tra.y(), current_velocity_.rot);
+    ROS_INFO("Current command: (%f, %f), %f", commanded_velocity.tra.x(),
+             commanded_velocity.tra.y(), commanded_velocity.rot);
+  }
   if (!IsCommandColliding(commanded_velocity, rollout_duration, robot_radius)) {
     return commanded_velocity;
   }

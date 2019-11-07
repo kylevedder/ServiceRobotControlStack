@@ -91,7 +91,7 @@ struct CallbackWrapper {
     obstacle_detector_.UpdateObservation(est_pose, laser);
     ROS_INFO("Laser update. Est pose: (%f, %f), %f", est_pose.tra.x(),
              est_pose.tra.y(), est_pose.rot);
-    CommandVelocity();
+    CommandVelocity({1, 0, 0});
     if (kDebug) {
       particle_filter_.DrawParticles(&particle_pub_);
     }
@@ -102,10 +102,7 @@ struct CallbackWrapper {
     ROS_INFO("Odom update");
     if (last_odom_update_ == ros::Time(0) ||
         last_odom_update_.toSec() >= current_time.toSec()) {
-      ROS_INFO("Last time: %f", last_odom_update_.toSec());
-      ROS_INFO("Current time: %f", current_time.toSec());
       last_odom_update_ = current_time;
-      ROS_INFO("Odom exit early");
       return;
     }
     const util::Pose velocity(msg.twist.twist);
@@ -120,8 +117,7 @@ struct CallbackWrapper {
                                   velocity);
   }
 
-  void CommandVelocity() {
-    const util::Pose desired_command(1, 0, 0);
+  void CommandVelocity(const util::Pose& desired_command) {
     const util::Pose safe_cmd = obstacle_detector_.MakeCommandSafe(
         desired_command, 2, params::kRobotRadius);
     velocity_pub_.publish(safe_cmd.ToTwist());
