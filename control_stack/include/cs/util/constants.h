@@ -34,6 +34,10 @@ static constexpr float kAngleDelta =
 static constexpr float kMinReading = 0.1f;
 static constexpr float kMaxReading = 5.0f;
 
+static constexpr auto kCommandVelocityTopic = "/mobile_base/commands/velocity";
+static constexpr auto kOdomTopic = "/odom";
+static constexpr auto kLaserTopic = "/laser";
+
 #define CHECK(exp)                                                      \
   if (!(exp)) {                                                         \
     std::cerr << __FILE__ << ":" << __LINE__ << " Assertion \"" << #exp \

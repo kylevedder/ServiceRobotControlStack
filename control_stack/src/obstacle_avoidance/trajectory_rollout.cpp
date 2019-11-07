@@ -18,6 +18,8 @@
 // ========================================================================
 #include "cs/obstacle_avoidance/trajectory_rollout.h"
 
+#include <algorithm>
+
 #include "cs/util/geometry.h"
 #include "cs/util/map.h"
 
@@ -60,8 +62,9 @@ float RotationCircleRadius(const util::Pose& commanded_v) {
   const float linear_speed = commanded_v.tra.x();  // m/s
   const float rot_speed = fabs(commanded_v.rot);   // rad / s
   NP_CHECK(fabs(commanded_v.rot) >= kEpsilon);
-  const float radius = linear_speed / rot_speed;
+  const float radius = fabs(linear_speed) / rot_speed;
   NP_FINITE(radius);
+  NP_CHECK_VAL(radius >= 0, radius);
   return radius;
 }
 
@@ -120,9 +123,9 @@ TrajectoryRollout::TrajectoryRollout(const util::Pose& start_pose,
   const float rotate_time = rollout_duration - achieved_vel_time;
   NP_FINITE(rotate_time);
 
-  if (fabs(commanded_v.rot) < kMinRotatonRadSec) {
+  if (fabs(commanded_v.rot) < kMinRotatonRadSec || rotate_time <= 0) {
     // Handle small rotation case where numerically unstable.
-    const float delta_dist = commanded_v.tra.x() * rotate_time;
+    const float delta_dist = commanded_v.tra.x() * std::max(rotate_time, 0.0f);
     rotate_circle_center = achieved_vel_pose.tra;
     rotate_circle_radius = 0;
     final_pose =
@@ -136,8 +139,10 @@ TrajectoryRollout::TrajectoryRollout(const util::Pose& start_pose,
     // Handle general case which is numerically stable.
     NP_FINITE(commanded_v.rot);
     NP_FINITE(rotate_time);
+    NP_CHECK_VAL(rotate_time >= 0, rotate_time);
     rotate_circle_radius = RotationCircleRadius(commanded_v);
     NP_FINITE(rotate_circle_radius);
+    NP_CHECK_VAL(rotate_circle_radius >= 0, rotate_circle_radius);
     rotate_circle_center =
         CircleCenter(achieved_vel_pose, commanded_v, rotate_circle_radius);
     rotate_circle_achieved_vel_angle = math_util::AngleMod(
@@ -174,6 +179,7 @@ bool TrajectoryRollout::IsColliding(const util::Wall& wall,
   NP_CHECK_VAL(rotation_sign == 0 || rotation_sign == 1 || rotation_sign == -1,
                rotation_sign);
 
+  NP_CHECK_VAL(rotate_circle_radius >= 0, rotate_circle_radius);
   const float dist = geometry::MinDistanceLineArc(
       wall.p1, wall.p2, rotate_circle_center, rotate_circle_radius,
       rotate_circle_achieved_vel_angle, rotate_circle_finale_pose_angle,

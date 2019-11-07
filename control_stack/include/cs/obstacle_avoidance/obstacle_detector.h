@@ -18,6 +18,7 @@
 // If not, see <http://www.gnu.org/licenses/>.
 // ========================================================================
 #include <ros/ros.h>
+#include <random>
 #include <vector>
 
 #include "cs/util/laser_scan.h"
@@ -33,12 +34,24 @@ class ObstacleDetector {
   explicit ObstacleDetector(util::Map const& map);
 
   void UpdateObservation(const util::Pose& observation_pose,
+                         const util::LaserScan& observation);
+  void UpdateObservation(const util::Pose& observation_pose,
                          const util::LaserScan& observation,
                          ros::Publisher* pub);
+
+  void UpdateOdom(const util::Pose& pose, const util::Pose& velocity);
 
   void DrawDynamic(ros::Publisher* pub) const;
 
   const std::vector<util::Wall>& GetDynamicWalls() const;
+
+  bool IsCommandColliding(const util::Pose& commanded_velocity,
+                          const float rollout_duration,
+                          const float robot_radius) const;
+
+  util::Pose MakeCommandSafe(const util::Pose& commanded_velocity,
+                             const float rollout_duration,
+                             const float robot_radius);
 
  private:
   std::vector<Eigen::Vector2f> GetNonMapPoints(
@@ -47,6 +60,9 @@ class ObstacleDetector {
 
   util::Map map_;
   std::vector<util::Wall> dynamic_walls_;
+  util::Pose current_pose_;
+  util::Pose current_velocity_;
+  std::mt19937 random_gen_;
 };
 
 }  // namespace obstacle_avoidance

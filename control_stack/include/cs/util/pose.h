@@ -30,7 +30,7 @@ namespace util {
 struct Pose {
   Eigen::Vector2f tra;
   float rot;
-  Pose() : tra(), rot() {}
+  Pose() : tra(0, 0), rot(0) {}
   explicit Pose(const geometry_msgs::Twist& twist)
       : tra(twist.linear.x, twist.linear.y), rot(twist.angular.z) {}
   explicit Pose(const geometry_msgs::Pose& pose)

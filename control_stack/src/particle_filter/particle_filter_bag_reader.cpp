@@ -33,7 +33,7 @@
 
 struct ParticleFilterWrapper {
   std::string error_file;
-  localization::ParticleFilter particle_filter;
+  cs::localization::ParticleFilter particle_filter;
   util::Pose ground_truth;
 
   ParticleFilterWrapper() = delete;

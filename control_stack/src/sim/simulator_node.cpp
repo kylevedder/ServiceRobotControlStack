@@ -17,6 +17,7 @@
 // If not, see <http://www.gnu.org/licenses/>.
 // ========================================================================
 #include <geometry_msgs/Twist.h>
+#include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
 #include <sensor_msgs/LaserScan.h>
 #include <tf/transform_broadcaster.h>
@@ -46,7 +47,10 @@ CONFIG_FLOAT(kArcExecStdDev, "sim.kArcExecStdDev");
 CONFIG_FLOAT(kArcReadStdDev, "sim.kArcReadStdDev");
 CONFIG_FLOAT(kRotateExecStdDev, "sim.kRotateExecStdDev");
 CONFIG_FLOAT(kRotateReadStdDev, "sim.kRotateReadStdDev");
-
+CONFIG_FLOAT(kStartPositionX, "sim.kStartPositionX");
+CONFIG_FLOAT(kStartPositionY, "sim.kStartPositionY");
+CONFIG_FLOAT(kStartPositionTheta, "sim.kStartPositionTheta");
+CONFIG_STRING(kMap, "sim.kMap");
 }  // namespace sim
 
 // std::random_device rd;
@@ -120,92 +124,13 @@ util::Pose AddReadingOdomNoise(util::Pose move) {
   return move;
 }
 
-util::Pose CommandSpinCircle() { return {{0.05f, 0}, -0.1f}; }
+util::Pose commanded_velocity;
 
-util::Pose DriveToPose(const util::Pose& current_pose,
-                       const util::Pose& goal_pose) {
-  static constexpr bool kDebug = false;
-  const util::Pose delta = goal_pose - current_pose;
-  static float kMinRotationalErrorToHalt = kPi / 4;
-  static float kRotP = 0.5f;
-  static float kMaxRot = 0.1f;
-  static float kTraP = 0.5f;
-  static float kMaxTra = 0.1f;
-  static float kTraHaltThreshold = 0.25f;
-  static float kTraRotThreshold = 0.1f;
-
-  // At goal translationally and rotationally.
-  if (delta.tra.squaredNorm() < Sq(kTraHaltThreshold) &&
-      fabs(delta.rot) < kTraRotThreshold) {
-    if (kDebug) {
-      ROS_INFO("Drive complete!");
-    }
-    return {{0, 0}, 0};
-  }
-
-  // At goal translationally but not rotationally.
-  if (delta.tra.squaredNorm() < Sq(kTraHaltThreshold)) {
-    if (kDebug) {
-      ROS_INFO("Rotate to final!");
-    }
-    const float rot_cmd =
-        math_util::Sign(delta.rot) * std::min(kMaxRot, fabs(delta.rot) * kRotP);
-    return {{0, 0}, rot_cmd};
-  }
-
-  const Eigen::Vector2f current_to_goal_norm = delta.tra.normalized();
-  const float desired_angle = math_util::AngleMod(
-      atan2(current_to_goal_norm.y(), current_to_goal_norm.x()));
-  const float angle_to_goal = std::min(
-      math_util::AngleMod(desired_angle - current_pose.rot),
-      math_util::AngleMod(math_util::AngleMod(desired_angle + kPi) -
-                          math_util::AngleMod(current_pose.rot + kPi)));
-  if (kDebug) {
-    ROS_INFO("Desired angle %f  Current Angle %f, Angle to goal: %f",
-             desired_angle, current_pose.rot, angle_to_goal);
-  }
-
-  const float rot_cmd = math_util::Sign(angle_to_goal) *
-                        std::min(kMaxRot, fabs(angle_to_goal) * kRotP);
-
-  // If angle is too far away to correct while moving.
-  if (fabs(angle_to_goal) > kMinRotationalErrorToHalt) {
-    if (kDebug) {
-      ROS_INFO("Correct angle to drive!");
-    }
-    return {{0, 0}, rot_cmd};
-  }
-
-  const Eigen::Vector2f tra_cmd = [&delta]() -> Eigen::Vector2f {
-    const Eigen::Vector2f uncapped_tra_cmd =
-        Eigen::Rotation2Df(-delta.rot) * (delta.tra * kTraP);
-    if (uncapped_tra_cmd.squaredNorm() > Sq(kMaxTra)) {
-      return {kMaxTra, 0};
-    }
-    return {fabs(uncapped_tra_cmd.x()), 0};
-  }();
-  if (kDebug) {
-    ROS_INFO("Drive to goal!");
-  }
-  return {tra_cmd, rot_cmd};
-}
-
-util::Pose CommandPointsLoop(const util::Pose& current_pose,
-                             const std::vector<util::Pose>& waypoints) {
-  NP_CHECK(!waypoints.empty());
-  static size_t current_waypoint_idx = 0;
-  current_waypoint_idx = current_waypoint_idx % waypoints.size();
-  const util::Pose& current_waypoint = waypoints.at(current_waypoint_idx);
-  const util::Pose cmd = DriveToPose(current_pose, current_waypoint);
-  if (cmd != util::Pose({0, 0}, 0)) {
-    return cmd;
-  }
-  current_waypoint_idx = (current_waypoint_idx + 1) % waypoints.size();
-  return DriveToPose(current_pose, waypoints.at(current_waypoint_idx));
+void CommandedVelocityCallback(const geometry_msgs::Twist& nv) {
+  commanded_velocity = util::Pose(nv);
 }
 
 int main(int argc, char** argv) {
-  CONFIG_STRING(kMap, "sim.kMap");
   util::PrintCurrentWorkingDirectory();
   config_reader::ConfigReader reader(
       {"src/ServiceRobotControlStack/control_stack/config/pf_sim_config.lua",
@@ -216,34 +141,37 @@ int main(int argc, char** argv) {
 
   ros::Publisher initial_pose_pub =
       n.advertise<geometry_msgs::Twist>("true_pose", 1);
-  ros::Publisher scan_pub = n.advertise<sensor_msgs::LaserScan>("laser", 10);
-  ros::Publisher odom_pub = n.advertise<geometry_msgs::Twist>("odom", 10);
+  ros::Publisher scan_pub =
+      n.advertise<sensor_msgs::LaserScan>(kLaserTopic, 10);
+  ros::Publisher odom_pub = n.advertise<nav_msgs::Odometry>(kOdomTopic, 10);
   ros::Publisher map_pub = n.advertise<visualization_msgs::Marker>("map", 10);
   ros::Publisher initial_pose_vis_pub =
       n.advertise<visualization_msgs::MarkerArray>("true_pose_vis", 1);
 
-  ros::Rate loop_rate(10);
+  ros::Subscriber command_sub =
+      n.subscribe(kCommandVelocityTopic, 10, &CommandedVelocityCallback);
 
-  const util::Map map(kMap);
-  const std::vector<util::Pose> waypoints = {
-      {{3.5, -3.5}, kPi},
-      {{-3.5, -3.5}, kPi / 2},
-      {{-3.5, 3.5}, 0},
-      {{3.5, 3.5}, -kPi / 2},
-  };
+  static constexpr float kLoopRate = 10;
 
-  util::Pose current_pose = waypoints.front();
+  ros::Rate loop_rate(kLoopRate);
+
+  const util::Map map(sim::kMap);
+  util::Pose current_pose(sim::kStartPositionX, sim::kStartPositionY,
+                          sim::kStartPositionTheta);
 
   while (ros::ok()) {
-    const util::Pose desired_move = CommandPointsLoop(current_pose, waypoints);
-    const util::Pose executed_move = AddExecutionOdomNoise(desired_move);
+    const util::Pose executed_move =
+        AddExecutionOdomNoise(commanded_velocity / kLoopRate);
     const util::Pose reported_move = AddReadingOdomNoise(executed_move);
     current_pose = geometry::FollowTrajectory(
         current_pose, executed_move.tra.x(), executed_move.rot);
 
     PublishTransforms(current_pose);
     scan_pub.publish(MakeScan(current_pose, map, sim::kLaserStdDev));
-    odom_pub.publish(reported_move.ToTwist());
+    nav_msgs::Odometry odom_msg;
+    odom_msg.header = MakeHeader("base_link");
+    odom_msg.twist.twist = (reported_move * kLoopRate).ToTwist();
+    odom_pub.publish(odom_msg);
     initial_pose_pub.publish(current_pose.ToTwist());
     map_pub.publish(map.ToMarker());
     visualization_msgs::MarkerArray arr;

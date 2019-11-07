@@ -39,6 +39,7 @@ CONFIG_FLOAT(kRotateStdDev, "pf.kRotateStdDev");
 CONFIG_FLOAT(kTemporalConsistencyWeight, "pf.kTemporalConsistencyWeight");
 }  // namespace pf
 
+namespace cs {
 namespace localization {
 
 MotionModel::MotionModel() : rd_(), gen_(0) {}
@@ -293,6 +294,10 @@ void ParticleFilter::ResampleParticles() {
   particles_ = resampled_particles;
 }
 
+void ParticleFilter::UpdateObservation(const util::LaserScan& laser_scan) {
+  return UpdateObservation(laser_scan, nullptr);
+}
+
 void ParticleFilter::UpdateObservation(const util::LaserScan& laser_scan,
                                        ros::Publisher* sampled_scan_pub) {
   if (!initialized_) {
@@ -374,3 +379,4 @@ void ParticleFilter::DrawParticles(ros::Publisher* particle_pub) const {
   particle_pub->publish(particle_markers);
 }
 }  // namespace localization
+}  // namespace cs

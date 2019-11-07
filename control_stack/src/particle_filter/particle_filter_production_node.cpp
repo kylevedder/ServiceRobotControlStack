@@ -39,7 +39,7 @@
 
 struct ParticleFilterWrapper {
   util::Map map;
-  localization::ParticleFilter particle_filter;
+  cs::localization::ParticleFilter particle_filter;
 
   double last_odom_update_;
 
@@ -126,8 +126,8 @@ struct ParticleFilterWrapper {
         wc.tra + Eigen::Rotation2Df(wc.rot) * offset_tra, rotation + wc.rot);
     visualization::DrawPose(global_reference, "map", "reference", 1, 1, 1, 1,
                             &ref_arr, 0.1);
-    ref_arr.markers.push_back(
-        visualization::ToLineList(laser, wc, map, "map", "obs", 1, 0, 0, 1));
+    ref_arr.markers.push_back(visualization::LaserToLineList(
+        laser, wc, map, "map", "obs", 1, 0, 0, 1));
     reference_pub.publish(ref_arr);
   }
 

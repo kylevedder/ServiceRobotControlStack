@@ -291,7 +291,7 @@ T MinDistanceLineArc(const Eigen::Matrix<T, 2, 1>& l0,
   NP_FINITE_2F(a_center);
   NP_FINITE(a_angle_start);
   NP_FINITE(a_angle_end);
-  NP_CHECK(a_radius >= 0);
+  NP_CHECK_VAL(a_radius >= 0, a_radius);
   NP_CHECK_VAL(rotation_sign == 0 || rotation_sign == 1 || rotation_sign == -1,
                rotation_sign);
   a_angle_start = AngleMod(a_angle_start);

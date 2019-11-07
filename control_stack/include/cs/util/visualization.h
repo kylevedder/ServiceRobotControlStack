@@ -214,7 +214,7 @@ visualization_msgs::Marker ToLine(const Eigen::Vector2f& p1,
   return marker;
 }
 
-visualization_msgs::Marker ToLineList(
+visualization_msgs::Marker PointsToLineList(
     const std::vector<Eigen::Vector2f>& points, const util::Pose& robot_pose,
     const std::string& frame_id, const std::string& ns, const float r = 1,
     const float g = 0, const float b = 0) {
@@ -245,7 +245,7 @@ visualization_msgs::Marker ToLineList(
   return marker;
 }
 
-visualization_msgs::Marker ToLineList(
+visualization_msgs::Marker LaserToLineList(
     const util::LaserScan& laser, const util::Pose& robot_pose,
     const util::Map& map, const std::string& frame_id, const std::string& ns,
     const float r, const float g, const float b, const float alpha) {

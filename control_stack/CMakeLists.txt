@@ -189,7 +189,7 @@ add_library(util_lib
 
 add_library(obstacle_avoidance_lib
   src/obstacle_avoidance/obstacle_detector.cpp
-        src/obstacle_avoidance/trajectory_rollout.cpp)
+  src/obstacle_avoidance/trajectory_rollout.cpp)
 
 add_library(particle_filter_lib
   src/particle_filter/particle_filter.cpp
@@ -201,19 +201,24 @@ target_link_libraries(particle_filter_lib
 
 add_executable(particle_filter_sim_node src/particle_filter/particle_filter_sim_node.cpp)
 target_link_libraries(particle_filter_sim_node particle_filter_lib obstacle_avoidance_lib lua5.1 ${catkin_LIBRARIES})
-add_dependencies(particle_filter_sim_node particle_filter_lib obstacle_avoidance_lib)
+#add_dependencies(particle_filter_sim_node particle_filter_lib obstacle_avoidance_lib)
 
 add_executable(particle_filter_production_node src/particle_filter/particle_filter_production_node.cpp)
 target_link_libraries(particle_filter_production_node particle_filter_lib lua5.1 ${catkin_LIBRARIES})
-add_dependencies(particle_filter_production_node particle_filter_lib)
+#add_dependencies(particle_filter_production_node particle_filter_lib)
 
 add_executable(particle_filter_bag_reader src/particle_filter/particle_filter_bag_reader.cpp)
 target_link_libraries(particle_filter_bag_reader particle_filter_lib lua5.1 ${catkin_LIBRARIES})
-add_dependencies(particle_filter_bag_reader particle_filter_lib)
+#add_dependencies(particle_filter_bag_reader particle_filter_lib)
 
-add_executable(simulator_node src/particle_filter/simulator_node.cpp)
+add_executable(simulator_node src/sim/simulator_node.cpp)
 target_link_libraries(simulator_node util_lib lua5.1 ${catkin_LIBRARIES})
-add_dependencies(simulator_node util_lib)
+#add_dependencies(simulator_node util_lib)
+
+add_executable(nav_node src/main/nav_node.cpp)
+target_link_libraries(nav_node util_lib particle_filter_lib obstacle_avoidance_lib lua5.1 ${catkin_LIBRARIES})
+#add_dependencies(nav_node util_lib particle_filter_lib obstacle_avoidance_lib)
+
 #particle_filter_generate_messages_cpp
 
 #############

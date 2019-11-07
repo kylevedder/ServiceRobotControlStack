@@ -47,7 +47,7 @@ void DrawGroundTruth(const util::Pose& ground_truth,
 
 struct ParticleFilterWrapper {
   util::Map map;
-  localization::ParticleFilter particle_filter;
+  cs::localization::ParticleFilter particle_filter;
   cs::obstacle_avoidance::ObstacleDetector obstacle_detector;
   util::Pose ground_truth;
   ros::Publisher particle_pub;
@@ -171,7 +171,7 @@ struct ParticleFilterWrapper {
         rotation + ground_truth.rot);
     visualization::DrawPose(global_reference, "map", "reference", 1, 1, 1, 1,
                             &ref_arr, 0.1);
-    ref_arr.markers.push_back(visualization::ToLineList(
+    ref_arr.markers.push_back(visualization::LaserToLineList(
         laser, ground_truth, map, "map", "obs", 1, 0, 0, 1));
     reference_pub.publish(ref_arr);
   }

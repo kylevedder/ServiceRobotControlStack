@@ -17,16 +17,30 @@
 // If not, see <http://www.gnu.org/licenses/>.
 // ========================================================================
 #include <visualization_msgs/MarkerArray.h>
+#include <limits>
+#include <utility>
 #include <vector>
 
+#include "config_reader/config_reader.h"
 #include "cs/obstacle_avoidance/obstacle_detector.h"
+#include "cs/obstacle_avoidance/trajectory_rollout.h"
 #include "cs/util/laser_scan.h"
+#include "cs/util/math_util.h"
 #include "cs/util/visualization.h"
 
 namespace cs {
 namespace obstacle_avoidance {
 
-ObstacleDetector::ObstacleDetector(util::Map const& map) : map_(map) {}
+namespace params {
+CONFIG_FLOAT(kProposedTranslationStdDev, "od.kProposedTranslationStdDev");
+CONFIG_FLOAT(kProposedRotationStdDev, "od.kProposedRotationStdDev");
+}  // namespace params
+
+ObstacleDetector::ObstacleDetector(util::Map const& map)
+    : map_(map),
+      current_pose_(0, 0, 0),
+      current_velocity_(0, 0, 0),
+      random_gen_(0) {}
 
 bool IsMapObservation(const float& distance_to_wall) {
   static constexpr float kWallThreshold = 0.1;
@@ -104,9 +118,21 @@ util::Wall FitWallToCluster(const std::vector<Eigen::Vector2f>& points,
   return {v1, v2};
 }
 
+void ObstacleDetector::UpdateOdom(const util::Pose& pose,
+                                  const util::Pose& velocity) {
+  current_pose_ = pose;
+  current_velocity_ = velocity;
+}
+
+void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
+                                         const util::LaserScan& observation) {
+  UpdateObservation(observation_pose, observation, nullptr);
+}
+
 void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
                                          const util::LaserScan& observation,
                                          ros::Publisher* pub) {
+  static constexpr bool kDebug = false;
   dynamic_walls_.clear();
 
   static visualization_msgs::MarkerArray old_markers;
@@ -117,8 +143,12 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
   const auto non_map_points = GetNonMapPoints(observation_pose, observation);
 
   if (non_map_points.empty()) {
-    pub->publish(old_markers);
-    ROS_INFO("Published %zu non-map points", non_map_points.size());
+    if (pub != nullptr) {
+      pub->publish(old_markers);
+      if (kDebug) {
+        ROS_INFO("Published %zu non-map points", non_map_points.size());
+      }
+    }
     return;
   }
 
@@ -140,7 +170,9 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
       cluster_points.push_back(non_map_points[i]);
     }
 
-    ROS_INFO("Cluster size: %zu", (cluster_end - cluster_start + 1));
+    if (kDebug) {
+      ROS_INFO("Cluster size: %zu", (cluster_end - cluster_start + 1));
+    }
 
     visualization::PointsToSpheres(cluster_points, "map", "non_points_ns",
                                    &new_markers, r, g, b);
@@ -151,12 +183,16 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
     cluster_start = cluster_end + 1;
     ++num_clusters;
   }
-
-  pub->publish(old_markers);
-  pub->publish(new_markers);
+  if (pub != nullptr) {
+    pub->publish(old_markers);
+    pub->publish(new_markers);
+  }
   old_markers = new_markers;
-  ROS_INFO("Published %zu non-map points", non_map_points.size());
-  ROS_INFO("Found %zu clusters", num_clusters);
+  if (kDebug) {
+    ROS_INFO("Published %zu non-map points", non_map_points.size());
+    ROS_INFO("Found %zu clusters", num_clusters);
+  }
+  current_pose_ = observation_pose;
 }
 
 void ObstacleDetector::DrawDynamic(ros::Publisher* pub) const {
@@ -167,6 +203,116 @@ void ObstacleDetector::DrawDynamic(ros::Publisher* pub) const {
 
 const std::vector<util::Wall>& ObstacleDetector::GetDynamicWalls() const {
   return dynamic_walls_;
+}
+
+bool ObstacleDetector::IsCommandColliding(const util::Pose& commanded_velocity,
+                                          const float rollout_duration,
+                                          const float robot_radius) const {
+  const TrajectoryRollout tr(current_pose_, current_velocity_,
+                             commanded_velocity, rollout_duration);
+  for (const auto& w : dynamic_walls_) {
+    if (tr.IsColliding(w, robot_radius)) {
+      ROS_INFO("Current command: (%f, %f), %f", commanded_velocity.tra.x(),
+               commanded_velocity.tra.y(), commanded_velocity.rot);
+      ROS_INFO("End pose: (%f, %f), %f", tr.final_pose.tra.x(),
+               tr.final_pose.tra.y(), tr.final_pose.rot);
+      ROS_INFO("Colliding with observed wall: (%f, %f) <-> (%f, %f)", w.p1.x(),
+               w.p1.y(), w.p2.x(), w.p2.y());
+      return true;
+    }
+  }
+  for (const auto& w : map_.walls) {
+    if (tr.IsColliding(w, robot_radius)) {
+      ROS_INFO("Current command: (%f, %f), %f", commanded_velocity.tra.x(),
+               commanded_velocity.tra.y(), commanded_velocity.rot);
+      ROS_INFO("End pose: (%f, %f), %f", tr.final_pose.tra.x(),
+               tr.final_pose.tra.y(), tr.final_pose.rot);
+      ROS_INFO("Colliding with map wall: (%f, %f) <-> (%f, %f)", w.p1.x(),
+               w.p1.y(), w.p2.x(), w.p2.y());
+      return true;
+    }
+  }
+  return false;
+}
+
+util::Pose ObstacleDetector::MakeCommandSafe(
+    const util::Pose& commanded_velocity, const float rollout_duration,
+    const float robot_radius) {
+  ROS_INFO("Current position: (%f, %f), %f", current_pose_.tra.x(),
+           current_pose_.tra.y(), current_pose_.rot);
+  ROS_INFO("Current velocity: (%f, %f), %f", current_velocity_.tra.x(),
+           current_velocity_.tra.y(), current_velocity_.rot);
+  ROS_INFO("Current command: (%f, %f), %f", commanded_velocity.tra.x(),
+           commanded_velocity.tra.y(), commanded_velocity.rot);
+  if (!IsCommandColliding(commanded_velocity, rollout_duration, robot_radius)) {
+    return commanded_velocity;
+  }
+
+  static const util::Pose zero_command(0, 0, 0);
+  // NP_CHECK(!IsCommandColliding(zero_command, rollout_duration,
+  // robot_radius));
+
+  static constexpr int kIterations = 50;
+  std::array<std::pair<util::Pose, float>, kIterations> proposed_commands;
+
+  std::normal_distribution<> translational_noise_dist(
+      0.0f, params::kProposedTranslationStdDev);
+  std::normal_distribution<> rotational_noise_dist(
+      0.0f, params::kProposedRotationStdDev);
+
+  const std::array<util::Pose, 2> special_poses = {{{0, 0, 1}, {0, 0, -1}}};
+
+  const auto generate_special =
+      [&special_poses,
+       &commanded_velocity](const int& i) -> std::pair<util::Pose, float> {
+    NP_CHECK(static_cast<size_t>(i) < special_poses.size());
+    const auto& special = special_poses[i];
+    const auto delta_pose = commanded_velocity - special;
+    const float cost = math_util::Sq(delta_pose.tra.lpNorm<1>()) +
+                       math_util::Sq(delta_pose.rot);
+    return std::make_pair(special, cost);
+  };
+  const auto generate_random =
+      [this, &translational_noise_dist,
+       &rotational_noise_dist]() -> std::pair<util::Pose, float> {
+    const float translational_noise = translational_noise_dist(random_gen_);
+    const float rotational_noise = rotational_noise_dist(random_gen_);
+    return std::make_pair(
+        util::Pose(translational_noise, 0, rotational_noise),
+        math_util::Sq(translational_noise) + math_util::Sq(rotational_noise));
+  };
+
+  for (int i = 0; i < kIterations; ++i) {
+    const auto delta = (static_cast<size_t>(i) < special_poses.size())
+                           ? generate_special(i)
+                           : generate_random();
+    const util::Pose proposed_command = commanded_velocity + delta.first;
+    if (!IsCommandColliding(proposed_command, rollout_duration, robot_radius)) {
+      const float cost = delta.second;
+      //      ROS_INFO("Proposed command: (%f, %f), %f cost %f",
+      //               proposed_command.tra.x(), proposed_command.tra.y(),
+      //               proposed_command.rot, cost);
+      proposed_commands[i] = {proposed_command, cost};
+    } else {
+      //      ROS_INFO("Proposed command: (%f, %f), %f (colliding)",
+      //               proposed_command.tra.x(), proposed_command.tra.y(),
+      //               proposed_command.rot);
+      proposed_commands[i] = {proposed_command,
+                              std::numeric_limits<float>::max()};
+    }
+  }
+
+  int min_index = 0;
+  for (int i = 1; i < kIterations; ++i) {
+    if (proposed_commands[i].second < proposed_commands[min_index].second) {
+      min_index = i;
+    }
+  }
+  const auto& best = proposed_commands[min_index];
+  if (best.second < std::numeric_limits<float>::max()) {
+    return best.first;
+  }
+  return zero_command;
 }
 
 }  // namespace obstacle_avoidance

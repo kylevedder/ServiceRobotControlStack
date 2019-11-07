@@ -1,11 +1,18 @@
 pf = {
-  kLaserStdDev = 0.051;
-  kArcStdDev = 0.051;
-  kRotateStdDev = 0.021;
+  kLaserStdDev = 0.1;
+  kArcStdDev = 0.1;
+  kRotateStdDev = 0.04;
   kTemporalConsistencyWeight = 0;
 
   kMap = "/home/k/code/catkin_ws/src/ServiceRobotControlStack/control_stack/maps/loop.map";
-  kInitX = 0;
+  kInitX = 4;
   kInitY = 0;
   kInitTheta = 0;
+  kRobotRadius = 0.2;
+  kCollisionRollout = 2;
+};
+
+od = {
+  kProposedTranslationStdDev = 1.0;
+  kProposedRotationStdDev = 5;
 };
