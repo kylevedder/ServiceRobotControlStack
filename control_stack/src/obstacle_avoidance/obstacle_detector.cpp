@@ -35,6 +35,8 @@ namespace params {
 CONFIG_FLOAT(kProposedTranslationStdDev, "od.kProposedTranslationStdDev");
 CONFIG_FLOAT(kProposedRotationStdDev, "od.kProposedRotationStdDev");
 CONFIG_FLOAT(kMinDistanceThreshold, "od.kMinDistanceThreshold");
+CONFIG_FLOAT(kMaxTraVel, "limits.kMaxTraVel");
+CONFIG_FLOAT(kMaxRotVel, "limits.kMaxRotVel");
 }  // namespace params
 
 ObstacleDetector::ObstacleDetector(util::Map const& map)
@@ -242,9 +244,20 @@ bool ObstacleDetector::IsCommandColliding(const util::Pose& commanded_velocity,
   return false;
 }
 
-util::Pose ObstacleDetector::MakeCommandSafe(
-    const util::Pose& commanded_velocity, const float rollout_duration,
-    const float robot_radius) {
+util::Pose ObstacleDetector::ApplyCommandLimits(util::Pose p) const {
+  if (p.tra.squaredNorm() < math_util::Sq(params::kMaxTraVel)) {
+    p.tra = p.tra.normalized() * params::kMaxTraVel;
+  }
+  if (fabs(p.rot) > params::kMaxRotVel) {
+    p.rot = math_util::Sign(p.rot) * params::kMaxRotVel;
+  }
+  return p;
+}
+
+util::Pose ObstacleDetector::MakeCommandSafe(util::Pose commanded_velocity,
+                                             const float rollout_duration,
+                                             const float robot_radius) {
+  commanded_velocity = ApplyCommandLimits(commanded_velocity);
   static constexpr bool kDebug = false;
   if (kDebug) {
     ROS_INFO("Current position: (%f, %f), %f", current_pose_.tra.x(),
@@ -296,7 +309,8 @@ util::Pose ObstacleDetector::MakeCommandSafe(
     const auto delta = (static_cast<size_t>(i) < special_poses.size())
                            ? generate_special(i)
                            : generate_random();
-    const util::Pose proposed_command = commanded_velocity + delta.first;
+    const util::Pose proposed_command =
+        ApplyCommandLimits(commanded_velocity + delta.first);
     if (!IsCommandColliding(proposed_command, rollout_duration, robot_radius)) {
       const float cost = delta.second;
       //      ROS_INFO("Proposed command: (%f, %f), %f cost %f",

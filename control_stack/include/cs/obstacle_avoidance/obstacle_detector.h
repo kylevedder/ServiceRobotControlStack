@@ -49,7 +49,7 @@ class ObstacleDetector {
                           const float rollout_duration,
                           const float robot_radius) const;
 
-  util::Pose MakeCommandSafe(const util::Pose& commanded_velocity,
+  util::Pose MakeCommandSafe(util::Pose commanded_velocity,
                              const float rollout_duration,
                              const float robot_radius);
 
@@ -57,6 +57,8 @@ class ObstacleDetector {
   std::vector<Eigen::Vector2f> GetNonMapPoints(
       const util::Pose& observation_pose,
       const util::LaserScan& observation) const;
+
+  util::Pose ApplyCommandLimits(util::Pose p) const;
 
   util::Map map_;
   std::vector<util::Wall> dynamic_walls_;
