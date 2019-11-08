@@ -292,4 +292,29 @@ visualization_msgs::Marker LaserToLineList(
   return marker;
 }
 
+visualization_msgs::Marker MakeCylinder(const Eigen::Vector2f& position,
+                                        const float radius, const float height,
+                                        const std::string& frame_id,
+                                        const std::string& ns, const float r,
+                                        const float g, const float b,
+                                        const float alpha) {
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = frame_id;
+  marker.header.stamp = ros::Time();
+  marker.ns = ns;
+  marker.id = 0;
+  marker.type = visualization_msgs::Marker::CYLINDER;
+  marker.action = visualization_msgs::Marker::ADD;
+  marker.scale.x = 2 * radius;
+  marker.scale.y = 2 * radius;
+  marker.scale.z = height;
+  marker.pose.position.x = position.x();
+  marker.pose.position.y = position.y();
+  marker.color.a = alpha;
+  marker.color.r = r;
+  marker.color.g = g;
+  marker.color.b = b;
+  return marker;
+}
+
 }  // namespace visualization

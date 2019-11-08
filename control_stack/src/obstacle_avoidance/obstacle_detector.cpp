@@ -34,6 +34,7 @@ namespace obstacle_avoidance {
 namespace params {
 CONFIG_FLOAT(kProposedTranslationStdDev, "od.kProposedTranslationStdDev");
 CONFIG_FLOAT(kProposedRotationStdDev, "od.kProposedRotationStdDev");
+CONFIG_FLOAT(kMinDistanceThreshold, "od.kMinDistanceThreshold");
 }  // namespace params
 
 ObstacleDetector::ObstacleDetector(util::Map const& map)
@@ -51,8 +52,9 @@ std::vector<Eigen::Vector2f> ObstacleDetector::GetNonMapPoints(
     const util::Pose& observation_pose,
     const util::LaserScan& observation) const {
   std::vector<Eigen::Vector2f> v;
-  const auto points =
-      observation.TransformPointsFrameSparse(observation_pose.ToAffine());
+  const auto points = observation.TransformPointsFrameSparse(
+      observation_pose.ToAffine(),
+      [](const float& f) { return f > params::kMinDistanceThreshold; });
   for (const auto& p : points) {
     if (!IsMapObservation(map_.MinDistanceToWall(p))) {
       v.push_back(p);

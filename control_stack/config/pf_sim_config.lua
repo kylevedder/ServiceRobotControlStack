@@ -8,11 +8,12 @@ pf = {
   kInitX = 4;
   kInitY = 0;
   kInitTheta = 0;
-  kRobotRadius = 0.05;
+  kRobotRadius = 0.1;
   kCollisionRollout = 2;
 };
 
 od = {
+  kMinDistanceThreshold = 0.05;
   kProposedTranslationStdDev = 1.0;
   kProposedRotationStdDev = 5;
 };

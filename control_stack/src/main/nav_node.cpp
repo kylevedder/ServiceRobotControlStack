@@ -65,6 +65,7 @@ struct CallbackWrapper {
   ros::Publisher particle_pub_;
   ros::Publisher map_pub_;
   ros::Publisher detected_walls_pub_;
+  ros::Publisher robot_size_pub_;
 
   CallbackWrapper() = delete;
 
@@ -87,6 +88,8 @@ struct CallbackWrapper {
       map_pub_ = n->advertise<visualization_msgs::Marker>("map", 10);
       detected_walls_pub_ = n->advertise<visualization_msgs::MarkerArray>(
           "detected_obstacles", 10);
+      robot_size_pub_ =
+          n->advertise<visualization_msgs::Marker>("robot_size", 10);
     }
   }
 
@@ -101,6 +104,9 @@ struct CallbackWrapper {
     PublishTransforms();
     if (kDebug) {
       particle_filter_.DrawParticles(&particle_pub_);
+      robot_size_pub_.publish(
+          visualization::MakeCylinder(est_pose.tra, params::kRobotRadius, 3.0,
+                                      "map", "robot_size", 0, 1, 0, 1));
     }
   }
 
@@ -127,7 +133,7 @@ struct CallbackWrapper {
 
   void CommandVelocity(const util::Pose& desired_command) {
     const util::Pose safe_cmd = obstacle_detector_.MakeCommandSafe(
-        desired_command, 2, params::kRobotRadius);
+        desired_command, params::kCollisionRollout, params::kRobotRadius);
     velocity_pub_.publish(safe_cmd.ToTwist());
     ROS_INFO("Command (%f, %f), %f sent", safe_cmd.tra.x(), safe_cmd.tra.y(),
              safe_cmd.rot);

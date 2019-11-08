@@ -38,11 +38,13 @@ class LaserScan {
   bool IsEmpty() const { return ros_laser_scan_.ranges.empty(); }
 
   std::vector<Eigen::Vector2f> TransformPointsFrameSparse(
-      const Eigen::Affine2f& transform) const {
+      const Eigen::Affine2f& transform,
+      const std::function<bool(const float&)>& filter_func =
+          [](__attribute__((unused)) const float& f) { return true; }) const {
     std::vector<Eigen::Vector2f> robot_frame_points;
     for (size_t i = 0; i < ros_laser_scan_.ranges.size(); ++i) {
       const float& depth = ros_laser_scan_.ranges[i];
-      if (!std::isfinite(depth)) {
+      if (!std::isfinite(depth) || !filter_func(depth)) {
         continue;
       }
 
