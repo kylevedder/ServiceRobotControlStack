@@ -101,6 +101,15 @@ struct CallbackWrapper {
   }
 
   void LaserCallback(const sensor_msgs::LaserScan& msg) {
+    const ros::Time& current_time = msg.header.stamp;
+    laser_times_buffer_.push_back(current_time);
+    const double mean_time_delta =
+        (laser_times_buffer_.size() <= 1)
+            ? kEpsilon
+            : (laser_times_buffer_.back() - laser_times_buffer_.front())
+                      .toSec() /
+                  laser_times_buffer_.size();
+    NP_CHECK_VAL(mean_time_delta > 0, mean_time_delta);
     util::LaserScan laser(msg);
     particle_filter_.UpdateObservation(laser);
     const auto est_pose = particle_filter_.WeightedCentroid();
@@ -109,7 +118,8 @@ struct CallbackWrapper {
              est_pose.tra.x(),
              est_pose.tra.y(),
              est_pose.rot);
-    CommandVelocity({params::kDesiredCommandX, 0, params::kDesiredCommandRot});
+    CommandVelocity({params::kDesiredCommandX, 0, params::kDesiredCommandRot},
+                    mean_time_delta);
     PublishTransforms();
     if (kDebug) {
       particle_filter_.DrawParticles(&particle_pub_);
@@ -126,7 +136,7 @@ struct CallbackWrapper {
   }
 
   void OdomCallback(const nav_msgs::Odometry& msg) {
-    const ros::Time current_time = msg.header.stamp;
+    const ros::Time& current_time = msg.header.stamp;
     ROS_INFO("Odom update");
     if (odom_times_buffer_.empty() ||
         odom_times_buffer_.back().toSec() >= current_time.toSec()) {
@@ -135,9 +145,11 @@ struct CallbackWrapper {
     }
     odom_times_buffer_.push_back(current_time);
     const util::Pose velocity(msg.twist.twist);
-    const float time_delta =
-        (odom_times_buffer_.back() - odom_times_buffer_.front()).toSec();
-    const util::Pose delta = velocity * time_delta;
+    const double mean_time_delta =
+        (odom_times_buffer_.back() - odom_times_buffer_.front()).toSec() /
+        odom_times_buffer_.size();
+    NP_CHECK(mean_time_delta > 0);
+    const util::Pose delta = velocity * static_cast<float>(mean_time_delta);
     particle_filter_.UpdateOdom(delta.tra.x(), delta.rot);
     if (kDebug) {
       particle_filter_.DrawParticles(&particle_pub_);
@@ -147,9 +159,13 @@ struct CallbackWrapper {
                                   velocity);
   }
 
-  void CommandVelocity(const util::Pose& desired_command) {
-    const util::Pose safe_cmd = obstacle_detector_.MakeCommandSafe(
-        desired_command, params::kCollisionRollout, params::kRobotRadius);
+  void CommandVelocity(const util::Pose& desired_command,
+                       const float& time_delta) {
+    const util::Pose safe_cmd =
+        obstacle_detector_.MakeCommandSafe(desired_command,
+                                           time_delta,
+                                           params::kCollisionRollout,
+                                           params::kRobotRadius);
     velocity_pub_.publish(safe_cmd.ToTwist());
     ROS_INFO("Command (%f, %f), %f sent",
              safe_cmd.tra.x(),
