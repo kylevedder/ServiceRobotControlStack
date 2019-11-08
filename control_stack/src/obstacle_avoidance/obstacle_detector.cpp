@@ -21,7 +21,7 @@
 #include <utility>
 #include <vector>
 
-#include "config_reader/config_reader.h"
+#include "config_reader/macros.h"
 #include "cs/obstacle_avoidance/obstacle_detector.h"
 #include "cs/obstacle_avoidance/trajectory_rollout.h"
 #include "cs/util/laser_scan.h"

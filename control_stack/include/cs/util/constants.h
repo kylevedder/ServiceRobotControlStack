@@ -23,9 +23,6 @@ static constexpr bool kProduction = false;
 static constexpr float kPi = M_PI;
 static constexpr float kEpsilon = 0.001f;
 
-static constexpr float kRobotMaxAccel = 0.1;   // m/s^2.
-static constexpr float kRobotMaxVelocity = 1;  // m/s.
-
 static constexpr float kMinAngle = -kPi / 2;
 static constexpr float kMaxAngle = kPi / 2;
 static constexpr int kNumReadings = 100;

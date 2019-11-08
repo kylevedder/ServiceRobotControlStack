@@ -20,16 +20,21 @@
 
 #include <algorithm>
 
+#include "config_reader/macros.h"
 #include "cs/util/geometry.h"
 #include "cs/util/map.h"
 
 namespace cs {
 namespace obstacle_avoidance {
 
+namespace params {
+CONFIG_FLOAT(kMaxTraAccel, "limits.kMaxTraAccel");
+}
+
 float AchievedVelocityTime(const util::Pose& current_v,
                            const util::Pose& commanded_v) {
   const float vel_delta = (commanded_v.tra.x() - current_v.tra.x());  // m/s
-  return vel_delta / kRobotMaxAccel;
+  return vel_delta / params::kMaxTraAccel;
 }
 
 Eigen::Vector2f CircleCenter(const util::Pose& pose, const util::Pose& velocity,
@@ -48,8 +53,8 @@ Eigen::Vector2f CircleCenter(const util::Pose& pose, const util::Pose& velocity,
 util::Pose AchievedVelocityPose(const util::Pose& start_pose,
                                 const util::Pose& current_v,
                                 const float& time) {
-  const float delta_x =
-      current_v.tra.x() * time + 0.5f * kRobotMaxAccel * math_util::Sq(time);
+  const float delta_x = current_v.tra.x() * time +
+                        0.5f * params::kMaxTraAccel * math_util::Sq(time);
   const float& rot = start_pose.rot;
   const Eigen::Vector2f position_delta(math_util::Cos(rot) * delta_x,
                                        math_util::Sin(rot) * delta_x);

@@ -19,3 +19,10 @@ od = {
   kDesiredCommandX = 0.1;
   kDesiredCommandRot = 0;
 };
+
+limits = {
+  kMaxTraAccel = 0.5;
+  kMaxTraVel = 0.5;
+  kMaxRotAccel = 0.2;
+  kMaxRotVel = 0.2;
+};
