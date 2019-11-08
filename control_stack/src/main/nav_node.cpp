@@ -47,6 +47,8 @@ CONFIG_FLOAT(kInitY, "pf.kInitY");
 CONFIG_FLOAT(kInitTheta, "pf.kInitTheta");
 CONFIG_FLOAT(kRobotRadius, "pf.kRobotRadius");
 CONFIG_FLOAT(kCollisionRollout, "pf.kCollisionRollout");
+CONFIG_FLOAT(kDesiredCommandX, "od.kDesiredCommandX");
+CONFIG_FLOAT(kDesiredCommandRot, "od.kDesiredCommandRot");
 }  // namespace params
 
 struct CallbackWrapper {
@@ -100,7 +102,7 @@ struct CallbackWrapper {
     obstacle_detector_.UpdateObservation(est_pose, laser, &detected_walls_pub_);
     ROS_INFO("Laser update. Est pose: (%f, %f), %f", est_pose.tra.x(),
              est_pose.tra.y(), est_pose.rot);
-    CommandVelocity({1, 0, 0});
+    CommandVelocity({params::kDesiredCommandX, 0, params::kDesiredCommandRot});
     PublishTransforms();
     if (kDebug) {
       particle_filter_.DrawParticles(&particle_pub_);

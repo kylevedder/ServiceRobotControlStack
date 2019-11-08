@@ -16,4 +16,6 @@ od = {
   kMinDistanceThreshold = 0.05;
   kProposedTranslationStdDev = 1.0;
   kProposedRotationStdDev = 5;
+  kDesiredCommandX = 0.1;
+  kDesiredCommandRot = 0;
 };
