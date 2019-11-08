@@ -49,7 +49,8 @@ Map::Map(const std::string& filepath) {
   }
 }
 
-float Map::MinDistanceAlongRay(const util::Pose& ray, const float min_depth,
+float Map::MinDistanceAlongRay(const util::Pose& ray,
+                               const float min_depth,
                                const float max_depth) const {
   NP_FINITE(ray.tra.x());
   NP_FINITE(ray.tra.x());

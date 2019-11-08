@@ -68,7 +68,9 @@ T AngleMod(T angle) {
 // Check if angle is between min and max angle, moving in a counterclockwise
 // direction from min_angle to max_angle.
 template <typename T>
-bool IsAngleBetween(T query, T start_angle, T end_angle,
+bool IsAngleBetween(T query,
+                    T start_angle,
+                    T end_angle,
                     const int rotation_sign) {
   NP_CHECK_VAL(rotation_sign == 1 || rotation_sign == -1 || rotation_sign == 0,
                rotation_sign);
@@ -132,7 +134,8 @@ T Pow(const T& x, const unsigned int n) {
 template <typename T>
 constexpr T ConstexprPow(const T& base, const int exp, const T result = 1) {
   return (exp < 1) ? result
-                   : ConstexprPow((base * base), (exp / 2),
+                   : ConstexprPow((base * base),
+                                  (exp / 2),
                                   ((exp % 2) ? result * base : result));
 }
 
@@ -222,8 +225,8 @@ int Sign(T val) {
 // the largest real root. The return value is the number of unique real roots
 // found.
 template <typename T>
-unsigned int SolveCubic(const T& a, const T& b, const T& c, const T& d, T* r0,
-                        T* r1, T* r2) {
+unsigned int SolveCubic(
+    const T& a, const T& b, const T& c, const T& d, T* r0, T* r1, T* r2) {
   CHECK_NE(r0, static_cast<T*>(nullptr));
   CHECK_NE(r1, static_cast<T*>(nullptr));
   CHECK_NE(r2, static_cast<T*>(nullptr));

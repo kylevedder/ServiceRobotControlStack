@@ -34,6 +34,7 @@
 #include "cs/obstacle_avoidance/obstacle_detector.h"
 #include "cs/particle_filter/particle_filter.h"
 #include "cs/util/crash_handling.h"
+#include "cs/util/datastructures/circular_buffer.h"
 #include "cs/util/math_util.h"
 #include "cs/util/util.h"
 #include "cs/util/visualization.h"
@@ -51,11 +52,16 @@ CONFIG_FLOAT(kDesiredCommandX, "od.kDesiredCommandX");
 CONFIG_FLOAT(kDesiredCommandRot, "od.kDesiredCommandRot");
 }  // namespace params
 
+static constexpr size_t kTimeBufferSize = 5;
+
 struct CallbackWrapper {
   util::Map map_;
   cs::localization::ParticleFilter particle_filter_;
   cs::obstacle_avoidance::ObstacleDetector obstacle_detector_;
-  ros::Time last_odom_update_;
+  cs::datastructures::CircularBuffer<ros::Time, kTimeBufferSize>
+      odom_times_buffer_;
+  cs::datastructures::CircularBuffer<ros::Time, kTimeBufferSize>
+      laser_times_buffer_;
   tf::TransformBroadcaster br_;
 
   // Functionality pub/sub
@@ -75,8 +81,7 @@ struct CallbackWrapper {
       : map_(map),
         particle_filter_(map,
                          {params::kInitX, params::kInitY, params::kInitTheta}),
-        obstacle_detector_(map),
-        last_odom_update_(0) {
+        obstacle_detector_(map) {
     velocity_pub_ =
         n->advertise<geometry_msgs::Twist>(kCommandVelocityTopic, 10);
     laser_sub_ =
@@ -100,35 +105,44 @@ struct CallbackWrapper {
     particle_filter_.UpdateObservation(laser);
     const auto est_pose = particle_filter_.WeightedCentroid();
     obstacle_detector_.UpdateObservation(est_pose, laser, &detected_walls_pub_);
-    ROS_INFO("Laser update. Est pose: (%f, %f), %f", est_pose.tra.x(),
-             est_pose.tra.y(), est_pose.rot);
+    ROS_INFO("Laser update. Est pose: (%f, %f), %f",
+             est_pose.tra.x(),
+             est_pose.tra.y(),
+             est_pose.rot);
     CommandVelocity({params::kDesiredCommandX, 0, params::kDesiredCommandRot});
     PublishTransforms();
     if (kDebug) {
       particle_filter_.DrawParticles(&particle_pub_);
-      robot_size_pub_.publish(
-          visualization::MakeCylinder(est_pose.tra, params::kRobotRadius, 3.0,
-                                      "map", "robot_size", 0, 1, 0, 1));
+      robot_size_pub_.publish(visualization::MakeCylinder(est_pose.tra,
+                                                          params::kRobotRadius,
+                                                          3.0,
+                                                          "map",
+                                                          "robot_size",
+                                                          0,
+                                                          1,
+                                                          0,
+                                                          1));
     }
   }
 
   void OdomCallback(const nav_msgs::Odometry& msg) {
     const ros::Time current_time = msg.header.stamp;
     ROS_INFO("Odom update");
-    if (last_odom_update_ == ros::Time(0) ||
-        last_odom_update_.toSec() >= current_time.toSec()) {
-      last_odom_update_ = current_time;
+    if (odom_times_buffer_.empty() ||
+        odom_times_buffer_.back().toSec() >= current_time.toSec()) {
+      odom_times_buffer_.push_back(current_time);
       return;
     }
+    odom_times_buffer_.push_back(current_time);
     const util::Pose velocity(msg.twist.twist);
-    const float time_delta = (current_time - last_odom_update_).toSec();
+    const float time_delta =
+        (odom_times_buffer_.back() - odom_times_buffer_.front()).toSec();
     const util::Pose delta = velocity * time_delta;
     particle_filter_.UpdateOdom(delta.tra.x(), delta.rot);
     if (kDebug) {
       particle_filter_.DrawParticles(&particle_pub_);
       map_pub_.publish(map_.ToMarker());
     }
-    last_odom_update_ = current_time;
     obstacle_detector_.UpdateOdom(particle_filter_.WeightedCentroid(),
                                   velocity);
   }
@@ -137,7 +151,9 @@ struct CallbackWrapper {
     const util::Pose safe_cmd = obstacle_detector_.MakeCommandSafe(
         desired_command, params::kCollisionRollout, params::kRobotRadius);
     velocity_pub_.publish(safe_cmd.ToTwist());
-    ROS_INFO("Command (%f, %f), %f sent", safe_cmd.tra.x(), safe_cmd.tra.y(),
+    ROS_INFO("Command (%f, %f), %f sent",
+             safe_cmd.tra.x(),
+             safe_cmd.tra.y(),
              safe_cmd.rot);
   }
 

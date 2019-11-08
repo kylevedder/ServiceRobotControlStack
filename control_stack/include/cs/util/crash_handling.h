@@ -101,9 +101,12 @@ void PrintStackTrace() {
   }
 
   for (size_t i = 0; i < lines.size(); ++i) {
-    printf("%*d: \x1b[33m%-*s\x1b[m \x1b[32m%s\x1b[m\n", num_digits,
-           static_cast<int>(i), static_cast<int>(maxlen),
-           lines[i].first.c_str(), lines[i].second.c_str());
+    printf("%*d: \x1b[33m%-*s\x1b[m \x1b[32m%s\x1b[m\n",
+           num_digits,
+           static_cast<int>(i),
+           static_cast<int>(maxlen),
+           lines[i].first.c_str(),
+           lines[i].second.c_str());
   }
 }
 

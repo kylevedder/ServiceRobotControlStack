@@ -89,8 +89,10 @@ util::Pose MotionModel::ForwardPredict(const util::Pose& pose_global_frame,
 
 SensorModel::SensorModel(const util::Map& map) : map_(map) {}
 
-float GetDepthProbability(const float& sensor_reading, const float& map_reading,
-                          const float& ray_min, const float& ray_max) {
+float GetDepthProbability(const float& sensor_reading,
+                          const float& map_reading,
+                          const float& ray_min,
+                          const float& ray_max) {
   NP_CHECK(ray_min <= ray_max);
   NP_CHECK(sensor_reading <= ray_max);
   NP_CHECK(sensor_reading >= ray_min);
@@ -185,8 +187,10 @@ void ParticleFilter::UpdateOdom(const float& translation,
   }
 }
 
-float ScanSimilarity(const util::LaserScan& scan1, const util::Pose& pose1,
-                     const util::LaserScan& scan2, const util::Pose& pose2) {
+float ScanSimilarity(const util::LaserScan& scan1,
+                     const util::Pose& pose1,
+                     const util::LaserScan& scan2,
+                     const util::Pose& pose2) {
   const auto global_points_1 =
       scan1.TransformPointsFrameSparse(pose1.ToAffine());
   const auto global_points_2 =
@@ -367,14 +371,14 @@ void ParticleFilter::DrawParticles(ros::Publisher* particle_pub) const {
   for (const Particle& p : particles_) {
     const float alpha =
         ((max_weight > 0.0f) ? (p.weight / max_weight) : 0.0f) / 2;
-    visualization::DrawPose(p.pose, "map", "particles", 1, 0, 0, alpha,
-                            &particle_markers);
+    visualization::DrawPose(
+        p.pose, "map", "particles", 1, 0, 0, alpha, &particle_markers);
   }
 
   const util::Pose estimate = WeightedCentroid();
 
-  visualization::DrawPose(estimate, "map", "estimate", 0, 0, 1, 1,
-                          &particle_markers);
+  visualization::DrawPose(
+      estimate, "map", "estimate", 0, 0, 1, 1, &particle_markers);
 
   particle_pub->publish(particle_markers);
 }

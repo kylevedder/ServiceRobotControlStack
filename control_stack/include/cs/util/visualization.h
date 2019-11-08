@@ -62,10 +62,15 @@ visualization_msgs::Marker DrawWalls(const std::vector<util::Wall>& walls,
   return marker;
 }
 
-void DrawPose(const util::Pose& pose, const std::string& frame_id,
-              const std::string& ns, const float r, const float g,
-              const float b, const float alpha,
-              visualization_msgs::MarkerArray* arr, const float z = 0.0f) {
+void DrawPose(const util::Pose& pose,
+              const std::string& frame_id,
+              const std::string& ns,
+              const float r,
+              const float g,
+              const float b,
+              const float alpha,
+              visualization_msgs::MarkerArray* arr,
+              const float z = 0.0f) {
   {
     visualization_msgs::Marker marker;
     marker.header.frame_id = frame_id;
@@ -119,30 +124,41 @@ void DrawPose(const util::Pose& pose, const std::string& frame_id,
 }
 
 void DrawTrajectoryRollout(const cs::obstacle_avoidance::TrajectoryRollout& tr,
-                           const std::string& frame_id, const std::string& ns,
+                           const std::string& frame_id,
+                           const std::string& ns,
                            visualization_msgs::MarkerArray* arr,
                            const bool is_colliding = false) {
-  DrawPose({tr.rotate_circle_center, 0}, frame_id, ns + "rotate_center", 0, 0,
-           1, 1, arr);
+  DrawPose({tr.rotate_circle_center, 0},
+           frame_id,
+           ns + "rotate_center",
+           0,
+           0,
+           1,
+           1,
+           arr);
   if (!is_colliding) {
     DrawPose(tr.start_pose, frame_id, ns + "start_pose", 0, 1, 0, 1, arr);
-    DrawPose(tr.achieved_vel_pose, frame_id, ns + "achieved_pose", 0, 1, 0, 1,
-             arr);
+    DrawPose(
+        tr.achieved_vel_pose, frame_id, ns + "achieved_pose", 0, 1, 0, 1, arr);
     DrawPose(tr.final_pose, frame_id, ns + "achieved_pose", 0, 1, 0, 1, arr);
   } else {
     DrawPose(tr.start_pose, frame_id, ns + "start_pose", 1, 0, 0, 1, arr);
-    DrawPose(tr.achieved_vel_pose, frame_id, ns + "achieved_pose", 1, 0, 0, 1,
-             arr);
+    DrawPose(
+        tr.achieved_vel_pose, frame_id, ns + "achieved_pose", 1, 0, 0, 1, arr);
     DrawPose(tr.final_pose, frame_id, ns + "achieved_pose", 1, 0, 0, 1, arr);
   }
 }
 
 std::tuple<float, float, float> IndexToDistinctRBG(const size_t idx) {
   static const std::vector<std::tuple<float, float, float>> color_lst(
-      {std::make_tuple(0, 0, 0), std::make_tuple(1, 0, 0),
-       std::make_tuple(0, 1, 0), std::make_tuple(0, 0, 1),
-       std::make_tuple(1, 1, 0), std::make_tuple(0, 1, 1),
-       std::make_tuple(1, 0, 1), std::make_tuple(1, 1, 1),
+      {std::make_tuple(0, 0, 0),
+       std::make_tuple(1, 0, 0),
+       std::make_tuple(0, 1, 0),
+       std::make_tuple(0, 0, 1),
+       std::make_tuple(1, 1, 0),
+       std::make_tuple(0, 1, 1),
+       std::make_tuple(1, 0, 1),
+       std::make_tuple(1, 1, 1),
        std::make_tuple(0.5, 0, 0)});
 
   if (idx < color_lst.size()) {
@@ -157,9 +173,13 @@ std::tuple<float, float, float> IndexToDistinctRBG(const size_t idx) {
 }
 
 void PointsToSpheres(const std::vector<Eigen::Vector2f>& points,
-                     const std::string& frame_id, const std::string& ns,
-                     visualization_msgs::MarkerArray* arr, const float r = 1,
-                     const float g = 0, const float b = 0, const float z = 0) {
+                     const std::string& frame_id,
+                     const std::string& ns,
+                     visualization_msgs::MarkerArray* arr,
+                     const float r = 1,
+                     const float g = 0,
+                     const float b = 0,
+                     const float z = 0) {
   for (const auto& v : points) {
     visualization_msgs::Marker marker;
     marker.header.frame_id = frame_id;
@@ -185,8 +205,10 @@ void PointsToSpheres(const std::vector<Eigen::Vector2f>& points,
 visualization_msgs::Marker ToLine(const Eigen::Vector2f& p1,
                                   const Eigen::Vector2f& p2,
                                   const std::string& frame_id,
-                                  const std::string& ns, const int id = 0,
-                                  const float r = 1, const float g = 0,
+                                  const std::string& ns,
+                                  const int id = 0,
+                                  const float r = 1,
+                                  const float g = 0,
                                   const float b = 0) {
   visualization_msgs::Marker marker;
   marker.header.frame_id = frame_id;
@@ -215,9 +237,13 @@ visualization_msgs::Marker ToLine(const Eigen::Vector2f& p1,
 }
 
 visualization_msgs::Marker PointsToLineList(
-    const std::vector<Eigen::Vector2f>& points, const util::Pose& robot_pose,
-    const std::string& frame_id, const std::string& ns, const float r = 1,
-    const float g = 0, const float b = 0) {
+    const std::vector<Eigen::Vector2f>& points,
+    const util::Pose& robot_pose,
+    const std::string& frame_id,
+    const std::string& ns,
+    const float r = 1,
+    const float g = 0,
+    const float b = 0) {
   visualization_msgs::Marker marker;
   marker.header.frame_id = frame_id;
   marker.header.stamp = ros::Time();
@@ -245,10 +271,15 @@ visualization_msgs::Marker PointsToLineList(
   return marker;
 }
 
-visualization_msgs::Marker LaserToLineList(
-    const util::LaserScan& laser, const util::Pose& robot_pose,
-    const util::Map& map, const std::string& frame_id, const std::string& ns,
-    const float r, const float g, const float b, const float alpha) {
+visualization_msgs::Marker LaserToLineList(const util::LaserScan& laser,
+                                           const util::Pose& robot_pose,
+                                           const util::Map& map,
+                                           const std::string& frame_id,
+                                           const std::string& ns,
+                                           const float r,
+                                           const float g,
+                                           const float b,
+                                           const float alpha) {
   visualization_msgs::Marker marker;
   marker.header.frame_id = frame_id;
   marker.header.stamp = ros::Time();
@@ -293,10 +324,13 @@ visualization_msgs::Marker LaserToLineList(
 }
 
 visualization_msgs::Marker MakeCylinder(const Eigen::Vector2f& position,
-                                        const float radius, const float height,
+                                        const float radius,
+                                        const float height,
                                         const std::string& frame_id,
-                                        const std::string& ns, const float r,
-                                        const float g, const float b,
+                                        const std::string& ns,
+                                        const float r,
+                                        const float g,
+                                        const float b,
                                         const float alpha) {
   visualization_msgs::Marker marker;
   marker.header.frame_id = frame_id;

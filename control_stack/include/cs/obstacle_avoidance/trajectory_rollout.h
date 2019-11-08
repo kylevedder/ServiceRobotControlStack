@@ -36,7 +36,8 @@ struct TrajectoryRollout {
   float rotate_circle_finale_pose_angle;
 
   TrajectoryRollout() = delete;
-  TrajectoryRollout(const util::Pose& start_pose, const util::Pose& current_v,
+  TrajectoryRollout(const util::Pose& start_pose,
+                    const util::Pose& current_v,
                     const util::Pose& commanded_v,
                     const float rollout_duration);
 

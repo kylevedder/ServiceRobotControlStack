@@ -37,7 +37,8 @@ float AchievedVelocityTime(const util::Pose& current_v,
   return vel_delta / params::kMaxTraAccel;
 }
 
-Eigen::Vector2f CircleCenter(const util::Pose& pose, const util::Pose& velocity,
+Eigen::Vector2f CircleCenter(const util::Pose& pose,
+                             const util::Pose& velocity,
                              const float& radius) {
   NP_FINITE(radius);
   const int direction = math_util::Sign(velocity.rot);
@@ -74,7 +75,8 @@ float RotationCircleRadius(const util::Pose& commanded_v) {
 }
 
 util::Pose RotateFinalPose(const util::Pose& start_pose,
-                           const float& rotate_radians, const float& radius) {
+                           const float& rotate_radians,
+                           const float& radius) {
   const Eigen::Vector2f robot_frame_delta(
       math_util::Sin(fabs(rotate_radians)) * radius,
       (1.0f - math_util::Cos(fabs(rotate_radians))) * radius *
@@ -84,7 +86,8 @@ util::Pose RotateFinalPose(const util::Pose& start_pose,
   return start_pose + util::Pose(start_frame_delta, rotate_radians);
 }
 
-bool IsCollidingLinear(const util::Pose& pose1, const util::Pose& pose2,
+bool IsCollidingLinear(const util::Pose& pose1,
+                       const util::Pose& pose2,
                        const util::Wall& wall,
                        const float& min_dist_threshold) {
   const auto& p1 = pose1.tra;
@@ -169,15 +172,15 @@ TrajectoryRollout::TrajectoryRollout(const util::Pose& start_pose,
 bool TrajectoryRollout::IsColliding(const util::Wall& wall,
                                     const float& robot_radius) const {
   const float min_dist_threshold = robot_radius + kEpsilon;
-  if (IsCollidingLinear(start_pose, achieved_vel_pose, wall,
-                        min_dist_threshold)) {
+  if (IsCollidingLinear(
+          start_pose, achieved_vel_pose, wall, min_dist_threshold)) {
     return true;
   }
 
   // Turn in place or no rotation.
   if (fabs(rotate_circle_radius) < kEpsilon) {
-    return IsCollidingLinear(achieved_vel_pose, final_pose, wall,
-                             min_dist_threshold);
+    return IsCollidingLinear(
+        achieved_vel_pose, final_pose, wall, min_dist_threshold);
   }
 
   const int rotation_sign = math_util::Sign(commanded_v.rot);
@@ -185,10 +188,14 @@ bool TrajectoryRollout::IsColliding(const util::Wall& wall,
                rotation_sign);
 
   NP_CHECK_VAL(rotate_circle_radius >= 0, rotate_circle_radius);
-  const float dist = geometry::MinDistanceLineArc(
-      wall.p1, wall.p2, rotate_circle_center, rotate_circle_radius,
-      rotate_circle_achieved_vel_angle, rotate_circle_finale_pose_angle,
-      rotation_sign);
+  const float dist =
+      geometry::MinDistanceLineArc(wall.p1,
+                                   wall.p2,
+                                   rotate_circle_center,
+                                   rotate_circle_radius,
+                                   rotate_circle_achieved_vel_angle,
+                                   rotate_circle_finale_pose_angle,
+                                   rotation_sign);
   NP_FINITE(dist);
   NP_CHECK_VAL(dist >= 0.0f, dist);
   return dist <= min_dist_threshold;

@@ -40,8 +40,8 @@
 void DrawGroundTruth(const util::Pose& ground_truth,
                      ros::Publisher* ground_truth_pub) {
   visualization_msgs::MarkerArray arr;
-  visualization::DrawPose(ground_truth, "map", "ground_truth", 0, 1, 0, 1,
-                          &arr);
+  visualization::DrawPose(
+      ground_truth, "map", "ground_truth", 0, 1, 0, 1, &arr);
   ground_truth_pub->publish(arr);
 }
 
@@ -122,8 +122,8 @@ struct ParticleFilterWrapper {
     static constexpr float kThetaMax = kPi / 2 + kEpsilon;
     static constexpr float kThetaDel = kPi / 8;
 
-    auto make_position = [this](const float x, const float y,
-                                const float theta) -> util::Pose {
+    auto make_position =
+        [this](const float x, const float y, const float theta) -> util::Pose {
       const Eigen::Vector2f offset_vector(x, y);
       return util::Pose(
           ground_truth.tra +
@@ -150,8 +150,8 @@ struct ParticleFilterWrapper {
           const float score =
               particle_filter.ScoreObservation(current_pose, laser);
           const float red = score / max_score;
-          visualization::DrawPose(current_pose, "map", "grid_search", red, 0, 0,
-                                  1, &arr, theta);
+          visualization::DrawPose(
+              current_pose, "map", "grid_search", red, 0, 0, 1, &arr, theta);
         }
       }
     }
@@ -163,14 +163,14 @@ struct ParticleFilterWrapper {
     const Eigen::Vector2f offset_tra(1, 0.5);
     const float rotation = 0;
     const util::Pose base_link_reference(offset_tra, rotation);
-    visualization::DrawPose(base_link_reference, "base_link", "reference", 0, 0,
-                            0, 1, &ref_arr);
+    visualization::DrawPose(
+        base_link_reference, "base_link", "reference", 0, 0, 0, 1, &ref_arr);
 
     const util::Pose global_reference(
         ground_truth.tra + Eigen::Rotation2Df(ground_truth.rot) * offset_tra,
         rotation + ground_truth.rot);
-    visualization::DrawPose(global_reference, "map", "reference", 1, 1, 1, 1,
-                            &ref_arr, 0.1);
+    visualization::DrawPose(
+        global_reference, "map", "reference", 1, 1, 1, 1, &ref_arr, 0.1);
     ref_arr.markers.push_back(visualization::LaserToLineList(
         laser, ground_truth, map, "map", "obs", 1, 0, 0, 1));
     reference_pub.publish(ref_arr);
@@ -178,8 +178,8 @@ struct ParticleFilterWrapper {
 
   void TestTrajectoryCollsions() {
     {
-      cs::obstacle_avoidance::TrajectoryRollout tr({{0, 0}, 0}, {{1, 0}, 0},
-                                                   {{1, 0}, 0}, 2);
+      cs::obstacle_avoidance::TrajectoryRollout tr(
+          {{0, 0}, 0}, {{1, 0}, 0}, {{1, 0}, 0}, 2);
       util::Wall w1({3, -2}, {3, 2});
       util::Wall w2({1, -2}, {1, 2});
       util::Wall w3({2, -2}, {2, 2});
@@ -193,8 +193,8 @@ struct ParticleFilterWrapper {
     {
       const util::Pose start({0, 0}, 0);
       const util::Pose velocity({1, 0}, -kPi / 8);
-      cs::obstacle_avoidance::TrajectoryRollout tr(start, velocity, velocity,
-                                                   2);
+      cs::obstacle_avoidance::TrajectoryRollout tr(
+          start, velocity, velocity, 2);
 
       std::cout << "Achieved velocity pose: " << tr.achieved_vel_pose.tra.x()
                 << ", " << tr.achieved_vel_pose.tra.y() << std::endl;
@@ -215,8 +215,8 @@ struct ParticleFilterWrapper {
       std::cout << std::endl << std::endl << std::endl;
       const util::Pose start({-3, 0}, kPi / 2);
       const util::Pose velocity({1, 0}, -0.48);
-      cs::obstacle_avoidance::TrajectoryRollout tr(start, velocity, velocity,
-                                                   2);
+      cs::obstacle_avoidance::TrajectoryRollout tr(
+          start, velocity, velocity, 2);
 
       std::cout << "Achieved velocity pose: " << tr.achieved_vel_pose.tra.x()
                 << ", " << tr.achieved_vel_pose.tra.y() << std::endl;
@@ -268,8 +268,8 @@ struct ParticleFilterWrapper {
       //      if (is_colliding) {
       //        std::cout << "Colliding angle: " << rot << std::endl;
       //      }
-      visualization::DrawTrajectoryRollout(tr, "map", "test_tr", &arr,
-                                           is_colliding);
+      visualization::DrawTrajectoryRollout(
+          tr, "map", "test_tr", &arr, is_colliding);
     }
     trajectory_pub.publish(arr);
   }
@@ -286,8 +286,8 @@ struct ParticleFilterWrapper {
     WriteError(max_estimate_error, weighted_centroid_error);
 
     GridSearchBelief(laser);
-    obstacle_detector.UpdateObservation(weighted_centroid, laser,
-                                        &dynamic_obs_pub);
+    obstacle_detector.UpdateObservation(
+        weighted_centroid, laser, &dynamic_obs_pub);
     obstacle_detector.DrawDynamic(&dynamic_wall_pub);
     TestTrajectories(weighted_centroid);
   }

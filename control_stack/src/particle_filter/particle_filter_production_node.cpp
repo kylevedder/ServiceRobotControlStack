@@ -80,8 +80,8 @@ struct ParticleFilterWrapper {
 
     const auto& wc = particle_filter.WeightedCentroid();
 
-    auto make_position = [wc](const float x, const float y,
-                              const float theta) -> util::Pose {
+    auto make_position =
+        [wc](const float x, const float y, const float theta) -> util::Pose {
       const Eigen::Vector2f offset_vector(x, y);
       return util::Pose(wc.tra + Eigen::Rotation2Df(wc.rot) * offset_vector,
                         theta + wc.rot);
@@ -106,8 +106,8 @@ struct ParticleFilterWrapper {
           const float score =
               particle_filter.ScoreObservation(current_pose, laser);
           const float red = score / max_score;
-          visualization::DrawPose(current_pose, "map", "grid_search", red, 0, 0,
-                                  1, &arr, theta);
+          visualization::DrawPose(
+              current_pose, "map", "grid_search", red, 0, 0, 1, &arr, theta);
         }
       }
     }
@@ -119,13 +119,13 @@ struct ParticleFilterWrapper {
     const Eigen::Vector2f offset_tra(1, 0.5);
     const float rotation = 0;
     const util::Pose base_link_reference(offset_tra, rotation);
-    visualization::DrawPose(base_link_reference, "base_link", "reference", 0, 0,
-                            0, 1, &ref_arr);
+    visualization::DrawPose(
+        base_link_reference, "base_link", "reference", 0, 0, 0, 1, &ref_arr);
 
     const util::Pose global_reference(
         wc.tra + Eigen::Rotation2Df(wc.rot) * offset_tra, rotation + wc.rot);
-    visualization::DrawPose(global_reference, "map", "reference", 1, 1, 1, 1,
-                            &ref_arr, 0.1);
+    visualization::DrawPose(
+        global_reference, "map", "reference", 1, 1, 1, 1, &ref_arr, 0.1);
     ref_arr.markers.push_back(visualization::LaserToLineList(
         laser, wc, map, "map", "obs", 1, 0, 0, 1));
     reference_pub.publish(ref_arr);

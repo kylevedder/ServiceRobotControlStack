@@ -143,8 +143,8 @@ int main(int argc, char** argv) {
   ros::Rate loop_rate(kLoopRate);
 
   const util::Map map(sim::kMap);
-  util::Pose current_pose(sim::kStartPositionX, sim::kStartPositionY,
-                          sim::kStartPositionTheta);
+  util::Pose current_pose(
+      sim::kStartPositionX, sim::kStartPositionY, sim::kStartPositionTheta);
 
   while (ros::ok()) {
     const util::Pose executed_move =
@@ -160,8 +160,8 @@ int main(int argc, char** argv) {
     odom_pub.publish(odom_msg);
     initial_pose_pub.publish(current_pose.ToTwist());
     visualization_msgs::MarkerArray arr;
-    visualization::DrawPose(current_pose, "map", "true_pose_vis", 1, 1, 1, 1,
-                            &arr);
+    visualization::DrawPose(
+        current_pose, "map", "true_pose_vis", 1, 1, 1, 1, &arr);
     initial_pose_vis_pub.publish(arr);
     ros::spinOnce();
     loop_rate.sleep();
