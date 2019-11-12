@@ -24,6 +24,7 @@
 
 #include <unistd.h>
 #include <iostream>
+#include <string>
 
 namespace util {
 
@@ -34,6 +35,14 @@ void PrintCurrentWorkingDirectory() {
   } else {
     std::cerr << "Error calling getcwd()" << std::endl;
   }
+}
+
+std::string GetCurrentWorkingDirectory() {
+  char cwd[1024 * 1024] = {0};
+  if (getcwd(cwd, sizeof(cwd)) != nullptr) {
+    return std::string(cwd);
+  }
+  return "Error calling getcwd()";
 }
 
 tf::Transform EigenAffineToTFTransform(const Eigen::Affine3f& aff) {

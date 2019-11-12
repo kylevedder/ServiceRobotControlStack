@@ -196,7 +196,7 @@ struct CallbackWrapper {
 };
 
 int main(int argc, char** argv) {
-  util::PrintCurrentWorkingDirectory();
+  ROS_ERROR("Directory: %s", util::GetCurrentWorkingDirectory().c_str());
   config_reader::ConfigReader reader(
       {"src/ServiceRobotControlStack/control_stack/config/pf_sim_config.lua"});
   ros::init(argc, argv, "nav_node");
