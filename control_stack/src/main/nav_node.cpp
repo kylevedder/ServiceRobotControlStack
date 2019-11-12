@@ -48,6 +48,7 @@ CONFIG_FLOAT(kRobotRadius, "pf.kRobotRadius");
 CONFIG_FLOAT(kCollisionRollout, "pf.kCollisionRollout");
 CONFIG_FLOAT(kDesiredCommandX, "od.kDesiredCommandX");
 CONFIG_FLOAT(kDesiredCommandRot, "od.kDesiredCommandRot");
+CONFIG_FLOAT(kCommandScalar, "od.kCommandScalar");
 }  // namespace params
 
 static constexpr size_t kTimeBufferSize = 5;
@@ -165,7 +166,8 @@ struct CallbackWrapper {
         obstacle_detector_.MakeCommandSafe(desired_command,
                                            time_delta,
                                            params::kCollisionRollout,
-                                           params::kRobotRadius);
+                                           params::kRobotRadius) *
+        params::kCommandScalar;
     velocity_pub_.publish(safe_cmd.ToTwist());
     ROS_INFO("Command (%f, %f), %f sent",
              safe_cmd.tra.x(),

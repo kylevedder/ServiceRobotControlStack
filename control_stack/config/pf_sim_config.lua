@@ -20,6 +20,7 @@ od = {
   kDesiredCommandRot = 0;
   kOdomFilteringPriorBias = 0.7;
   kThresholdRotateInPlace = 0.9;
+  kCommandScalar = 1;
 };
 
 limits = {
