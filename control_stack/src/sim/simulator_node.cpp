@@ -71,27 +71,28 @@ sensor_msgs::LaserScan MakeScan(const util::Pose& robot_pose,
 
   sensor_msgs::LaserScan scan;
   scan.header = MakeHeader("laser");
-  scan.angle_min = kMinAngle;
-  scan.angle_max = kMaxAngle;
-  scan.angle_increment = kAngleDelta;
-  scan.range_min = kMinReading;
-  scan.range_max = kMaxReading;
+  scan.angle_min = constants::kMinAngle;
+  scan.angle_max = constants::kMaxAngle;
+  scan.angle_increment = constants::kAngleDelta;
+  scan.range_min = constants::kMinReading;
+  scan.range_max = constants::kMaxReading;
   scan.scan_time = 0;
   scan.time_increment = 0;
 
-  for (int ray_idx = 0; ray_idx < kNumReadings; ++ray_idx) {
+  for (int ray_idx = 0; ray_idx < constants::kNumReadings; ++ray_idx) {
     const float angle = math_util::AngleMod(
-        kMinAngle + kAngleDelta * static_cast<float>(ray_idx) + robot_pose.rot);
+        constants::kMinAngle +
+        constants::kAngleDelta * static_cast<float>(ray_idx) + robot_pose.rot);
     const util::Pose ray(robot_pose.tra, angle);
-    const float dist =
-        map.MinDistanceAlongRay(ray, kMinReading, kMaxReading - kEpsilon);
+    const float dist = map.MinDistanceAlongRay(
+        ray, constants::kMinReading, constants::kMaxReading - kEpsilon);
     scan.ranges.push_back(dist + noise_dist(gen));
   }
 
   return scan;
 }
 
-util::Pose AddExecutionOdomNoise(util::Pose move) {
+util::Twist AddExecutionOdomNoise(util::Twist move) {
   std::normal_distribution<> along_arc_dist(
       0.0f, sim::kArcExecStdDev * move.tra.norm());
   std::normal_distribution<> rotation_dist(
@@ -101,7 +102,7 @@ util::Pose AddExecutionOdomNoise(util::Pose move) {
   return move;
 }
 
-util::Pose AddReadingOdomNoise(util::Pose move) {
+util::Twist AddReadingOdomNoise(util::Twist move) {
   std::normal_distribution<> along_arc_dist(
       0.0f, sim::kArcReadStdDev * move.tra.norm());
   std::normal_distribution<> rotation_dist(0.0f,
@@ -111,10 +112,10 @@ util::Pose AddReadingOdomNoise(util::Pose move) {
   return move;
 }
 
-util::Pose commanded_velocity;
+util::Twist commanded_velocity;
 
 void CommandedVelocityCallback(const geometry_msgs::Twist& nv) {
-  commanded_velocity = util::Pose(nv);
+  commanded_velocity = util::Twist(nv);
 }
 
 int main(int argc, char** argv) {
@@ -129,14 +130,15 @@ int main(int argc, char** argv) {
   ros::Publisher initial_pose_pub =
       n.advertise<geometry_msgs::Twist>("true_pose", 1);
   ros::Publisher scan_pub =
-      n.advertise<sensor_msgs::LaserScan>(kLaserTopic, 10);
-  ros::Publisher odom_pub = n.advertise<nav_msgs::Odometry>(kOdomTopic, 10);
+      n.advertise<sensor_msgs::LaserScan>(constants::kLaserTopic, 10);
+  ros::Publisher odom_pub =
+      n.advertise<nav_msgs::Odometry>(constants::kOdomTopic, 10);
   ros::Publisher map_pub = n.advertise<visualization_msgs::Marker>("map", 10);
   ros::Publisher initial_pose_vis_pub =
       n.advertise<visualization_msgs::MarkerArray>("true_pose_vis", 1);
 
-  ros::Subscriber command_sub =
-      n.subscribe(kCommandVelocityTopic, 10, &CommandedVelocityCallback);
+  ros::Subscriber command_sub = n.subscribe(
+      constants::kCommandVelocityTopic, 10, &CommandedVelocityCallback);
 
   static constexpr float kLoopRate = 10;
 
@@ -147,9 +149,9 @@ int main(int argc, char** argv) {
       sim::kStartPositionX, sim::kStartPositionY, sim::kStartPositionTheta);
 
   while (ros::ok()) {
-    const util::Pose executed_move =
+    const util::Twist executed_move =
         AddExecutionOdomNoise(commanded_velocity / kLoopRate);
-    const util::Pose reported_move = AddReadingOdomNoise(executed_move);
+    const util::Twist reported_move = AddReadingOdomNoise(executed_move);
     current_pose = geometry::FollowTrajectory(
         current_pose, executed_move.tra.x(), executed_move.rot);
 

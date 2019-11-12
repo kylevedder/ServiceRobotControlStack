@@ -19,14 +19,15 @@
 // ========================================================================
 #include "cs/util/map.h"
 #include "cs/util/pose.h"
+#include "cs/util/twist.h"
 
 namespace cs {
 namespace obstacle_avoidance {
 
 struct TrajectoryRollout {
   util::Pose start_pose;
-  util::Pose current_v;
-  util::Pose commanded_v;
+  util::Twist current_v;
+  util::Twist commanded_v;
   float rollout_duration;
   util::Pose achieved_vel_pose;
   Eigen::Vector2f rotate_circle_center;
@@ -37,8 +38,8 @@ struct TrajectoryRollout {
 
   TrajectoryRollout() = delete;
   TrajectoryRollout(const util::Pose& start_pose,
-                    const util::Pose& current_v,
-                    const util::Pose& commanded_v,
+                    const util::Twist& current_v,
+                    const util::Twist& commanded_v,
                     const float rollout_duration);
 
   bool IsColliding(const util::Wall& wall, const float& robot_radius) const;

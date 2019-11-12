@@ -72,7 +72,7 @@ float Map::MinDistanceAlongRay(const util::Pose& ray,
       delta = collision_delta;
     }
   }
-  if (delta.squaredNorm() < math_util::Sq(kMinReading)) {
+  if (delta.squaredNorm() < math_util::Sq(constants::kMinReading)) {
     return min_depth;
   }
   return delta.norm();

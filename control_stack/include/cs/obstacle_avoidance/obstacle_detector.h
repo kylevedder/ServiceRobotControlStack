@@ -24,6 +24,7 @@
 #include "cs/util/laser_scan.h"
 #include "cs/util/map.h"
 #include "cs/util/pose.h"
+#include "cs/util/twist.h"
 
 namespace cs {
 namespace obstacle_avoidance {
@@ -31,7 +32,7 @@ namespace obstacle_avoidance {
 class ObstacleDetector {
  public:
   ObstacleDetector() = delete;
-  explicit ObstacleDetector(util::Map const& map);
+  explicit ObstacleDetector(const util::Map& map);
 
   void UpdateObservation(const util::Pose& observation_pose,
                          const util::LaserScan& observation);
@@ -39,32 +40,37 @@ class ObstacleDetector {
                          const util::LaserScan& observation,
                          ros::Publisher* pub);
 
-  void UpdateOdom(const util::Pose& pose, const util::Pose& velocity);
+  void UpdateOdom(const util::Pose& pose, const util::Twist& velocity);
+
+  void UpdateCommand(const util::Twist& prior_commanded_velocity);
 
   void DrawDynamic(ros::Publisher* pub) const;
 
   const std::vector<util::Wall>& GetDynamicWalls() const;
 
-  bool IsCommandColliding(const util::Pose& commanded_velocity,
+  bool IsCommandColliding(const util::Twist& commanded_velocity,
                           const float rollout_duration,
                           const float robot_radius) const;
 
-  util::Pose MakeCommandSafe(util::Pose commanded_velocity,
-                             const float time_delta,
-                             const float rollout_duration,
-                             const float robot_radius);
+  util::Twist MakeCommandSafe(util::Twist commanded_velocity,
+                              const float time_delta,
+                              const float rollout_duration,
+                              const float robot_radius);
 
  private:
   std::vector<Eigen::Vector2f> GetNonMapPoints(
       const util::Pose& observation_pose,
       const util::LaserScan& observation) const;
 
-  util::Pose ApplyCommandLimits(util::Pose p, const float& time_delta) const;
+  util::Twist ApplyCommandLimits(util::Twist c, const float& time_delta) const;
+
+  util::Twist EstimateCurrentVelocity() const;
 
   util::Map map_;
   std::vector<util::Wall> dynamic_walls_;
-  util::Pose current_pose_;
-  util::Pose current_velocity_;
+  util::Pose estimated_pose_;
+  util::Twist odom_velocity_;
+  util::Twist prior_commanded_velocity_;
   std::mt19937 random_gen_;
 };
 

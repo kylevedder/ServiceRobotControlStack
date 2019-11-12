@@ -35,16 +35,21 @@ namespace params {
 CONFIG_FLOAT(kProposedTranslationStdDev, "od.kProposedTranslationStdDev");
 CONFIG_FLOAT(kProposedRotationStdDev, "od.kProposedRotationStdDev");
 CONFIG_FLOAT(kMinDistanceThreshold, "od.kMinDistanceThreshold");
+
 CONFIG_FLOAT(kMaxTraVel, "limits.kMaxTraVel");
 CONFIG_FLOAT(kMaxRotVel, "limits.kMaxRotVel");
 CONFIG_FLOAT(kMaxTraAcc, "limits.kMaxTraAcc");
 CONFIG_FLOAT(kMaxRotAcc, "limits.kMaxRotAcc");
+
+CONFIG_FLOAT(kOdomFilteringPriorBias, "od.kOdomFilteringPriorBias");
+CONFIG_FLOAT(kThresholdRotateInPlace, "od.kThresholdRotateInPlace");
 }  // namespace params
 
-ObstacleDetector::ObstacleDetector(util::Map const& map)
+ObstacleDetector::ObstacleDetector(const util::Map& map)
     : map_(map),
-      current_pose_(0, 0, 0),
-      current_velocity_(0, 0, 0),
+      estimated_pose_(0, 0, 0),
+      odom_velocity_(0, 0, 0),
+      prior_commanded_velocity_(0, 0, 0),
       random_gen_(0) {}
 
 bool IsMapObservation(const float& distance_to_wall) {
@@ -124,10 +129,20 @@ util::Wall FitWallToCluster(const std::vector<Eigen::Vector2f>& points,
   return {v1, v2};
 }
 
+util::Twist ObstacleDetector::EstimateCurrentVelocity() const {
+  return odom_velocity_ * (1 - params::kOdomFilteringPriorBias) +
+         prior_commanded_velocity_ * (params::kOdomFilteringPriorBias);
+}
+
 void ObstacleDetector::UpdateOdom(const util::Pose& pose,
-                                  const util::Pose& velocity) {
-  current_pose_ = pose;
-  current_velocity_ = velocity;
+                                  const util::Twist& velocity) {
+  estimated_pose_ = pose;
+  odom_velocity_ = velocity;
+}
+
+void ObstacleDetector::UpdateCommand(
+    const util::Twist& prior_commanded_velocity) {
+  prior_commanded_velocity_ = prior_commanded_velocity;
 }
 
 void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
@@ -204,7 +219,7 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
     ROS_INFO("Published %zu non-map points", non_map_points.size());
     ROS_INFO("Found %zu clusters", num_clusters);
   }
-  current_pose_ = observation_pose;
+  estimated_pose_ = observation_pose;
 }
 
 void ObstacleDetector::DrawDynamic(ros::Publisher* pub) const {
@@ -217,12 +232,14 @@ const std::vector<util::Wall>& ObstacleDetector::GetDynamicWalls() const {
   return dynamic_walls_;
 }
 
-bool ObstacleDetector::IsCommandColliding(const util::Pose& commanded_velocity,
+bool ObstacleDetector::IsCommandColliding(const util::Twist& commanded_velocity,
                                           const float rollout_duration,
                                           const float robot_radius) const {
   static constexpr bool kDebug = false;
-  const TrajectoryRollout tr(
-      current_pose_, current_velocity_, commanded_velocity, rollout_duration);
+  const TrajectoryRollout tr(estimated_pose_,
+                             EstimateCurrentVelocity(),
+                             commanded_velocity,
+                             rollout_duration);
   for (const auto& w : dynamic_walls_) {
     if (tr.IsColliding(w, robot_radius)) {
       if (kDebug) {
@@ -266,53 +283,108 @@ bool ObstacleDetector::IsCommandColliding(const util::Pose& commanded_velocity,
   return false;
 }
 
-util::Pose ObstacleDetector::ApplyCommandLimits(util::Pose p,
-                                                const float& time_delta) const {
+util::Twist ObstacleDetector::ApplyCommandLimits(
+    util::Twist c, const float& time_delta) const {
+  static constexpr bool kDebug = false;
   NP_CHECK(time_delta >= 0);
+  if (kDebug) {
+    ROS_INFO("Time delta: %f", time_delta);
+  }
+
+  const util::Twist estimated_velocity = EstimateCurrentVelocity();
+
+  if (kDebug) {
+    ROS_INFO("estimated_velocity (%f, %f), %f",
+             estimated_velocity.tra.x(),
+             estimated_velocity.tra.y(),
+             estimated_velocity.rot);
+  }
+
   if (time_delta == 0) {
     return {0, 0, 0};
   }
-  // Cap translational velocity.
-  if (p.tra.squaredNorm() > math_util::Sq(params::kMaxTraVel)) {
-    p.tra = p.tra.normalized() * params::kMaxTraVel;
-  }
-  // Cap rotational velocity.
-  if (fabs(p.rot) > params::kMaxRotVel) {
-    p.rot = math_util::Sign(p.rot) * params::kMaxRotVel;
+  if (kDebug) {
+    ROS_INFO("Raw command: (%f, %f), %f", c.tra.x(), c.tra.y(), c.rot);
   }
 
-  const util::Pose acceleration = (p - current_velocity_) / time_delta;
+  // Cap translational velocity.
+  if (c.tra.squaredNorm() > math_util::Sq(params::kMaxTraVel)) {
+    c.tra = c.tra.normalized() * params::kMaxTraVel;
+  }
+  // Cap rotational velocity.
+  if (fabs(c.rot) > params::kMaxRotVel) {
+    c.rot = math_util::Sign(c.rot) * params::kMaxRotVel;
+  }
+
+  if (kDebug) {
+    ROS_INFO("Vel capped command: (%f, %f), %f", c.tra.x(), c.tra.y(), c.rot);
+  }
+
+  // m/s - m/s -> m/s / s = m/s^2
+  const util::Twist acceleration = (c - estimated_velocity) / time_delta;
+
+  if (kDebug) {
+    ROS_INFO("Acceleration (%f, %f), %f",
+             acceleration.tra.x(),
+             acceleration.tra.y(),
+             acceleration.rot);
+  }
 
   // Cap translational acceleration.
   if (acceleration.tra.squaredNorm() > math_util::Sq(params::kMaxTraAcc)) {
-    p.tra = current_velocity_.tra +
+    // m/s = m/s + m/s^2 * s
+    c.tra = estimated_velocity.tra +
             acceleration.tra.normalized() * params::kMaxTraAcc * time_delta;
   }
 
-  // Cap rotational acceleration.
-  if (fabs(acceleration.rot) > math_util::Sq(params::kMaxTraAcc)) {
-    p.rot = current_velocity_.rot +
-            math_util::Sign(p.rot) * params::kMaxTraAcc / time_delta;
+  if (kDebug) {
+    ROS_INFO("Acc capped command: (%f, %f), %f", c.tra.x(), c.tra.y(), c.rot);
   }
 
-  return p;
+  // Cap rotational acceleration.
+  if (fabs(acceleration.rot) > math_util::Sq(params::kMaxRotAcc)) {
+    // rad/s = rad/s + rad/s^2 * s
+    c.rot = estimated_velocity.rot +
+            math_util::Sign(acceleration.rot) * params::kMaxRotAcc * time_delta;
+  }
+
+  if (kDebug) {
+    ROS_INFO(
+        "Acc capped rot command: (%f, %f), %f", c.tra.x(), c.tra.y(), c.rot);
+  }
+
+  return c;
 }
 
-util::Pose ObstacleDetector::MakeCommandSafe(util::Pose commanded_velocity,
-                                             const float time_delta,
-                                             const float rollout_duration,
-                                             const float robot_radius) {
+util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
+                                              const float time_delta,
+                                              const float rollout_duration,
+                                              const float robot_radius) {
+  ROS_INFO("Initial command: (%f, %f), %f",
+           commanded_velocity.tra.x(),
+           commanded_velocity.tra.y(),
+           commanded_velocity.rot);
   commanded_velocity = ApplyCommandLimits(commanded_velocity, time_delta);
+  const auto est_vel = EstimateCurrentVelocity();
+  ROS_INFO("Limited command: (%f, %f), %f",
+           commanded_velocity.tra.x(),
+           commanded_velocity.tra.y(),
+           commanded_velocity.rot);
+  ROS_INFO("Estimated velocity: (%f, %f), %f",
+           est_vel.tra.x(),
+           est_vel.tra.y(),
+           est_vel.rot);
+  ROS_INFO("Time delta: %f", time_delta);
   static constexpr bool kDebug = false;
   if (kDebug) {
     ROS_INFO("Current position: (%f, %f), %f",
-             current_pose_.tra.x(),
-             current_pose_.tra.y(),
-             current_pose_.rot);
+             estimated_pose_.tra.x(),
+             estimated_pose_.tra.y(),
+             estimated_pose_.rot);
     ROS_INFO("Current velocity: (%f, %f), %f",
-             current_velocity_.tra.x(),
-             current_velocity_.tra.y(),
-             current_velocity_.rot);
+             odom_velocity_.tra.x(),
+             odom_velocity_.tra.y(),
+             odom_velocity_.rot);
     ROS_INFO("Current command: (%f, %f), %f",
              commanded_velocity.tra.x(),
              commanded_velocity.tra.y(),
@@ -322,23 +394,20 @@ util::Pose ObstacleDetector::MakeCommandSafe(util::Pose commanded_velocity,
     return commanded_velocity;
   }
 
-  static const util::Pose zero_command(0, 0, 0);
-  // NP_CHECK(!IsCommandColliding(zero_command, rollout_duration,
-  // robot_radius));
-
   static constexpr int kIterations = 50;
-  std::array<std::pair<util::Pose, float>, kIterations> proposed_commands;
+  std::array<std::pair<util::Twist, float>, kIterations> proposed_commands;
 
   std::normal_distribution<> translational_noise_dist(
       0.0f, params::kProposedTranslationStdDev);
   std::normal_distribution<> rotational_noise_dist(
       0.0f, params::kProposedRotationStdDev);
 
-  const std::array<util::Pose, 2> special_poses = {{{0, 0, 1}, {0, 0, -1}}};
+  const std::array<util::Twist, 2> special_poses = {
+      {{0, 0, params::kMaxRotVel}, {0, 0, -params::kMaxRotVel}}};
 
   const auto generate_special =
       [&special_poses,
-       &commanded_velocity](const int& i) -> std::pair<util::Pose, float> {
+       &commanded_velocity](const int& i) -> std::pair<util::Twist, float> {
     NP_CHECK(static_cast<size_t>(i) < special_poses.size());
     const auto& special = special_poses[i];
     const auto delta_pose = commanded_velocity - special;
@@ -349,11 +418,11 @@ util::Pose ObstacleDetector::MakeCommandSafe(util::Pose commanded_velocity,
   const auto generate_random =
       [this,
        &translational_noise_dist,
-       &rotational_noise_dist]() -> std::pair<util::Pose, float> {
+       &rotational_noise_dist]() -> std::pair<util::Twist, float> {
     const float translational_noise = translational_noise_dist(random_gen_);
     const float rotational_noise = rotational_noise_dist(random_gen_);
     return std::make_pair(
-        util::Pose(translational_noise, 0, rotational_noise),
+        util::Twist(translational_noise, 0, rotational_noise),
         math_util::Sq(translational_noise) + math_util::Sq(rotational_noise));
   };
 
@@ -361,7 +430,7 @@ util::Pose ObstacleDetector::MakeCommandSafe(util::Pose commanded_velocity,
     const auto delta = (static_cast<size_t>(i) < special_poses.size())
                            ? generate_special(i)
                            : generate_random();
-    const util::Pose proposed_command =
+    const util::Twist proposed_command =
         ApplyCommandLimits(commanded_velocity + delta.first, time_delta);
     if (!IsCommandColliding(proposed_command, rollout_duration, robot_radius)) {
       const float cost = delta.second;
@@ -386,9 +455,21 @@ util::Pose ObstacleDetector::MakeCommandSafe(util::Pose commanded_velocity,
   }
   const auto& best = proposed_commands[min_index];
   if (best.second < std::numeric_limits<float>::max()) {
+    ROS_INFO("Final cmd velocity: (%f, %f), %f",
+             best.first.tra.x(),
+             best.first.tra.y(),
+             best.first.rot);
     return best.first;
   }
-  return zero_command;
+
+  const util::Twist est_current_velocity = EstimateCurrentVelocity();
+  if (est_current_velocity.tra.squaredNorm() +
+          math_util::Sq(est_current_velocity.rot) <
+      math_util::Sq(params::kThresholdRotateInPlace)) {
+    ROS_INFO("Rotate in place!!");
+    return ApplyCommandLimits({0, 0, params::kMaxRotVel / 2}, time_delta);
+  }
+  return {0, 0, 0};
 }
 
 }  // namespace obstacle_avoidance

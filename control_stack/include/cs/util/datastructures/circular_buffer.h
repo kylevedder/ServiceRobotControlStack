@@ -60,7 +60,7 @@ class CircularBuffer {
   size_t size() const { return current_size_; }
 
   void push_back(const Value& v) {
-    const size_t idx = WrapIndex(tail_index_ + 1);
+    const size_t idx = (empty()) ? tail_index_ : WrapIndex(tail_index_ + 1);
     manual_queue_[idx] = v;
     tail_index_ = idx;
     if (current_size_ < Size) {
@@ -82,13 +82,13 @@ class CircularBuffer {
 
   class CircularBufferIterator {
    private:
-    const CircularBuffer* buffer_;
-    const size_t index_;
+    CircularBuffer* buffer_;
+    size_t index_;
 
    public:
     CircularBufferIterator() = delete;
 
-    CircularBufferIterator(const CircularBuffer* buffer, const size_t index)
+    CircularBufferIterator(CircularBuffer* buffer, const size_t index)
         : buffer_(buffer), index_(index) {}
 
     bool operator==(const CircularBufferIterator& other) const {
@@ -99,27 +99,28 @@ class CircularBuffer {
       return !(*this == other);
     }
 
-    void operator++() { index_ = buffer_->WrapIndex(index_ + 1); }
+    void operator++() { index_++; }
 
     const Value& operator*() const { return (*buffer_)[index_]; }
 
-    Value& operator*() { return (*buffer_)[index_]; }
+    Value& operator*() {
+      Value& v = (*buffer_)[index_];
+      return v;
+    }
   };
 
-  CircularBufferIterator begin() {
-    return CircularBufferIterator(this, head_index_);
-  }
+  CircularBufferIterator begin() { return CircularBufferIterator(this, 0); }
 
   CircularBufferIterator begin() const {
-    return CircularBufferIterator(this, head_index_);
+    return CircularBufferIterator(this, 0);
   }
 
   CircularBufferIterator end() {
-    return CircularBufferIterator(this, tail_index_);
+    return CircularBufferIterator(this, current_size_);
   }
 
   CircularBufferIterator end() const {
-    return CircularBufferIterator(this, tail_index_);
+    return CircularBufferIterator(this, current_size_);
   }
 };
 

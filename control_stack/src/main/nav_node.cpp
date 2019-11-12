@@ -23,19 +23,17 @@
 #include <signal.h>
 #include <tf/transform_broadcaster.h>
 #include <visualization_msgs/MarkerArray.h>
-#include <eigen3/Eigen/Core>
-#include <eigen3/Eigen/Geometry>
 
-#include <algorithm>
 #include <cmath>
 #include <fstream>
 
 #include "config_reader/config_reader.h"
 #include "cs/obstacle_avoidance/obstacle_detector.h"
 #include "cs/particle_filter/particle_filter.h"
-#include "cs/util/crash_handling.h"
 #include "cs/util/datastructures/circular_buffer.h"
 #include "cs/util/math_util.h"
+#include "cs/util/pose.h"
+#include "cs/util/twist.h"
 #include "cs/util/util.h"
 #include "cs/util/visualization.h"
 
@@ -82,12 +80,12 @@ struct CallbackWrapper {
         particle_filter_(map,
                          {params::kInitX, params::kInitY, params::kInitTheta}),
         obstacle_detector_(map) {
-    velocity_pub_ =
-        n->advertise<geometry_msgs::Twist>(kCommandVelocityTopic, 10);
-    laser_sub_ =
-        n->subscribe(kLaserTopic, 10, &CallbackWrapper::LaserCallback, this);
-    odom_sub_ =
-        n->subscribe(kOdomTopic, 10, &CallbackWrapper::OdomCallback, this);
+    velocity_pub_ = n->advertise<geometry_msgs::Twist>(
+        constants::kCommandVelocityTopic, 10);
+    laser_sub_ = n->subscribe(
+        constants::kLaserTopic, 10, &CallbackWrapper::LaserCallback, this);
+    odom_sub_ = n->subscribe(
+        constants::kOdomTopic, 10, &CallbackWrapper::OdomCallback, this);
 
     if (kDebug) {
       particle_pub_ =
@@ -108,7 +106,7 @@ struct CallbackWrapper {
             ? kEpsilon
             : (laser_times_buffer_.back() - laser_times_buffer_.front())
                       .toSec() /
-                  laser_times_buffer_.size();
+                  (laser_times_buffer_.size() - 1);
     NP_CHECK_VAL(mean_time_delta > 0, mean_time_delta);
     util::LaserScan laser(msg);
     particle_filter_.UpdateObservation(laser);
@@ -118,8 +116,10 @@ struct CallbackWrapper {
              est_pose.tra.x(),
              est_pose.tra.y(),
              est_pose.rot);
-    CommandVelocity({params::kDesiredCommandX, 0, params::kDesiredCommandRot},
-                    mean_time_delta);
+    const util::Twist commanded_velocity = CommandVelocity(
+        {params::kDesiredCommandX, 0, params::kDesiredCommandRot},
+        mean_time_delta);
+    obstacle_detector_.UpdateCommand(commanded_velocity);
     PublishTransforms();
     if (kDebug) {
       particle_filter_.DrawParticles(&particle_pub_);
@@ -144,12 +144,12 @@ struct CallbackWrapper {
       return;
     }
     odom_times_buffer_.push_back(current_time);
-    const util::Pose velocity(msg.twist.twist);
+    const util::Twist velocity(msg.twist.twist);
     const double mean_time_delta =
         (odom_times_buffer_.back() - odom_times_buffer_.front()).toSec() /
-        odom_times_buffer_.size();
+        (odom_times_buffer_.size() - 1);
     NP_CHECK(mean_time_delta > 0);
-    const util::Pose delta = velocity * static_cast<float>(mean_time_delta);
+    const util::Twist delta = velocity * static_cast<float>(mean_time_delta);
     particle_filter_.UpdateOdom(delta.tra.x(), delta.rot);
     if (kDebug) {
       particle_filter_.DrawParticles(&particle_pub_);
@@ -159,9 +159,9 @@ struct CallbackWrapper {
                                   velocity);
   }
 
-  void CommandVelocity(const util::Pose& desired_command,
-                       const float& time_delta) {
-    const util::Pose safe_cmd =
+  util::Twist CommandVelocity(const util::Twist& desired_command,
+                              const float& time_delta) {
+    const util::Twist safe_cmd =
         obstacle_detector_.MakeCommandSafe(desired_command,
                                            time_delta,
                                            params::kCollisionRollout,
@@ -171,6 +171,7 @@ struct CallbackWrapper {
              safe_cmd.tra.x(),
              safe_cmd.tra.y(),
              safe_cmd.rot);
+    return safe_cmd;
   }
 
   void PublishTransforms() {

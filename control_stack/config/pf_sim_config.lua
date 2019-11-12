@@ -16,13 +16,15 @@ od = {
   kMinDistanceThreshold = 0.05;
   kProposedTranslationStdDev = 1.0;
   kProposedRotationStdDev = 5;
-  kDesiredCommandX = 0.1;
+  kDesiredCommandX = 0.2;
   kDesiredCommandRot = 0;
+  kOdomFilteringPriorBias = 0.7;
+  kThresholdRotateInPlace = 0.9;
 };
 
 limits = {
-  kMaxTraAccel = 0.5;
-  kMaxTraVel = 0.5;
-  kMaxRotAccel = 0.2;
-  kMaxRotVel = 0.2;
+  kMaxTraAcc = 3;
+  kMaxTraVel = 1;
+  kMaxRotAcc = 2;
+  kMaxRotVel = 1;
 };

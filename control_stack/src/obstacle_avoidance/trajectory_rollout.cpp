@@ -27,18 +27,18 @@
 namespace cs {
 namespace obstacle_avoidance {
 
-namespace params {
-CONFIG_FLOAT(kMaxTraAccel, "limits.kMaxTraAccel");
+namespace trajectory_params {
+CONFIG_FLOAT(kMaxTraAcc, "limits.kMaxTraAcc");
 }
 
-float AchievedVelocityTime(const util::Pose& current_v,
-                           const util::Pose& commanded_v) {
+float AchievedVelocityTime(const util::Twist& current_v,
+                           const util::Twist& commanded_v) {
   const float vel_delta = (commanded_v.tra.x() - current_v.tra.x());  // m/s
-  return vel_delta / params::kMaxTraAccel;
+  return vel_delta / trajectory_params::kMaxTraAcc;
 }
 
 Eigen::Vector2f CircleCenter(const util::Pose& pose,
-                             const util::Pose& velocity,
+                             const util::Twist& velocity,
                              const float& radius) {
   NP_FINITE(radius);
   const int direction = math_util::Sign(velocity.rot);
@@ -52,17 +52,18 @@ Eigen::Vector2f CircleCenter(const util::Pose& pose,
 }
 
 util::Pose AchievedVelocityPose(const util::Pose& start_pose,
-                                const util::Pose& current_v,
+                                const util::Twist& current_v,
                                 const float& time) {
-  const float delta_x = current_v.tra.x() * time +
-                        0.5f * params::kMaxTraAccel * math_util::Sq(time);
+  const float delta_x =
+      current_v.tra.x() * time +
+      0.5f * trajectory_params::kMaxTraAcc * math_util::Sq(time);
   const float& rot = start_pose.rot;
   const Eigen::Vector2f position_delta(math_util::Cos(rot) * delta_x,
                                        math_util::Sin(rot) * delta_x);
   return {start_pose.tra + position_delta, start_pose.rot};
 }
 
-float RotationCircleRadius(const util::Pose& commanded_v) {
+float RotationCircleRadius(const util::Twist& commanded_v) {
   NP_FINITE(commanded_v.tra.x());
   NP_FINITE(commanded_v.rot);
   const float linear_speed = commanded_v.tra.x();  // m/s
@@ -101,8 +102,8 @@ bool IsCollidingLinear(const util::Pose& pose1,
 }
 
 TrajectoryRollout::TrajectoryRollout(const util::Pose& start_pose,
-                                     const util::Pose& current_v,
-                                     const util::Pose& commanded_v,
+                                     const util::Twist& current_v,
+                                     const util::Twist& commanded_v,
                                      const float rollout_duration)
     : start_pose(start_pose),
       current_v(current_v),

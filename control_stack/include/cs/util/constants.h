@@ -19,10 +19,13 @@
 // ========================================================================
 #include <iostream>
 
-static constexpr bool kProduction = false;
-static constexpr float kPi = M_PI;
-static constexpr float kEpsilon = 0.001f;
+#include "config_reader/macros.h"
 
+static constexpr bool kProduction = false;
+static constexpr float kEpsilon = 0.001f;
+static constexpr float kPi = M_PI;
+
+namespace constants {
 static constexpr float kMinAngle = -kPi / 2;
 static constexpr float kMaxAngle = kPi / 2;
 static constexpr int kNumReadings = 100;
@@ -34,6 +37,7 @@ static constexpr float kMaxReading = 5.0f;
 static constexpr auto kCommandVelocityTopic = "/mobile_base/commands/velocity";
 static constexpr auto kOdomTopic = "/odom";
 static constexpr auto kLaserTopic = "/scan";
+}  // namespace constants
 
 #define CHECK(exp)                                                      \
   if (!(exp)) {                                                         \

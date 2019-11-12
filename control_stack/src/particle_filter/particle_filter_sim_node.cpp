@@ -192,7 +192,7 @@ struct ParticleFilterWrapper {
 
     {
       const util::Pose start({0, 0}, 0);
-      const util::Pose velocity({1, 0}, -kPi / 8);
+      const util::Twist velocity({1, 0}, -kPi / 8);
       cs::obstacle_avoidance::TrajectoryRollout tr(
           start, velocity, velocity, 2);
 
@@ -214,7 +214,7 @@ struct ParticleFilterWrapper {
     {
       std::cout << std::endl << std::endl << std::endl;
       const util::Pose start({-3, 0}, kPi / 2);
-      const util::Pose velocity({1, 0}, -0.48);
+      const util::Twist velocity({1, 0}, -0.48);
       cs::obstacle_avoidance::TrajectoryRollout tr(
           start, velocity, velocity, 2);
 
@@ -240,14 +240,14 @@ struct ParticleFilterWrapper {
     static constexpr float kRobotRadius = 0.1f;
     static constexpr float kRolloutTime = 2;
 
-    const util::Pose velocity({1, 0}, 0);
+    const util::Twist velocity({1, 0}, 0);
     // static const util::Pose kInitialVelocity(0.9, 0, 0);
 
     for (int i = 0; i < kNumElems; ++i) {
       const float rot = -static_cast<float>(i - kNumElems / 2) /
                         (static_cast<float>(kNumElems) / 4.0f);
       //      const float rot = -0.48;
-      const util::Pose commanded_velocity(1, 0, rot);
+      const util::Twist commanded_velocity(1, 0, rot);
       cs::obstacle_avoidance::TrajectoryRollout tr(
           pose, velocity, commanded_velocity, kRolloutTime);
       bool is_colliding = false;
