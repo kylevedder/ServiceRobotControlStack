@@ -79,8 +79,7 @@ size_t GetClusterEndIdx(const std::vector<Eigen::Vector2f>& points,
 
   const Eigen::Vector2f& start_v = points[cluster_start_idx];
 
-  static const auto in_same_cluster = [&start_v](
-                                          const Eigen::Vector2f& prev,
+  const auto in_same_cluster = [&start_v](const Eigen::Vector2f& prev,
                                           const Eigen::Vector2f& curr) -> bool {
     static constexpr float kMaxDistanceBetweenReadings = 0.3;
     static constexpr float kMinDistanceBetweenReadingsToReasonAngle = 0.05;
@@ -106,6 +105,8 @@ size_t GetClusterEndIdx(const std::vector<Eigen::Vector2f>& points,
 
   size_t prev_idx = cluster_start_idx;
   for (size_t i = cluster_start_idx + 1; i < points.size(); ++i) {
+    NP_CHECK(prev_idx < points.size());
+    NP_CHECK(i < points.size());
     const Eigen::Vector2f& prev_v = points[prev_idx];
     const Eigen::Vector2f& curr_v = points[i];
     if (!in_same_cluster(prev_v, curr_v)) {
