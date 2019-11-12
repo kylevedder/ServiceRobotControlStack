@@ -27,7 +27,7 @@
 #include <cmath>
 #include <fstream>
 
-#include "config_reader/config_reader.h"
+// #include "config_reader/config_reader.h"
 #include "cs/obstacle_avoidance/obstacle_detector.h"
 #include "cs/particle_filter/particle_filter.h"
 #include "cs/util/datastructures/circular_buffer.h"
@@ -40,15 +40,26 @@
 static constexpr bool kDebug = true;
 
 namespace params {
-CONFIG_STRING(kMap, "pf.kMap");
-CONFIG_FLOAT(kInitX, "pf.kInitX");
-CONFIG_FLOAT(kInitY, "pf.kInitY");
-CONFIG_FLOAT(kInitTheta, "pf.kInitTheta");
-CONFIG_FLOAT(kRobotRadius, "pf.kRobotRadius");
-CONFIG_FLOAT(kCollisionRollout, "pf.kCollisionRollout");
-CONFIG_FLOAT(kDesiredCommandX, "od.kDesiredCommandX");
-CONFIG_FLOAT(kDesiredCommandRot, "od.kDesiredCommandRot");
-CONFIG_FLOAT(kCommandScalar, "od.kCommandScalar");
+// CONFIG_STRING(kMap, "pf.kMap");
+// CONFIG_FLOAT(kInitX, "pf.kInitX");
+// CONFIG_FLOAT(kInitY, "pf.kInitY");
+// CONFIG_FLOAT(kInitTheta, "pf.kInitTheta");
+// CONFIG_FLOAT(kRobotRadius, "pf.kRobotRadius");
+// CONFIG_FLOAT(kCollisionRollout, "pf.kCollisionRollout");
+// CONFIG_FLOAT(kDesiredCommandX, "od.kDesiredCommandX");
+// CONFIG_FLOAT(kDesiredCommandRot, "od.kDesiredCommandRot");
+// CONFIG_FLOAT(kCommandScalar, "od.kCommandScalar");
+
+static constexpr auto kMap =
+    "./src/ServiceRobotControlStack/control_stack/maps/loop.map";
+static constexpr float kInitX = 4;
+static constexpr float kInitY = 0;
+static constexpr float kInitTheta = 0;
+static constexpr float kRobotRadius = 0.1;
+static constexpr float kCollisionRollout = 2;
+static constexpr float kDesiredCommandX = 0.2;
+static constexpr float kDesiredCommandRot = 0;
+static constexpr float kCommandScalar = 1;
 }  // namespace params
 
 static constexpr size_t kTimeBufferSize = 5;
@@ -197,8 +208,8 @@ struct CallbackWrapper {
 
 int main(int argc, char** argv) {
   ROS_ERROR("Directory: %s", util::GetCurrentWorkingDirectory().c_str());
-  config_reader::ConfigReader reader(
-      {"src/ServiceRobotControlStack/control_stack/config/pf_sim_config.lua"});
+  //  config_reader::ConfigReader reader(
+  //      {"src/ServiceRobotControlStack/control_stack/config/pf_sim_config.lua"});
   ros::init(argc, argv, "nav_node");
 
   ros::NodeHandle n;

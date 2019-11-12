@@ -38,18 +38,30 @@
 #include "cs/util/util.h"
 #include "cs/util/visualization.h"
 
-#include "config_reader/config_reader.h"
+// #include "config_reader/config_reader.h"
 
 namespace sim {
-CONFIG_FLOAT(kLaserStdDev, "sim.kLaserStdDev");
-CONFIG_FLOAT(kArcExecStdDev, "sim.kArcExecStdDev");
-CONFIG_FLOAT(kArcReadStdDev, "sim.kArcReadStdDev");
-CONFIG_FLOAT(kRotateExecStdDev, "sim.kRotateExecStdDev");
-CONFIG_FLOAT(kRotateReadStdDev, "sim.kRotateReadStdDev");
-CONFIG_FLOAT(kStartPositionX, "sim.kStartPositionX");
-CONFIG_FLOAT(kStartPositionY, "sim.kStartPositionY");
-CONFIG_FLOAT(kStartPositionTheta, "sim.kStartPositionTheta");
-CONFIG_STRING(kMap, "sim.kMap");
+// CONFIG_FLOAT(kLaserStdDev, "sim.kLaserStdDev");
+// CONFIG_FLOAT(kArcExecStdDev, "sim.kArcExecStdDev");
+// CONFIG_FLOAT(kArcReadStdDev, "sim.kArcReadStdDev");
+// CONFIG_FLOAT(kRotateExecStdDev, "sim.kRotateExecStdDev");
+// CONFIG_FLOAT(kRotateReadStdDev, "sim.kRotateReadStdDev");
+// CONFIG_FLOAT(kStartPositionX, "sim.kStartPositionX");
+// CONFIG_FLOAT(kStartPositionY, "sim.kStartPositionY");
+// CONFIG_FLOAT(kStartPositionTheta, "sim.kStartPositionTheta");
+// CONFIG_STRING(kMap, "sim.kMap");
+
+static constexpr float kLaserStdDev = 0.015;
+static constexpr float kArcExecStdDev = 0.4;
+static constexpr float kArcReadStdDev = 0.2;
+static constexpr float kRotateExecStdDev = 0.001;
+static constexpr float kRotateReadStdDev = 0.001;
+static constexpr float kStartPositionX = 4;
+static constexpr float kStartPositionY = 0;
+static constexpr float kStartPositionTheta = 0;
+static constexpr auto kMap =
+    "./src/ServiceRobotControlStack/control_stack/maps/loop_small_bumps.map";
+
 }  // namespace sim
 
 // std::random_device rd;
@@ -120,9 +132,9 @@ void CommandedVelocityCallback(const geometry_msgs::Twist& nv) {
 
 int main(int argc, char** argv) {
   util::PrintCurrentWorkingDirectory();
-  config_reader::ConfigReader reader(
-      {"src/ServiceRobotControlStack/control_stack/config/pf_sim_config.lua",
-       "src/ServiceRobotControlStack/control_stack/config/sim_config.lua"});
+  //  config_reader::ConfigReader reader(
+  //      {"src/ServiceRobotControlStack/control_stack/config/pf_sim_config.lua",
+  //       "src/ServiceRobotControlStack/control_stack/config/sim_config.lua"});
   ros::init(argc, argv, "simulator");
 
   ros::NodeHandle n;

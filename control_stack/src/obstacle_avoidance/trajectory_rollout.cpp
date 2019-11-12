@@ -20,7 +20,7 @@
 
 #include <algorithm>
 
-#include "config_reader/macros.h"
+// #include "config_reader/macros.h"
 #include "cs/util/geometry.h"
 #include "cs/util/map.h"
 
@@ -28,8 +28,9 @@ namespace cs {
 namespace obstacle_avoidance {
 
 namespace trajectory_params {
-CONFIG_FLOAT(kMaxTraAcc, "limits.kMaxTraAcc");
-}
+// CONFIG_FLOAT(kMaxTraAcc, "limits.kMaxTraAcc");
+static constexpr float kMaxTraAcc = 3;
+}  // namespace trajectory_params
 
 float AchievedVelocityTime(const util::Twist& current_v,
                            const util::Twist& commanded_v) {
