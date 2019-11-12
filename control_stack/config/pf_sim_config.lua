@@ -4,7 +4,7 @@ pf = {
   kRotateStdDev = 0.04;
   kTemporalConsistencyWeight = 0;
 
-  kMap = "/home/k/code/catkin_ws/src/ServiceRobotControlStack/control_stack/maps/loop.map";
+  kMap = "./src/ServiceRobotControlStack/control_stack/maps/loop.map";
   kInitX = 4;
   kInitY = 0;
   kInitTheta = 0;

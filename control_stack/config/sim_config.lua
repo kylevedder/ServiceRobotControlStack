@@ -8,5 +8,5 @@ sim = {
   kStartPositionY = 0;
   kStartPositionTheta = 0;
 
-  kMap = "/home/k/code/catkin_ws/src/ServiceRobotControlStack/control_stack/maps/loop_small_bumps.map";
+  kMap = "./src/ServiceRobotControlStack/control_stack/maps/loop_small_bumps.map";
 };
