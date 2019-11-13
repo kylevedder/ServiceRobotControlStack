@@ -48,10 +48,10 @@ namespace params {
 // CONFIG_FLOAT(kCollisionRollout, "pf.kCollisionRollout");
 // CONFIG_FLOAT(kDesiredCommandX, "od.kDesiredCommandX");
 // CONFIG_FLOAT(kDesiredCommandRot, "od.kDesiredCommandRot");
-// CONFIG_FLOAT(kCommandScalar, "od.kCommandScalar");
+// CONFIG_INT(kTranslateCommandSign, "od.kTranslateCommandSign");
 
 static constexpr auto kMap =
-    "./src/ServiceRobotControlStack/control_stack/maps/loop.map";
+    "./src/ServiceRobotControlStack/control_stack/maps/empty.map";
 static constexpr float kInitX = 4;
 static constexpr float kInitY = 0;
 static constexpr float kInitTheta = 0;
@@ -59,7 +59,7 @@ static constexpr float kRobotRadius = 0.1;
 static constexpr float kCollisionRollout = 2;
 static constexpr float kDesiredCommandX = 0.2;
 static constexpr float kDesiredCommandRot = 0;
-static constexpr float kCommandScalar = 1;
+static constexpr int kTranslateCommandSign = 1;
 }  // namespace params
 
 static constexpr size_t kTimeBufferSize = 5;
@@ -147,6 +147,11 @@ struct CallbackWrapper {
     }
   }
 
+  util::Twist TransformTwistUsingSign(util::Twist twist) {
+    twist.tra *= params::kTranslateCommandSign;
+    return twist;
+  }
+
   void OdomCallback(const nav_msgs::Odometry& msg) {
     const ros::Time& current_time = msg.header.stamp;
     ROS_INFO("Odom update");
@@ -156,8 +161,8 @@ struct CallbackWrapper {
       return;
     }
     odom_times_buffer_.push_back(current_time);
-    const util::Twist velocity(msg.twist.twist);
-    velocity *= kCommandScalar;
+    const util::Twist velocity =
+        TransformTwistUsingSign(util::Twist(msg.twist.twist));
     const double mean_time_delta =
         (odom_times_buffer_.back() - odom_times_buffer_.front()).toSec() /
         (odom_times_buffer_.size() - 1);
@@ -178,13 +183,17 @@ struct CallbackWrapper {
         obstacle_detector_.MakeCommandSafe(desired_command,
                                            time_delta,
                                            params::kCollisionRollout,
-                                           params::kRobotRadius) *
-        params::kCommandScalar;
-    velocity_pub_.publish(safe_cmd.ToTwist());
-    ROS_INFO("Command (%f, %f), %f sent",
+                                           params::kRobotRadius);
+    const util::Twist sent_cmd = TransformTwistUsingSign(safe_cmd);
+    velocity_pub_.publish(sent_cmd.ToTwist());
+    ROS_INFO("Command (%f, %f), %f safe",
              safe_cmd.tra.x(),
              safe_cmd.tra.y(),
              safe_cmd.rot);
+    ROS_INFO("Command (%f, %f), %f sent",
+             sent_cmd.tra.x(),
+             sent_cmd.tra.y(),
+             sent_cmd.rot);
     return safe_cmd;
   }
 
