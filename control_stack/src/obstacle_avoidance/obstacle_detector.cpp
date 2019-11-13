@@ -412,8 +412,11 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
   std::normal_distribution<> rotational_noise_dist(
       0.0f, params::kProposedRotationStdDev);
 
-  const std::array<util::Twist, 2> special_poses = {
-      {{0, 0, params::kMaxRotVel}, {0, 0, -params::kMaxRotVel}}};
+  const std::array<util::Twist, 4> special_poses = {
+      {{0, 0, params::kMaxRotVel},
+       {0, 0, -params::kMaxRotVel},
+       {est_vel.tra, params::kMaxRotVel},
+       {est_vel.tra, -params::kMaxRotVel}}};
 
   const auto generate_special =
       [&special_poses,
@@ -421,8 +424,8 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
     NP_CHECK(static_cast<size_t>(i) < special_poses.size());
     const auto& special = special_poses[i];
     const auto delta_pose = commanded_velocity - special;
-    const float cost = math_util::Sq(delta_pose.tra.lpNorm<1>()) +
-                       math_util::Sq(delta_pose.rot);
+    const float cost =
+        math_util::Sq(delta_pose.tra.lpNorm<1>()) + fabs(delta_pose.rot);
     return std::make_pair(special, cost);
   };
   const auto generate_random =
@@ -433,7 +436,7 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
     const float rotational_noise = rotational_noise_dist(random_gen_);
     return std::make_pair(
         util::Twist(translational_noise, 0, rotational_noise),
-        math_util::Sq(translational_noise) + math_util::Sq(rotational_noise));
+        math_util::Sq(translational_noise) + fabs(rotational_noise));
   };
 
   for (int i = 0; i < kIterations; ++i) {
@@ -444,14 +447,21 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
         ApplyCommandLimits(commanded_velocity + delta.first, time_delta);
     if (!IsCommandColliding(proposed_command, rollout_duration, robot_radius)) {
       const float cost = delta.second;
-      //      ROS_INFO("Proposed command: (%f, %f), %f cost %f",
-      //               proposed_command.tra.x(), proposed_command.tra.y(),
-      //               proposed_command.rot, cost);
+      if (static_cast<size_t>(i) < special_poses.size()) {
+        ROS_INFO("Special command: (%f, %f), %f cost %f (non-colliding)",
+                 proposed_command.tra.x(),
+                 proposed_command.tra.y(),
+                 proposed_command.rot,
+                 cost);
+      }
       proposed_commands[i] = {proposed_command, cost};
     } else {
-      //      ROS_INFO("Proposed command: (%f, %f), %f (colliding)",
-      //               proposed_command.tra.x(), proposed_command.tra.y(),
-      //               proposed_command.rot);
+      if (static_cast<size_t>(i) < special_poses.size()) {
+        ROS_INFO("Proposed command: (%f, %f), %f (colliding)",
+                 proposed_command.tra.x(),
+                 proposed_command.tra.y(),
+                 proposed_command.rot);
+      }
       proposed_commands[i] = {proposed_command,
                               std::numeric_limits<float>::max()};
     }
