@@ -33,15 +33,15 @@
 #include "cs/util/visualization.h"
 
 namespace pf {
-CONFIG_FLOAT(kLaserStdDev, "pf.kLaserStdDev");
-CONFIG_FLOAT(kArcStdDev, "pf.kArcStdDev");
-CONFIG_FLOAT(kRotateStdDev, "pf.kRotateStdDev");
-CONFIG_FLOAT(kTemporalConsistencyWeight, "pf.kTemporalConsistencyWeight");
+// CONFIG_FLOAT(kLaserStdDev, "pf.kLaserStdDev");
+// CONFIG_FLOAT(kArcStdDev, "pf.kArcStdDev");
+// CONFIG_FLOAT(kRotateStdDev, "pf.kRotateStdDev");
+// CONFIG_FLOAT(kTemporalConsistencyWeight, "pf.kTemporalConsistencyWeight");
 
-// static constexpr float kLaserStdDev = 0.1;
-// static constexpr float kArcStdDev = 0.1;
-// static constexpr float kRotateStdDev = 0.04;
-// static constexpr float kTemporalConsistencyWeight = 0;
+static constexpr float kLaserStdDev = 0.1;
+static constexpr float kArcStdDev = 0.1;
+static constexpr float kRotateStdDev = 0.04;
+static constexpr float kTemporalConsistencyWeight = 0;
 
 }  // namespace pf
 
