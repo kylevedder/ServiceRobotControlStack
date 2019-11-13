@@ -157,6 +157,7 @@ struct CallbackWrapper {
     }
     odom_times_buffer_.push_back(current_time);
     const util::Twist velocity(msg.twist.twist);
+    velocity *= kCommandScalar;
     const double mean_time_delta =
         (odom_times_buffer_.back() - odom_times_buffer_.front()).toSec() /
         (odom_times_buffer_.size() - 1);
