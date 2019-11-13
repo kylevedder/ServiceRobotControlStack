@@ -28,8 +28,8 @@ namespace cs {
 namespace obstacle_avoidance {
 
 namespace trajectory_params {
-// CONFIG_FLOAT(kMaxTraAcc, "limits.kMaxTraAcc");
-static constexpr float kMaxTraAcc = 3;
+CONFIG_FLOAT(kMaxTraAcc, "limits.kMaxTraAcc");
+// static constexpr float kMaxTraAcc = 3;
 }  // namespace trajectory_params
 
 float AchievedVelocityTime(const util::Twist& current_v,
