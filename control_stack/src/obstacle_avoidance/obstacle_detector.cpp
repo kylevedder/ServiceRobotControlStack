@@ -52,6 +52,7 @@ static constexpr float kMaxRotVel = 1;
 // CONFIG_FLOAT(kThresholdRotateInPlace, "od.kThresholdRotateInPlace");
 static constexpr float kOdomFilteringPriorBias = 0.7;
 static constexpr float kThresholdRotateInPlace = 0.9;
+static constexpr float kTranslationCostScaleFactor = 1000;
 }  // namespace params
 
 ObstacleDetector::ObstacleDetector(const util::Map& map)
@@ -424,8 +425,9 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
     NP_CHECK(static_cast<size_t>(i) < special_poses.size());
     const auto& special = special_poses[i];
     const auto delta_pose = commanded_velocity - special;
-    const float cost =
-        math_util::Sq(delta_pose.tra.lpNorm<1>()) + fabs(delta_pose.rot);
+    const float cost = math_util::Sq(delta_pose.tra.lpNorm<1>() *
+                                     params::kTranslationCostScaleFactor) +
+                       fabs(delta_pose.rot);
     return std::make_pair(special, cost);
   };
   const auto generate_random =
@@ -434,9 +436,10 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
        &rotational_noise_dist]() -> std::pair<util::Twist, float> {
     const float translational_noise = translational_noise_dist(random_gen_);
     const float rotational_noise = rotational_noise_dist(random_gen_);
-    return std::make_pair(
-        util::Twist(translational_noise, 0, rotational_noise),
-        math_util::Sq(translational_noise) + fabs(rotational_noise));
+    return std::make_pair(util::Twist(translational_noise, 0, rotational_noise),
+                          math_util::Sq(translational_noise *
+                                        params::kTranslationCostScaleFactor) +
+                              fabs(rotational_noise));
   };
 
   for (int i = 0; i < kIterations; ++i) {
