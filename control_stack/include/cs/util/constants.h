@@ -95,4 +95,3 @@ static constexpr auto kLaserTopic = "/scan";
   if (!kProduction) {        \
     CHECK((exp) != nullptr); \
   }
-  
