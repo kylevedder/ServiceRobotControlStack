@@ -193,10 +193,6 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
     dynamic_walls_.push_back(
         FitWallToCluster(non_map_points, cluster_start, cluster_end));
 
-    const auto color = visualization::IndexToDistinctRBG(num_clusters);
-    const auto& r = std::get<0>(color);
-    const auto& g = std::get<1>(color);
-    const auto& b = std::get<2>(color);
     std::vector<Eigen::Vector2f> cluster_points;
     for (size_t i = cluster_start; i <= cluster_end; ++i) {
       cluster_points.push_back(non_map_points[i]);
@@ -206,17 +202,23 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
       ROS_INFO("Cluster size: %zu", (cluster_end - cluster_start + 1));
     }
 
-    visualization::PointsToSpheres(
-        cluster_points, "map", "non_points_ns", &new_markers, r, g, b);
+    const auto color = visualization::IndexToDistinctRBG(num_clusters);
+    visualization::PointsToSpheres(cluster_points,
+                                   "map",
+                                   "non_points_ns",
+                                   &new_markers,
+                                   std::get<0>(color),
+                                   std::get<1>(color),
+                                   std::get<2>(color));
     new_markers.markers.push_back(
         visualization::ToLine(dynamic_walls_.back().p1,
                               dynamic_walls_.back().p2,
                               "map",
                               "colored_wall_ns",
                               num_clusters,
-                              r,
-                              g,
-                              b));
+                              std::get<0>(color),
+                              std::get<1>(color),
+                              std::get<2>(color)));
 
     cluster_start = cluster_end + 1;
     ++num_clusters;
@@ -312,7 +314,7 @@ util::Twist ObstacleDetector::ApplyCommandLimits(
   }
 
   if (time_delta == 0) {
-    return {0, 0, 0};
+    return estimated_velocity;
   }
   if (kDebug) {
     ROS_INFO("Raw command: (%f, %f), %f", c.tra.x(), c.tra.y(), c.rot);
