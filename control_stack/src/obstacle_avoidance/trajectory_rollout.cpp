@@ -172,8 +172,9 @@ TrajectoryRollout::TrajectoryRollout(const util::Pose& start_pose,
 }
 
 bool TrajectoryRollout::IsColliding(const util::Wall& wall,
-                                    const float& robot_radius) const {
-  const float min_dist_threshold = robot_radius + kEpsilon;
+                                    const float& robot_radius,
+                                    const float safety_margin) const {
+  const float min_dist_threshold = robot_radius + kEpsilon + safety_margin;
   if (IsCollidingLinear(
           start_pose, achieved_vel_pose, wall, min_dist_threshold)) {
     return true;

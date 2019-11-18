@@ -50,12 +50,14 @@ class ObstacleDetector {
 
   bool IsCommandColliding(const util::Twist& commanded_velocity,
                           const float rollout_duration,
-                          const float robot_radius) const;
+                          const float robot_radius,
+                          const float safety_margin) const;
 
   util::Twist MakeCommandSafe(util::Twist commanded_velocity,
                               const float time_delta,
                               const float rollout_duration,
-                              const float robot_radius);
+                              const float robot_radius,
+                              const float safety_margin);
 
  private:
   std::vector<Eigen::Vector2f> GetNonMapPoints(

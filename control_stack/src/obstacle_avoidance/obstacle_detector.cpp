@@ -255,14 +255,15 @@ const std::vector<util::Wall>& ObstacleDetector::GetDynamicWalls() const {
 
 bool ObstacleDetector::IsCommandColliding(const util::Twist& commanded_velocity,
                                           const float rollout_duration,
-                                          const float robot_radius) const {
+                                          const float robot_radius,
+                                          const float safety_margin) const {
   static constexpr bool kDebug = false;
   const TrajectoryRollout tr(estimated_pose_,
                              EstimateCurrentVelocity(),
                              commanded_velocity,
                              rollout_duration);
   for (const auto& w : dynamic_walls_) {
-    if (tr.IsColliding(w, robot_radius)) {
+    if (tr.IsColliding(w, robot_radius, safety_margin)) {
       if (kDebug) {
         ROS_INFO("Current command: (%f, %f), %f",
                  commanded_velocity.tra.x(),
@@ -282,7 +283,7 @@ bool ObstacleDetector::IsCommandColliding(const util::Twist& commanded_velocity,
     }
   }
   for (const auto& w : map_.walls) {
-    if (tr.IsColliding(w, robot_radius)) {
+    if (tr.IsColliding(w, robot_radius, safety_margin)) {
       if (kDebug) {
         ROS_INFO("Current command: (%f, %f), %f",
                  commanded_velocity.tra.x(),
@@ -402,17 +403,18 @@ bool ObstacleDetector::StartedInCollision(const float robot_radius) const {
 util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
                                               const float time_delta,
                                               const float rollout_duration,
-                                              const float robot_radius) {
+                                              const float robot_radius,
+                                              const float safety_margin) {
   ROS_INFO("Initial command: (%f, %f), %f",
            commanded_velocity.tra.x(),
            commanded_velocity.tra.y(),
            commanded_velocity.rot);
   commanded_velocity = ApplyCommandLimits(commanded_velocity, time_delta);
 
-  if (StartedInCollision(robot_radius)) {
-    ROS_WARN("Started in collision!");
-    return {0, 0, 1};
-  }
+  // if (StartedInCollision(robot_radius)) {
+  //   ROS_WARN("Started in collision!");
+  //   return {0, 0, 1};
+  // }
   const auto est_vel = EstimateCurrentVelocity();
   ROS_INFO("Limited command: (%f, %f), %f",
            commanded_velocity.tra.x(),
@@ -438,7 +440,8 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
              commanded_velocity.tra.y(),
              commanded_velocity.rot);
   }
-  if (!IsCommandColliding(commanded_velocity, rollout_duration, robot_radius)) {
+  if (!IsCommandColliding(
+          commanded_velocity, rollout_duration, robot_radius, safety_margin)) {
     return commanded_velocity;
   }
 
@@ -486,7 +489,8 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
                            : generate_random();
     const util::Twist proposed_command =
         ApplyCommandLimits(commanded_velocity + delta.first, time_delta);
-    if (!IsCommandColliding(proposed_command, rollout_duration, robot_radius)) {
+    if (!IsCommandColliding(
+            proposed_command, rollout_duration, robot_radius, safety_margin)) {
       const float cost = delta.second;
       if (static_cast<size_t>(i) < special_poses.size()) {
         ROS_INFO("Special command: (%f, %f), %f cost %f (non-colliding)",

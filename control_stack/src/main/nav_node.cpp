@@ -55,8 +55,9 @@ static constexpr auto kMap =
 static constexpr float kInitX = 4;
 static constexpr float kInitY = 0;
 static constexpr float kInitTheta = 0;
-static constexpr float kRobotRadius = 0.1;
-static constexpr float kCollisionRollout = 2;
+static constexpr float kRobotRadius = 0.2;
+static constexpr float kSafetyMargin = 0.1;
+static constexpr float kCollisionRollout = 3;
 static constexpr float kDesiredCommandX = 0.2;
 static constexpr float kDesiredCommandRot = 0;
 static constexpr int kTranslateCommandSign = 1;
@@ -188,7 +189,8 @@ struct CallbackWrapper {
         obstacle_detector_.MakeCommandSafe(desired_command,
                                            time_delta,
                                            params::kCollisionRollout,
-                                           params::kRobotRadius);
+                                           params::kRobotRadius,
+                                           params::kSafetyMargin);
     const util::Twist sent_cmd = TransformTwistUsingSign(safe_cmd);
     velocity_pub_.publish(sent_cmd.ToTwist());
     ROS_INFO("Command (%f, %f), %f safe",
