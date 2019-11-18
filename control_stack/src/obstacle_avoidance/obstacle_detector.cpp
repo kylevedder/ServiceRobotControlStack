@@ -24,6 +24,7 @@
 #include "config_reader/macros.h"
 #include "cs/obstacle_avoidance/obstacle_detector.h"
 #include "cs/obstacle_avoidance/trajectory_rollout.h"
+#include "cs/util/geometry.h"
 #include "cs/util/laser_scan.h"
 #include "cs/util/math_util.h"
 #include "cs/util/params.h"
@@ -92,17 +93,20 @@ size_t GetClusterEndIdx(const std::vector<Eigen::Vector2f>& points,
 
   const auto in_same_cluster = [&start_v](const Eigen::Vector2f& prev,
                                           const Eigen::Vector2f& curr) -> bool {
-    static constexpr float kMaxDistanceBetweenReadings = 0.3;
-    static constexpr float kMinDistanceBetweenReadingsToReasonAngle = 0.05;
+    static constexpr float kMaxDistanceBetweenReadings = 0.01;
+    static constexpr float kMinDistanceBetweenReadingsToReasonAngle = 0.001;
 
     const Eigen::Vector2f delta = (curr - prev);
     if (delta.squaredNorm() > math_util::Sq(kMaxDistanceBetweenReadings)) {
       return false;
     }
 
-    if (start_v == prev ||
-        delta.squaredNorm() <
-            math_util::Sq(kMinDistanceBetweenReadingsToReasonAngle)) {
+    if (start_v == prev) {
+      return true;
+    }
+
+    if (delta.squaredNorm() <
+        math_util::Sq(kMinDistanceBetweenReadingsToReasonAngle)) {
       return true;
     }
 
@@ -210,7 +214,9 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
                                    &new_markers,
                                    std::get<0>(color),
                                    std::get<1>(color),
-                                   std::get<2>(color));
+                                   std::get<2>(color),
+                                   0,
+                                   0.01);
     new_markers.markers.push_back(
         visualization::ToLine(dynamic_walls_.back().p1,
                               dynamic_walls_.back().p2,
@@ -219,7 +225,8 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
                               num_clusters,
                               std::get<0>(color),
                               std::get<1>(color),
-                              std::get<2>(color)));
+                              std::get<2>(color),
+                              0.01));
 
     cluster_start = cluster_end + 1;
     ++num_clusters;
@@ -370,6 +377,28 @@ util::Twist ObstacleDetector::ApplyCommandLimits(
   return c;
 }
 
+bool ObstacleDetector::StartedInCollision(const float robot_radius) const {
+  const auto& center = estimated_pose_.tra;
+  for (const auto& w : dynamic_walls_) {
+    const auto projected_point =
+        geometry::ProjectPointOntoLineSegment(center, w.p1, w.p2);
+    if ((center - projected_point).squaredNorm() <
+        math_util::Sq(robot_radius)) {
+      return true;
+    }
+  }
+
+  for (const auto& w : map_.walls) {
+    const auto projected_point =
+        geometry::ProjectPointOntoLineSegment(center, w.p1, w.p2);
+    if ((center - projected_point).squaredNorm() <
+        math_util::Sq(robot_radius)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
                                               const float time_delta,
                                               const float rollout_duration,
@@ -379,6 +408,11 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
            commanded_velocity.tra.y(),
            commanded_velocity.rot);
   commanded_velocity = ApplyCommandLimits(commanded_velocity, time_delta);
+
+  if (StartedInCollision(robot_radius)) {
+    ROS_WARN("Started in collision!");
+    return {0, 0, 1};
+  }
   const auto est_vel = EstimateCurrentVelocity();
   ROS_INFO("Limited command: (%f, %f), %f",
            commanded_velocity.tra.x(),
@@ -416,8 +450,9 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
   std::normal_distribution<> rotational_noise_dist(
       0.0f, params::kProposedRotationStdDev);
 
-  const std::array<util::Twist, 4> special_poses = {
-      {{0, 0, params::kMaxRotVel},
+  const std::array<util::Twist, 5> special_poses = {
+      {{0, 0, 0},
+       {0, 0, params::kMaxRotVel},
        {0, 0, -params::kMaxRotVel},
        {est_vel.tra, params::kMaxRotVel},
        {est_vel.tra, -params::kMaxRotVel}}};

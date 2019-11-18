@@ -179,7 +179,8 @@ void PointsToSpheres(const std::vector<Eigen::Vector2f>& points,
                      const float r = 1,
                      const float g = 0,
                      const float b = 0,
-                     const float z = 0) {
+                     const float z = 0,
+                     const float radius = 0.1) {
   for (const auto& v : points) {
     visualization_msgs::Marker marker;
     marker.header.frame_id = frame_id;
@@ -191,9 +192,9 @@ void PointsToSpheres(const std::vector<Eigen::Vector2f>& points,
     marker.pose.position.x = v.x();
     marker.pose.position.y = v.y();
     marker.pose.position.z = z;
-    marker.scale.x = 0.1;
-    marker.scale.y = 0.1;
-    marker.scale.z = 0.1;
+    marker.scale.x = radius;
+    marker.scale.y = radius;
+    marker.scale.z = radius;
     marker.color.a = 1;
     marker.color.r = r;
     marker.color.g = g;
@@ -209,7 +210,8 @@ visualization_msgs::Marker ToLine(const Eigen::Vector2f& p1,
                                   const int id = 0,
                                   const float r = 1,
                                   const float g = 0,
-                                  const float b = 0) {
+                                  const float b = 0,
+                                  const float width = 0.1) {
   visualization_msgs::Marker marker;
   marker.header.frame_id = frame_id;
   marker.header.stamp = ros::Time();
@@ -217,7 +219,7 @@ visualization_msgs::Marker ToLine(const Eigen::Vector2f& p1,
   marker.id = id;
   marker.type = visualization_msgs::Marker::LINE_LIST;
   marker.action = visualization_msgs::Marker::ADD;
-  marker.scale.x = 0.1;
+  marker.scale.x = width;
   marker.color.a = 1;
   marker.color.r = r;
   marker.color.g = g;

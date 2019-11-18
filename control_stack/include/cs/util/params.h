@@ -20,7 +20,7 @@
 
 namespace params {
 static constexpr float kMinDistanceThreshold = 0.05;
-static constexpr float kProposedTranslationStdDev = 1.0;
+static constexpr float kProposedTranslationStdDev = 0.3;
 static constexpr float kProposedRotationStdDev = 5;
 
 static constexpr float kMaxTraAcc = 3;

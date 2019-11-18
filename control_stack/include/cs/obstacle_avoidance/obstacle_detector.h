@@ -66,6 +66,8 @@ class ObstacleDetector {
 
   util::Twist EstimateCurrentVelocity() const;
 
+  bool StartedInCollision(const float robot_radius) const;
+
   util::Map map_;
   std::vector<util::Wall> dynamic_walls_;
   util::Pose estimated_pose_;

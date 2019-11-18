@@ -521,12 +521,13 @@ T MinDistanceLineArc(const Eigen::Matrix<T, 2, 1>& l0,
   return min_distance;
 }
 
+template <typename T>
 util::Pose FollowTrajectory(const util::Pose& pose_global_frame,
-                            const float& distance_along_arc,
-                            const float& rotation) {
+                            const T& distance_along_arc,
+                            const T& rotation) {
   const Eigen::Rotation2Df robot_to_global_frame(pose_global_frame.rot);
-  const Eigen::Vector2f robot_forward_global_frame =
-      robot_to_global_frame * Eigen::Vector2f(1, 0);
+  const Eigen::Matrix<T, 2, 1> robot_forward_global_frame =
+      robot_to_global_frame * Eigen::Matrix<T, 2, 1>(1, 0);
 
   if (rotation == 0) {
     util::Pose updated_pose = pose_global_frame;
@@ -534,14 +535,14 @@ util::Pose FollowTrajectory(const util::Pose& pose_global_frame,
     return updated_pose;
   }
 
-  const float circle_radius = distance_along_arc / rotation;
+  const T circle_radius = distance_along_arc / rotation;
 
-  const float move_x_dist = Sin(rotation) * circle_radius;
-  const float move_y_dist =
-      (Cos(fabs(rotation)) * circle_radius - circle_radius);
+  const T move_x_dist = Sin(rotation) * circle_radius;
+  const T move_y_dist = (Cos(fabs(rotation)) * circle_radius - circle_radius);
 
-  const Eigen::Vector2f movement_arc_robot_frame(move_x_dist, move_y_dist);
-  const Eigen::Vector2f movement_arc_global_frame =
+  const Eigen::Matrix<T, 2, 1> movement_arc_robot_frame(move_x_dist,
+                                                        move_y_dist);
+  const Eigen::Matrix<T, 2, 1> movement_arc_global_frame =
       robot_to_global_frame * movement_arc_robot_frame;
 
   return {movement_arc_global_frame + pose_global_frame.tra,

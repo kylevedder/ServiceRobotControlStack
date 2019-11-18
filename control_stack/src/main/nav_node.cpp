@@ -179,6 +179,11 @@ struct CallbackWrapper {
 
   util::Twist CommandVelocity(const util::Twist& desired_command,
                               const float& time_delta) {
+    ROS_INFO("Command (%f, %f), %f desired for delta t: %f",
+             desired_command.tra.x(),
+             desired_command.tra.y(),
+             desired_command.rot,
+             time_delta);
     const util::Twist safe_cmd =
         obstacle_detector_.MakeCommandSafe(desired_command,
                                            time_delta,
