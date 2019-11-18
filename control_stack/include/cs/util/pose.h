@@ -106,5 +106,12 @@ struct Pose {
     return std::isfinite(tra.x()) && std::isfinite(tra.y()) &&
            std::isfinite(rot);
   }
+
+  friend std::ostream& operator<<(std::ostream& os, const Pose& obj);
 };
+
+inline std::ostream& operator<<(std::ostream& os, const Pose& obj) {
+  os << "(" << obj.tra.x() << ", " << obj.tra.y() << "), " << obj.rot;
+  return os;
+}
 }  // namespace util

@@ -98,5 +98,12 @@ struct Twist {
     return std::isfinite(tra.x()) && std::isfinite(tra.y()) &&
            std::isfinite(rot);
   }
+
+  friend std::ostream& operator<<(std::ostream& os, const Twist& obj);
 };
+
+inline std::ostream& operator<<(std::ostream& os, const Twist& obj) {
+  os << "(" << obj.tra.x() << ", " << obj.tra.y() << "), " << obj.rot;
+  return os;
+}
 }  // namespace util
