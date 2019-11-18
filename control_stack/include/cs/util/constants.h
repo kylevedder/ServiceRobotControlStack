@@ -53,6 +53,14 @@ static constexpr auto kLaserTopic = "/scan";
     exit(0);                                                            \
   }
 
+#define CHECK_PRINT_VALS(exp, val1, val2)                               \
+  if (!(exp)) {                                                         \
+    std::cerr << __FILE__ << ":" << __LINE__ << " Assertion \"" << #exp \
+              << "\" (value: " << (val1) << " vs value: " << (val2)     \
+              << ")  failed!" << std::endl;                             \
+    exit(0);                                                            \
+  }
+
 #define NP_CHECK(exp) \
   if (!kProduction) { \
     CHECK(exp);       \
@@ -61,6 +69,16 @@ static constexpr auto kLaserTopic = "/scan";
 #define NP_CHECK_VAL(exp, val) \
   if (!kProduction) {          \
     CHECK_PRINT_VAL(exp, val); \
+  }
+
+#define NP_CHECK_VALS(exp, val1, val2) \
+  if (!kProduction) {                  \
+    CHECK_PRINT_VAL(exp, val1, val2);  \
+  }
+
+#define NP_CHECK_EQ(exp1, exp2)                     \
+  if (!kProduction) {                               \
+    CHECK_PRINT_VALS((exp1) == (exp2), exp1, exp2); \
   }
 
 #define NP_FINITE(exp)                          \
@@ -77,8 +95,4 @@ static constexpr auto kLaserTopic = "/scan";
   if (!kProduction) {        \
     CHECK((exp) != nullptr); \
   }
-
-#define NP_CHECK_EQ(exp1, exp2) \
-  if (!kProduction) {           \
-    CHECK((exp1) == (exp2));    \
-  }
+  
