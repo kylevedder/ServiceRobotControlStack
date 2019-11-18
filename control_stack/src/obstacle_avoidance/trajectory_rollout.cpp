@@ -23,19 +23,20 @@
 // #include "config_reader/macros.h"
 #include "cs/util/geometry.h"
 #include "cs/util/map.h"
+#include "cs/util/params.h"
 
 namespace cs {
 namespace obstacle_avoidance {
 
-namespace trajectory_params {
-// CONFIG_FLOAT(kMaxTraAcc, "limits.kMaxTraAcc");
-static constexpr float kMaxTraAcc = 3;
-}  // namespace trajectory_params
+// namespace trajectory_params {
+//// CONFIG_FLOAT(kMaxTraAcc, "limits.kMaxTraAcc");
+// static constexpr float kMaxTraAcc = 3;
+//}  // namespace trajectory_params
 
 float AchievedVelocityTime(const util::Twist& current_v,
                            const util::Twist& commanded_v) {
   const float vel_delta = (commanded_v.tra.x() - current_v.tra.x());  // m/s
-  return vel_delta / trajectory_params::kMaxTraAcc;
+  return vel_delta / params::kMaxTraAcc;
 }
 
 Eigen::Vector2f CircleCenter(const util::Pose& pose,
@@ -55,9 +56,8 @@ Eigen::Vector2f CircleCenter(const util::Pose& pose,
 util::Pose AchievedVelocityPose(const util::Pose& start_pose,
                                 const util::Twist& current_v,
                                 const float& time) {
-  const float delta_x =
-      current_v.tra.x() * time +
-      0.5f * trajectory_params::kMaxTraAcc * math_util::Sq(time);
+  const float delta_x = current_v.tra.x() * time +
+                        0.5f * params::kMaxTraAcc * math_util::Sq(time);
   const float& rot = start_pose.rot;
   const Eigen::Vector2f position_delta(math_util::Cos(rot) * delta_x,
                                        math_util::Sin(rot) * delta_x);

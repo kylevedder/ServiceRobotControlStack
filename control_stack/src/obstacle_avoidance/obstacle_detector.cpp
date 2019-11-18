@@ -26,34 +26,35 @@
 #include "cs/obstacle_avoidance/trajectory_rollout.h"
 #include "cs/util/laser_scan.h"
 #include "cs/util/math_util.h"
+#include "cs/util/params.h"
 #include "cs/util/visualization.h"
 
 namespace cs {
 namespace obstacle_avoidance {
 
-namespace params {
-// CONFIG_FLOAT(kProposedTranslationStdDev, "od.kProposedTranslationStdDev");
-// CONFIG_FLOAT(kProposedRotationStdDev, "od.kProposedRotationStdDev");
-// CONFIG_FLOAT(kMinDistanceThreshold, "od.kMinDistanceThreshold");
-static constexpr float kMinDistanceThreshold = 0.05;
-static constexpr float kProposedTranslationStdDev = 1.0;
-static constexpr float kProposedRotationStdDev = 5;
-
-// CONFIG_FLOAT(kMaxTraVel, "limits.kMaxTraVel");
-// CONFIG_FLOAT(kMaxRotVel, "limits.kMaxRotVel");
-// CONFIG_FLOAT(kMaxTraAcc, "limits.kMaxTraAcc");
-// CONFIG_FLOAT(kMaxRotAcc, "limits.kMaxRotAcc");
-static constexpr float kMaxTraAcc = 3;
-static constexpr float kMaxTraVel = 1;
-static constexpr float kMaxRotAcc = 2;
-static constexpr float kMaxRotVel = 1;
-
-// CONFIG_FLOAT(kOdomFilteringPriorBias, "od.kOdomFilteringPriorBias");
-// CONFIG_FLOAT(kThresholdRotateInPlace, "od.kThresholdRotateInPlace");
-static constexpr float kOdomFilteringPriorBias = 0.7;
-static constexpr float kThresholdRotateInPlace = 0.9;
-static constexpr float kTranslationCostScaleFactor = 1000;
-}  // namespace params
+// namespace params {
+//// CONFIG_FLOAT(kProposedTranslationStdDev, "od.kProposedTranslationStdDev");
+//// CONFIG_FLOAT(kProposedRotationStdDev, "od.kProposedRotationStdDev");
+//// CONFIG_FLOAT(kMinDistanceThreshold, "od.kMinDistanceThreshold");
+// static constexpr float kMinDistanceThreshold = 0.05;
+// static constexpr float kProposedTranslationStdDev = 1.0;
+// static constexpr float kProposedRotationStdDev = 5;
+//
+//// CONFIG_FLOAT(kMaxTraVel, "limits.kMaxTraVel");
+//// CONFIG_FLOAT(kMaxRotVel, "limits.kMaxRotVel");
+//// CONFIG_FLOAT(kMaxTraAcc, "limits.kMaxTraAcc");
+//// CONFIG_FLOAT(kMaxRotAcc, "limits.kMaxRotAcc");
+// static constexpr float kMaxTraAcc = 3;
+// static constexpr float kMaxTraVel = 1;
+// static constexpr float kMaxRotAcc = 2;
+// static constexpr float kMaxRotVel = 1;
+//
+//// CONFIG_FLOAT(kOdomFilteringPriorBias, "od.kOdomFilteringPriorBias");
+//// CONFIG_FLOAT(kThresholdRotateInPlace, "od.kThresholdRotateInPlace");
+// static constexpr float kOdomFilteringPriorBias = 0.7;
+// static constexpr float kThresholdRotateInPlace = 0.9;
+// static constexpr float kTranslationCostScaleFactor = 1000;
+//}  // namespace params
 
 ObstacleDetector::ObstacleDetector(const util::Map& map)
     : map_(map),
