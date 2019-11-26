@@ -1,3 +1,3 @@
 [submodule "config_reader"]
 	path = config_reader
-	url = ../ConfigReader.git
+	url = git@github.com:ut-amrl/config-reader.git
