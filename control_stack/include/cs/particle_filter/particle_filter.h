@@ -45,7 +45,7 @@ class MotionModel {
 
 class SensorModel {
  private:
-  util::Map map_;
+  const util::Map& map_;
 
  public:
   explicit SensorModel(const util::Map& map);

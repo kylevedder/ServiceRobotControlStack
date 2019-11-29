@@ -70,7 +70,7 @@ class ObstacleDetector {
 
   bool StartedInCollision(const float robot_radius) const;
 
-  util::Map map_;
+  const util::Map& map_;
   std::vector<util::Wall> dynamic_walls_;
   util::Pose estimated_pose_;
   util::Twist odom_velocity_;

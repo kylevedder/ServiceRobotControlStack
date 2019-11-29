@@ -88,11 +88,11 @@ struct CallbackWrapper {
 
   CallbackWrapper() = delete;
 
-  CallbackWrapper(const util::Map& map, ros::NodeHandle* n)
-      : map_(map),
-        particle_filter_(map,
+  CallbackWrapper(const std::string& map_file, ros::NodeHandle* n)
+      : map_(map_file),
+        particle_filter_(map_,
                          {params::kInitX, params::kInitY, params::kInitTheta}),
-        obstacle_detector_(map) {
+        obstacle_detector_(map_) {
     velocity_pub_ = n->advertise<geometry_msgs::Twist>(
         constants::kCommandVelocityTopic, 10);
     laser_sub_ = n->subscribe(
@@ -231,7 +231,7 @@ int main(int argc, char** argv) {
 
   ros::NodeHandle n;
 
-  CallbackWrapper cw(util::Map(params::kMap), &n);
+  CallbackWrapper cw(params::kMap, &n);
 
   ros::spin();
 
