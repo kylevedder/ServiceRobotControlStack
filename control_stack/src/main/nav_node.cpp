@@ -26,6 +26,7 @@
 
 #include <cmath>
 #include <fstream>
+#include <string>
 
 #include "config_reader/config_reader.h"
 #include "cs/obstacle_avoidance/obstacle_detector.h"
