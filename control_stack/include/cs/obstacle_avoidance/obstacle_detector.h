@@ -46,7 +46,7 @@ class ObstacleDetector {
 
   void DrawDynamic(ros::Publisher* pub) const;
 
-  const std::vector<util::Wall>& GetDynamicWalls() const;
+  const util::Map& GetDynamicMap() const;
 
   bool IsCommandColliding(const util::Twist& commanded_velocity,
                           const float rollout_duration,
@@ -71,7 +71,7 @@ class ObstacleDetector {
   bool StartedInCollision(const float robot_radius) const;
 
   const util::Map& map_;
-  std::vector<util::Wall> dynamic_walls_;
+  util::Map dynamic_map_;
   util::Pose estimated_pose_;
   util::Twist odom_velocity_;
   util::Twist prior_commanded_velocity_;

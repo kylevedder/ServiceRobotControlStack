@@ -170,7 +170,7 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
                                          const util::LaserScan& observation,
                                          ros::Publisher* pub) {
   static constexpr bool kDebug = false;
-  dynamic_walls_.clear();
+  dynamic_map_.walls.clear();
 
   static visualization_msgs::MarkerArray old_markers;
   for (visualization_msgs::Marker& marker : old_markers.markers) {
@@ -195,7 +195,7 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
   size_t cluster_start = 0;
   while (cluster_start < non_map_points.size()) {
     const size_t cluster_end = GetClusterEndIdx(non_map_points, cluster_start);
-    dynamic_walls_.push_back(
+    dynamic_map_.walls.push_back(
         FitWallToCluster(non_map_points, cluster_start, cluster_end));
 
     std::vector<Eigen::Vector2f> cluster_points;
@@ -218,8 +218,8 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
                                    0,
                                    0.01);
     new_markers.markers.push_back(
-        visualization::ToLine(dynamic_walls_.back().p1,
-                              dynamic_walls_.back().p2,
+        visualization::ToLine(dynamic_map_.walls.back().p1,
+                              dynamic_map_.walls.back().p2,
                               "map",
                               "colored_wall_ns",
                               num_clusters,
@@ -246,11 +246,11 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
 void ObstacleDetector::DrawDynamic(ros::Publisher* pub) const {
   // ROS_INFO("Obstacle detector found: %zu obstacles", dynamic_walls_.size());
   pub->publish(
-      visualization::DrawWalls(dynamic_walls_, "map", "dynamic_walls_ns"));
+      visualization::DrawWalls(dynamic_map_.walls, "map", "dynamic_walls_ns"));
 }
 
-const std::vector<util::Wall>& ObstacleDetector::GetDynamicWalls() const {
-  return dynamic_walls_;
+const util::Map& ObstacleDetector::GetDynamicMap() const {
+  return dynamic_map_;
 }
 
 bool ObstacleDetector::IsCommandColliding(const util::Twist& commanded_velocity,
@@ -262,7 +262,7 @@ bool ObstacleDetector::IsCommandColliding(const util::Twist& commanded_velocity,
                              EstimateCurrentVelocity(),
                              commanded_velocity,
                              rollout_duration);
-  for (const auto& w : dynamic_walls_) {
+  for (const auto& w : dynamic_map_.walls) {
     if (tr.IsColliding(w, robot_radius, safety_margin)) {
       if (kDebug) {
         ROS_INFO("Current command: (%f, %f), %f",
@@ -380,7 +380,7 @@ util::Twist ObstacleDetector::ApplyCommandLimits(
 
 bool ObstacleDetector::StartedInCollision(const float robot_radius) const {
   const auto& center = estimated_pose_.tra;
-  for (const auto& w : dynamic_walls_) {
+  for (const auto& w : dynamic_map_.walls) {
     const auto projected_point =
         geometry::ProjectPointOntoLineSegment(center, w.p1, w.p2);
     if ((center - projected_point).squaredNorm() <
