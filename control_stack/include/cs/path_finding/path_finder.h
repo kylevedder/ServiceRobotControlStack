@@ -18,9 +18,9 @@
 // If not, see <http://www.gnu.org/licenses/>.
 // ========================================================================
 
-#include <vector>
-
 #include <eigen3/Eigen/Core>
+
+#include <vector>
 
 #include "cs/util/map.h"
 #include "cs/util/pose.h"

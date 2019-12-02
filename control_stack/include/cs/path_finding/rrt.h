@@ -18,6 +18,8 @@
 // If not, see <http://www.gnu.org/licenses/>.
 // ========================================================================
 
+#include <algorithm>
+#include <limits>
 #include <vector>
 
 #include "cs/path_finding/path_finder.h"
