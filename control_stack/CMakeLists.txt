@@ -140,7 +140,7 @@ catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES control_stack
 #  CATKIN_DEPENDS roscpp rospy std_msgs
-  DEPENDS Eigen3
+#  DEPENDS Eigen3
 )
 
 ###########
