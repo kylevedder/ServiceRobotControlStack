@@ -28,8 +28,6 @@
 namespace cs {
 namespace path_finding {
 
-template <typename T>
-
 class RRT : public PathFinder {
  private:
   std::default_random_engine generator;
@@ -61,7 +59,7 @@ class RRT : public PathFinder {
   };
 
   struct Tree {
-    std::vector<Eigen::Vector2f> points;
+    std::vector<TreePoint> points;
 
     explicit Tree(const Eigen::Vector2f& start)
         : points({TreePoint(start, TreePoint::kRootParent)}) {}
@@ -84,9 +82,9 @@ class RRT : public PathFinder {
     Path2d UnwindPath(const int goal_idx) const {
       Path2d p;
       p.waypoints.push_back(points[goal_idx].point);
-      TreePoint const& current_point = points[goal_idx];
+      TreePoint current_point = points[goal_idx];
       while (current_point.parent != TreePoint::kRootParent) {
-        TreePoint const& parent_point = points[current_point.parent];
+        TreePoint parent_point = points[current_point.parent];
         p.cost += (parent_point.point - current_point.point).norm();
         p.waypoints.push_back(parent_point.point);
         current_point = parent_point;
@@ -149,7 +147,7 @@ class RRT : public PathFinder {
   }
 
   bool IsPathCollisionFree(const util::Map& dynamic_map,
-                           const Path2d& path) const {
+                           const Path2d& path) const override {
     if (!path.IsValid()) {
       return false;
     }
@@ -171,13 +169,12 @@ class RRT : public PathFinder {
                   const Eigen::Vector2f& goal) override {
     // Drive straight to goal.
     if (!IsLineColliding(dynamic_map, start, goal)) {
-      return UsePrevPathOrUpdate(Path2d({start, goal}, (start - goal).norm()));
+      return UsePrevPathOrUpdate(dynamic_map,
+                                 Path2d({start, goal}, (start - goal).norm()));
     }
 
-    const Path2d new_path = GenerateNewPath(dynamic_map, start, goal);
-    if (!new_path.IsValid()) {
-    }
-    return {};
+    const auto& new_path = GenerateNewPath(dynamic_map, start, goal);
+    return UsePrevPathOrUpdate(dynamic_map, new_path);
   }
 };
 

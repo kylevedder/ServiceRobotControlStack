@@ -71,6 +71,7 @@ struct CallbackWrapper {
   util::Map map_;
   cs::localization::ParticleFilter particle_filter_;
   cs::obstacle_avoidance::ObstacleDetector obstacle_detector_;
+  cs::path_finding::RRT path_finder_;
   cs::datastructures::CircularBuffer<ros::Time, kTimeBufferSize>
       odom_times_buffer_;
   cs::datastructures::CircularBuffer<ros::Time, kTimeBufferSize>
@@ -94,7 +95,8 @@ struct CallbackWrapper {
       : map_(map_file),
         particle_filter_(map_,
                          {params::kInitX, params::kInitY, params::kInitTheta}),
-        obstacle_detector_(map_) {
+        obstacle_detector_(map_),
+        path_finder_(map_) {
     velocity_pub_ = n->advertise<geometry_msgs::Twist>(
         constants::kCommandVelocityTopic, 10);
     laser_sub_ = n->subscribe(
