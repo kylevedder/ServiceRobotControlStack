@@ -1,0 +1,7 @@
+#!/bin/bash
+sudo apt-get install clang++ g++ cmake libpopt-dev \
+    libeigen3-dev libgoogle-perftools-dev kcachegrind valgrind libprotobuf-dev \
+    protobuf-compiler libsuitesparse-dev libgoogle-glog-dev  \
+    libblas-dev liblapack-dev libopenmpi-dev build-essential libboost-graph-dev \
+    libiomp-dev clang-format whiptail cimg-dev imagemagick\
+     massif-visualizer
