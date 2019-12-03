@@ -3,7 +3,6 @@ from datetime import datetime
 import re
 import sys
 file_path = sys.argv[1]
-print("Copyright checking in python:", file_path)
 n_lines = open(file_path, 'r').readlines()
 email_address = open('.git/copyrightemail', 'r').readlines()[0].strip()
 

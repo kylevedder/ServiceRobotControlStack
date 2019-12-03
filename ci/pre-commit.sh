@@ -32,7 +32,6 @@ for file in $changed_files; do
         # Restrict to only .cpp, .cc, .h, and .lua files
         if [[ $file == *".cpp" ]] || [[ $file == *".cc" ]] || [[ $file == *".h" ]] || [[ $file == *".lua" ]]
         then
-            echo "Copyright checking $file"
             # Run Copyright checker against the file
             ci/check_copyright_block.py "$file";
             res=$?;
