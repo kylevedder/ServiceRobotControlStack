@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "cs/obstacle_avoidance/trajectory_rollout.h"
+#include "cs/path_finding/path_finder.h"
 #include "cs/util/laser_scan.h"
 #include "cs/util/map.h"
 #include "cs/util/pose.h"
@@ -59,6 +60,42 @@ visualization_msgs::Marker DrawWalls(const std::vector<util::Wall>& walls,
   marker.color.r = 1;
   marker.color.g = 0;
   marker.color.b = 0;
+  return marker;
+}
+
+visualization_msgs::Marker DrawPath(const cs::path_finding::Path2d& path,
+                                    const std::string& frame_id,
+                                    const std::string& ns) {
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = frame_id;
+  marker.header.stamp = ros::Time();
+  marker.ns = ns;
+  marker.id = 0;
+  marker.type = visualization_msgs::Marker::LINE_LIST;
+  marker.action = visualization_msgs::Marker::ADD;
+  marker.scale.x = 0.02;
+  marker.scale.y = 0.1;
+  marker.scale.z = 0.1;
+  marker.color.a = 1;
+  marker.color.r = 1;
+  marker.color.g = 0;
+  marker.color.b = 0;
+
+  if (!path.IsValid() || path.waypoints.size() < 2) {
+    return marker;
+  }
+
+  for (size_t i = 0; i < path.waypoints.size() - 1; ++i) {
+    geometry_msgs::Point p1;
+    p1.x = path.waypoints[i].x();
+    p1.y = path.waypoints[i].y();
+    geometry_msgs::Point p2;
+    p2.x = path.waypoints[i + 1].x();
+    p2.y = path.waypoints[i + 1].y();
+    marker.points.push_back(p1);
+    marker.points.push_back(p2);
+  }
+
   return marker;
 }
 

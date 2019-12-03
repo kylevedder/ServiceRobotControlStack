@@ -53,15 +53,15 @@ namespace params {
 // CONFIG_INT(kTranslateCommandSign, "od.kTranslateCommandSign");
 
 static constexpr auto kMap =
-    "./src/ServiceRobotControlStack/control_stack/maps/empty.map";
+    "./src/ServiceRobotControlStack/control_stack/maps/loop.map";
 static constexpr float kInitX = 4;
 static constexpr float kInitY = 0;
 static constexpr float kInitTheta = 0;
 static constexpr float kRobotRadius = 0.2;
 static constexpr float kSafetyMargin = 0.1;
 static constexpr float kCollisionRollout = 3;
-static constexpr float kDesiredCommandX = 0.2;
-static constexpr float kDesiredCommandRot = 0;
+// static constexpr float kDesiredCommandX = 0.2;
+// static constexpr float kDesiredCommandRot = 0;
 static constexpr int kTranslateCommandSign = 1;
 }  // namespace params
 
@@ -88,6 +88,8 @@ struct CallbackWrapper {
   ros::Publisher map_pub_;
   ros::Publisher detected_walls_pub_;
   ros::Publisher robot_size_pub_;
+  ros::Publisher robot_path_pub_;
+  ros::Publisher rrt_tree_pub_;
 
   CallbackWrapper() = delete;
 
@@ -96,7 +98,7 @@ struct CallbackWrapper {
         particle_filter_(map_,
                          {params::kInitX, params::kInitY, params::kInitTheta}),
         obstacle_detector_(map_),
-        path_finder_(map_) {
+        path_finder_(map_, params::kRobotRadius, params::kSafetyMargin) {
     velocity_pub_ = n->advertise<geometry_msgs::Twist>(
         constants::kCommandVelocityTopic, 10);
     laser_sub_ = n->subscribe(
@@ -112,7 +114,26 @@ struct CallbackWrapper {
           "detected_obstacles", 10);
       robot_size_pub_ =
           n->advertise<visualization_msgs::Marker>("robot_size", 10);
+      robot_path_pub_ =
+          n->advertise<visualization_msgs::Marker>("robot_path", 10);
+      rrt_tree_pub_ = n->advertise<visualization_msgs::Marker>("rrt_tree", 10);
     }
+  }
+
+  util::Twist DriveToWaypoint(const util::Pose& pose,
+                              const Eigen::Vector2f& waypoint) {
+    const auto robot_heading = geometry::Heading(pose.rot);
+    const auto waypoint_delta = (waypoint - pose.tra);
+    const auto waypoint_heading = waypoint_delta.normalized();
+    const float area = geometry::Cross(robot_heading, waypoint_heading);
+    static constexpr float kRotationDriveAngle = 0.2;
+    static constexpr float kRotP = 1;
+    static constexpr float kTraP = 1;
+    float x = 0;
+    if (fabs(area) < kRotationDriveAngle) {
+      x = waypoint_delta.norm();
+    }
+    return {x * kTraP, 0, area * kRotP};
   }
 
   void LaserCallback(const sensor_msgs::LaserScan& msg) {
@@ -133,9 +154,18 @@ struct CallbackWrapper {
              est_pose.tra.x(),
              est_pose.tra.y(),
              est_pose.rot);
-    const util::Twist commanded_velocity = CommandVelocity(
-        {params::kDesiredCommandX, 0, params::kDesiredCommandRot},
-        mean_time_delta);
+    const auto& dynamic_map = obstacle_detector_.GetDynamicMap();
+    const auto path = path_finder_.FindPath(dynamic_map,
+                                            est_pose.tra,
+                                            {-params::kInitX, params::kInitY},
+                                            &rrt_tree_pub_);
+    robot_path_pub_.publish(visualization::DrawPath(path, "map", "path"));
+    util::Twist desired_command(0, 0, 0);
+    if (path.IsValid()) {
+      desired_command = DriveToWaypoint(est_pose, path.waypoints[1]);
+    }
+    const util::Twist commanded_velocity =
+        CommandVelocity(desired_command, mean_time_delta);
     obstacle_detector_.UpdateCommand(commanded_velocity);
     PublishTransforms();
     if (kDebug) {

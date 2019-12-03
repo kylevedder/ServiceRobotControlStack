@@ -18,8 +18,8 @@
 // If not, see <http://www.gnu.org/licenses/>.
 // ========================================================================
 
+#include <ros/ros.h>
 #include <eigen3/Eigen/Core>
-
 #include <vector>
 
 #include "cs/util/map.h"
@@ -46,18 +46,38 @@ class PathFinder {
  protected:
   const util::Map& map_;
   Path2d prev_path_;
+  double prev_path_time_;
 
-  virtual bool IsPathCollisionFree(const util::Map& dynamic_map,
-                                   const Path2d& path) const = 0;
+  virtual bool IsPathColliding(const util::Map& dynamic_map,
+                               const Path2d& path) const = 0;
 
   Path2d UsePrevPathOrUpdate(const util::Map& dynamic_map,
                              const Path2d& proposed_path) {
-    static constexpr float kHistoresisThreshold = 0.01f;  // meters
+    static constexpr float kHistoresisThreshold = 0.4;  // meters
 
-    if (!IsPathCollisionFree(dynamic_map, prev_path_) ||
-        !prev_path_.IsValid() ||
-        (proposed_path.IsValid() &&
-         proposed_path.cost < kHistoresisThreshold + prev_path_.cost)) {
+    NP_CHECK(!proposed_path.IsValid() ||
+             !IsPathColliding(dynamic_map, proposed_path));
+
+    if (!prev_path_.IsValid()) {
+      ROS_INFO("Prev path invalid");
+      prev_path_ = proposed_path;
+      return proposed_path;
+    }
+
+    if (IsPathColliding(dynamic_map, prev_path_)) {
+      ROS_INFO("Prev path colliding");
+      prev_path_ = proposed_path;
+      return proposed_path;
+    }
+
+    const float distance_between_starts =
+        (proposed_path.waypoints.front() - prev_path_.waypoints.front())
+            .squaredNorm();
+
+    if (proposed_path.IsValid() &&
+        (kHistoresisThreshold + proposed_path.cost < prev_path_.cost ||
+         distance_between_starts > math_util::Sq(kHistoresisThreshold))) {
+      ROS_INFO("Proposed path better");
       prev_path_ = proposed_path;
       return proposed_path;
     }
@@ -69,7 +89,8 @@ class PathFinder {
 
   virtual Path2d FindPath(const util::Map& dynamic_map,
                           const Eigen::Vector2f& start,
-                          const Eigen::Vector2f& goal) = 0;
+                          const Eigen::Vector2f& goal,
+                          ros::Publisher* pub) = 0;
 };
 
 }  // namespace path_finding
