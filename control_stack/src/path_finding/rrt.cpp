@@ -23,8 +23,18 @@
 #include <limits>
 #include <string>
 
+#include "config_reader/macros.h"
+
 namespace cs {
 namespace path_finding {
+
+namespace params {
+CONFIG_INT(max_iterations, "rrt.max_iterations");
+CONFIG_FLOAT(delta_q, "rrt.delta_q");
+CONFIG_FLOAT(goal_bias, "rrt.goal_bias");
+CONFIG_FLOAT(is_goal_threshold, "rrt.is_goal_threshold");
+}  // namespace params
+
 RRT::RRT(const util::Map& map,
          const float& robot_radius,
          const float& safety_margin)
@@ -75,12 +85,12 @@ bool RRT::IsLineColliding(const util::Map& dynamic_map,
 int RRT::AddPoint(const util::Map& dynamic_map,
                   RRT::Tree* tree,
                   const Eigen::Vector2f& steering_point) {
-  static constexpr float kDeltaQ = 1;  // meters
   const int closest_idx = tree->FindClosestPoint(steering_point);
   NP_CHECK(closest_idx < static_cast<int>(tree->points.size()));
   const Eigen::Vector2f& tree_point = tree->points[closest_idx].point;
   const Eigen::Vector2f norm_delta = (steering_point - tree_point).normalized();
-  const Eigen::Vector2f final_point = norm_delta * kDeltaQ + tree_point;
+  const Eigen::Vector2f final_point =
+      norm_delta * params::CONFIG_delta_q + tree_point;
 
   if (!IsLineColliding(dynamic_map, tree_point, final_point)) {
     tree->points.push_back({final_point, closest_idx});
@@ -91,8 +101,8 @@ int RRT::AddPoint(const util::Map& dynamic_map,
 
 bool RRT::IsNearGoal(const Eigen::Vector2f& goal,
                      const Eigen::Vector2f& point) {
-  static constexpr float kDistanceToGoal = 0.4;  // meters.
-  return (goal - point).squaredNorm() < math_util::Sq(kDistanceToGoal);
+  return (goal - point).squaredNorm() <
+         math_util::Sq(params::CONFIG_is_goal_threshold);
 }
 
 Path2d RRT::SmoothPath(const util::Map& dynamic_map, Path2d path) {
@@ -118,15 +128,12 @@ Path2d RRT::GenerateNewPath(const util::Map& dynamic_map,
                             const Eigen::Vector2f& start,
                             const Eigen::Vector2f& goal,
                             ros::Publisher* pub) {
-  static constexpr int kMaxIterations = 1000;
-  static constexpr float kGoalBias = 0.1;
   Tree tree(start);
-  static constexpr float kExtraSampleArea = 1;  // meter
 
-  float x_min = std::min(start.x(), goal.x()) - kExtraSampleArea;
-  float x_max = std::max(start.x(), goal.x()) + kExtraSampleArea;
-  float y_min = std::min(start.y(), goal.y()) - kExtraSampleArea;
-  float y_max = std::max(start.y(), goal.y()) + kExtraSampleArea;
+  float x_min = std::min(start.x(), goal.x());
+  float x_max = std::max(start.x(), goal.x());
+  float y_min = std::min(start.y(), goal.y());
+  float y_max = std::max(start.y(), goal.y());
 
   for (const auto& w : map_.walls) {
     x_min = std::min({x_min, w.p1.x(), w.p2.x()});
@@ -139,8 +146,9 @@ Path2d RRT::GenerateNewPath(const util::Map& dynamic_map,
   std::uniform_real_distribution<float> y_dist(y_min, y_max);
   std::uniform_real_distribution<float> goal_bias_dist(0, 1);
 
-  for (int i = 0; i < kMaxIterations; ++i) {
-    const bool choose_goal = (goal_bias_dist(generator) <= kGoalBias);
+  for (int i = 0; i < params::CONFIG_max_iterations; ++i) {
+    const bool choose_goal =
+        (goal_bias_dist(generator) <= params::CONFIG_goal_bias);
     const float x_sample = (choose_goal) ? goal.x() : x_dist(generator);
     const float y_sample = (choose_goal) ? goal.y() : y_dist(generator);
     const Eigen::Vector2f sample(x_sample, y_sample);

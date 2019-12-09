@@ -48,3 +48,10 @@ limits = {
   kMaxRotAcc = 2;
   kMaxRotVel = 1;
 };
+
+rrt = {
+  max_iterations = 1000;
+  goal_bias = 0.1;
+  is_goal_threshold = 0.4; -- Meters
+  delta_q = 1; -- Meters
+};
