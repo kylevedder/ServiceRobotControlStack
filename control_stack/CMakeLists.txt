@@ -190,24 +190,22 @@ add_library(util_lib
   src/util/map.cpp
 )
 
-add_library(obstacle_avoidance_lib
-  src/obstacle_avoidance/obstacle_detector.cpp
-  src/obstacle_avoidance/trajectory_rollout.cpp)
-
-add_library(particle_filter_lib
-  src/particle_filter/particle_filter.cpp
-)
-target_link_libraries(particle_filter_lib
-   util_lib
-   ${catkin_LIBRARIES}
-)
+add_library(nav_lib
+        src/path_finding/rrt.cpp
+        src/obstacle_avoidance/obstacle_detector.cpp
+        src/obstacle_avoidance/trajectory_rollout.cpp
+        src/particle_filter/particle_filter.cpp)
+target_link_libraries(nav_lib
+        util_lib
+        ${catkin_LIBRARIES}
+        )
 
 add_executable(simulator_node src/sim/simulator_node.cpp)
 target_link_libraries(simulator_node util_lib lua5.1 ${catkin_LIBRARIES})
 #add_dependencies(simulator_node util_lib)
 
 add_executable(nav_node src/main/nav_node.cpp)
-target_link_libraries(nav_node util_lib particle_filter_lib obstacle_avoidance_lib lua5.1 ${catkin_LIBRARIES})
+target_link_libraries(nav_node util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
 #add_dependencies(nav_node util_lib particle_filter_lib obstacle_avoidance_lib)
 
 #particle_filter_generate_messages_cpp
