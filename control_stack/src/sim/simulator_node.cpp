@@ -51,17 +51,6 @@ CONFIG_FLOAT(kStartPositionY, "sim.kStartPositionY");
 CONFIG_FLOAT(kStartPositionTheta, "sim.kStartPositionTheta");
 CONFIG_STRING(kMap, "sim.kMap");
 
-// static constexpr float kLaserStdDev = 0.015;
-// static constexpr float kArcExecStdDev = 0.4;
-// static constexpr float kArcReadStdDev = 0.2;
-// static constexpr float kRotateExecStdDev = 0.001;
-// static constexpr float kRotateReadStdDev = 0.001;
-// static constexpr float kStartPositionX = 4;
-// static constexpr float kStartPositionY = 0;
-// static constexpr float kStartPositionTheta = 0;
-// static constexpr auto kMap =
-//    "./src/ServiceRobotControlStack/control_stack/maps/loop_small_bumps.map";
-
 }  // namespace sim
 
 // std::random_device rd;
@@ -106,9 +95,9 @@ sensor_msgs::LaserScan MakeScan(const util::Pose& robot_pose,
 
 util::Twist AddExecutionOdomNoise(util::Twist move) {
   std::normal_distribution<> along_arc_dist(
-      0.0f, sim::kArcExecStdDev * move.tra.norm());
+      0.0f, sim::CONFIG_kArcExecStdDev * move.tra.norm());
   std::normal_distribution<> rotation_dist(
-      0.0f, sim::kRotateExecStdDev * move.rot + 0.005);
+      0.0f, sim::CONFIG_kRotateExecStdDev * move.rot + 0.005);
   move.tra.x() += along_arc_dist(gen);
   move.rot += rotation_dist(gen);
   return move;
@@ -116,9 +105,9 @@ util::Twist AddExecutionOdomNoise(util::Twist move) {
 
 util::Twist AddReadingOdomNoise(util::Twist move) {
   std::normal_distribution<> along_arc_dist(
-      0.0f, sim::kArcReadStdDev * move.tra.norm());
-  std::normal_distribution<> rotation_dist(0.0f,
-                                           sim::kRotateReadStdDev * move.rot);
+      0.0f, sim::CONFIG_kArcReadStdDev * move.tra.norm());
+  std::normal_distribution<> rotation_dist(
+      0.0f, sim::CONFIG_kRotateReadStdDev * move.rot);
   move.tra.x() += along_arc_dist(gen);
   move.rot += rotation_dist(gen);
   return move;
@@ -133,7 +122,7 @@ void CommandedVelocityCallback(const geometry_msgs::Twist& nv) {
 int main(int argc, char** argv) {
   util::PrintCurrentWorkingDirectory();
   config_reader::ConfigReader reader(
-      {"src/ServiceRobotControlStack/control_stack/config/pf_sim_config.lua",
+      {"src/ServiceRobotControlStack/control_stack/config/nav_config.lua",
        "src/ServiceRobotControlStack/control_stack/config/sim_config.lua"});
   ros::init(argc, argv, "simulator");
 
@@ -156,9 +145,10 @@ int main(int argc, char** argv) {
 
   ros::Rate loop_rate(kLoopRate);
 
-  const util::Map map(sim::kMap);
-  util::Pose current_pose(
-      sim::kStartPositionX, sim::kStartPositionY, sim::kStartPositionTheta);
+  const util::Map map(sim::CONFIG_kMap);
+  util::Pose current_pose(sim::CONFIG_kStartPositionX,
+                          sim::CONFIG_kStartPositionY,
+                          sim::CONFIG_kStartPositionTheta);
 
   while (ros::ok()) {
     const util::Twist executed_move =
@@ -167,7 +157,7 @@ int main(int argc, char** argv) {
     current_pose = geometry::FollowTrajectory(
         current_pose, executed_move.tra.x(), executed_move.rot);
 
-    scan_pub.publish(MakeScan(current_pose, map, sim::kLaserStdDev));
+    scan_pub.publish(MakeScan(current_pose, map, sim::CONFIG_kLaserStdDev));
     nav_msgs::Odometry odom_msg;
     odom_msg.header = MakeHeader("base_link");
     odom_msg.twist.twist = (reported_move * kLoopRate).ToTwist();

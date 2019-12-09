@@ -42,27 +42,16 @@
 static constexpr bool kDebug = true;
 
 namespace params {
-// CONFIG_STRING(kMap, "pf.kMap");
-// CONFIG_FLOAT(kInitX, "pf.kInitX");
-// CONFIG_FLOAT(kInitY, "pf.kInitY");
-// CONFIG_FLOAT(kInitTheta, "pf.kInitTheta");
-// CONFIG_FLOAT(kRobotRadius, "pf.kRobotRadius");
-// CONFIG_FLOAT(kCollisionRollout, "pf.kCollisionRollout");
-// CONFIG_FLOAT(kDesiredCommandX, "od.kDesiredCommandX");
-// CONFIG_FLOAT(kDesiredCommandRot, "od.kDesiredCommandRot");
-// CONFIG_INT(kTranslateCommandSign, "od.kTranslateCommandSign");
-
-static constexpr auto kMap =
-    "./src/ServiceRobotControlStack/control_stack/maps/loop.map";
-static constexpr float kInitX = 4;
-static constexpr float kInitY = 0;
-static constexpr float kInitTheta = 0;
-static constexpr float kRobotRadius = 0.2;
-static constexpr float kSafetyMargin = 0.1;
-static constexpr float kCollisionRollout = 3;
-// static constexpr float kDesiredCommandX = 0.2;
-// static constexpr float kDesiredCommandRot = 0;
-static constexpr int kTranslateCommandSign = 1;
+CONFIG_STRING(kMap, "pf.kMap");
+CONFIG_FLOAT(kInitX, "pf.kInitX");
+CONFIG_FLOAT(kInitY, "pf.kInitY");
+CONFIG_FLOAT(kInitTheta, "pf.kInitTheta");
+CONFIG_FLOAT(kRobotRadius, "pf.kRobotRadius");
+CONFIG_FLOAT(kSafetyMargin, "pf.kSafetyMargin");
+CONFIG_FLOAT(kCollisionRollout, "pf.kCollisionRollout");
+CONFIG_FLOAT(kDesiredCommandX, "od.kDesiredCommandX");
+CONFIG_FLOAT(kDesiredCommandRot, "od.kDesiredCommandRot");
+CONFIG_INT(kTranslateCommandSign, "od.kTranslateCommandSign");
 }  // namespace params
 
 static constexpr size_t kTimeBufferSize = 5;
@@ -96,9 +85,12 @@ struct CallbackWrapper {
   CallbackWrapper(const std::string& map_file, ros::NodeHandle* n)
       : map_(map_file),
         particle_filter_(map_,
-                         {params::kInitX, params::kInitY, params::kInitTheta}),
+                         {params::CONFIG_kInitX,
+                          params::CONFIG_kInitY,
+                          params::CONFIG_kInitTheta}),
         obstacle_detector_(map_),
-        path_finder_(map_, params::kRobotRadius, params::kSafetyMargin) {
+        path_finder_(
+            map_, params::CONFIG_kRobotRadius, params::CONFIG_kSafetyMargin) {
     velocity_pub_ = n->advertise<geometry_msgs::Twist>(
         constants::kCommandVelocityTopic, 10);
     laser_sub_ = n->subscribe(
@@ -155,10 +147,11 @@ struct CallbackWrapper {
              est_pose.tra.y(),
              est_pose.rot);
     const auto& dynamic_map = obstacle_detector_.GetDynamicMap();
-    const auto path = path_finder_.FindPath(dynamic_map,
-                                            est_pose.tra,
-                                            {-params::kInitX, params::kInitY},
-                                            &rrt_tree_pub_);
+    const auto path =
+        path_finder_.FindPath(dynamic_map,
+                              est_pose.tra,
+                              {-params::CONFIG_kInitX, params::CONFIG_kInitY},
+                              &rrt_tree_pub_);
     robot_path_pub_.publish(visualization::DrawPath(path, "map", "path"));
     util::Twist desired_command(0, 0, 0);
     if (path.IsValid()) {
@@ -170,20 +163,21 @@ struct CallbackWrapper {
     PublishTransforms();
     if (kDebug) {
       particle_filter_.DrawParticles(&particle_pub_);
-      robot_size_pub_.publish(visualization::MakeCylinder(est_pose.tra,
-                                                          params::kRobotRadius,
-                                                          3.0,
-                                                          "map",
-                                                          "robot_size",
-                                                          0,
-                                                          1,
-                                                          0,
-                                                          1));
+      robot_size_pub_.publish(
+          visualization::MakeCylinder(est_pose.tra,
+                                      params::CONFIG_kRobotRadius,
+                                      3.0,
+                                      "map",
+                                      "robot_size",
+                                      0,
+                                      1,
+                                      0,
+                                      1));
     }
   }
 
   util::Twist TransformTwistUsingSign(util::Twist twist) {
-    twist.tra *= params::kTranslateCommandSign;
+    twist.tra *= params::CONFIG_kTranslateCommandSign;
     return twist;
   }
 
@@ -222,9 +216,9 @@ struct CallbackWrapper {
     const util::Twist safe_cmd =
         obstacle_detector_.MakeCommandSafe(desired_command,
                                            time_delta,
-                                           params::kCollisionRollout,
-                                           params::kRobotRadius,
-                                           params::kSafetyMargin);
+                                           params::CONFIG_kCollisionRollout,
+                                           params::CONFIG_kRobotRadius,
+                                           params::CONFIG_kSafetyMargin);
     const util::Twist sent_cmd = TransformTwistUsingSign(safe_cmd);
     velocity_pub_.publish(sent_cmd.ToTwist());
     ROS_INFO("Command (%f, %f), %f safe",
@@ -260,12 +254,12 @@ struct CallbackWrapper {
 int main(int argc, char** argv) {
   ROS_ERROR("Directory: %s", util::GetCurrentWorkingDirectory().c_str());
   config_reader::ConfigReader reader(
-      {"src/ServiceRobotControlStack/control_stack/config/pf_sim_config.lua"});
+      {"src/ServiceRobotControlStack/control_stack/config/nav_config.lua"});
   ros::init(argc, argv, "nav_node");
 
   ros::NodeHandle n;
 
-  CallbackWrapper cw(params::kMap, &n);
+  CallbackWrapper cw(params::CONFIG_kMap, &n);
 
   ros::spin();
 

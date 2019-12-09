@@ -33,16 +33,10 @@
 #include "cs/util/visualization.h"
 
 namespace pf {
-// CONFIG_FLOAT(kLaserStdDev, "pf.kLaserStdDev");
-// CONFIG_FLOAT(kArcStdDev, "pf.kArcStdDev");
-// CONFIG_FLOAT(kRotateStdDev, "pf.kRotateStdDev");
-// CONFIG_FLOAT(kTemporalConsistencyWeight, "pf.kTemporalConsistencyWeight");
-
-static constexpr float kLaserStdDev = 0.1;
-static constexpr float kArcStdDev = 0.1;
-static constexpr float kRotateStdDev = 0.04;
-static constexpr float kTemporalConsistencyWeight = 0;
-
+CONFIG_FLOAT(kLaserStdDev, "pf.kLaserStdDev");
+CONFIG_FLOAT(kArcStdDev, "pf.kArcStdDev");
+CONFIG_FLOAT(kRotateStdDev, "pf.kRotateStdDev");
+CONFIG_FLOAT(kTemporalConsistencyWeight, "pf.kTemporalConsistencyWeight");
 }  // namespace pf
 
 namespace cs {
@@ -83,9 +77,9 @@ util::Pose MotionModel::ForwardPredict(const util::Pose& pose_global_frame,
   NP_CHECK(std::isfinite(translation_robot_frame));
   NP_CHECK(std::isfinite(rotation_robot_frame));
   std::normal_distribution<> distance_along_arc_dist(translation_robot_frame,
-                                                     pf::kArcStdDev);
+                                                     pf::CONFIG_kArcStdDev);
   std::normal_distribution<> rotation_dist(rotation_robot_frame,
-                                           pf::kRotateStdDev);
+                                           pf::CONFIG_kRotateStdDev);
 
   const float distance_along_arc = distance_along_arc_dist(gen_);
   const float rotation = rotation_dist(gen_);
@@ -106,7 +100,7 @@ float GetDepthProbability(const float& sensor_reading,
   const float people_noise = 0;
   // math_util::ProbabilityDensityExp(sensor_reading, 0.01f) * 0.0f;
   const float sensor_reading_noise = math_util::ProbabilityDensityGuassian(
-      sensor_reading, map_reading, pf::kLaserStdDev);
+      sensor_reading, map_reading, pf::CONFIG_kLaserStdDev);
   const float sensor_random_reading = 0;
   // math_util::ProbabilityDensityUniform(sensor_reading, ray_min, ray_max)
   const float sensor_random_ray_max = 0;
@@ -251,11 +245,9 @@ util::LaserScan ParticleFilter::ReweightParticles(
     p.weight =
         sensor_model_.GetProbability(p.pose, laser_scan, &filtered_laser_scan);
     const float similarity =
-        pf::kTemporalConsistencyWeight *
+        pf::CONFIG_kTemporalConsistencyWeight *
         ScanSimilarity(laser_scan, p.pose, p.prev_filtered_laser, p.prev_pose);
     p.weight += similarity;
-    // std::cout << "Weight: " << p.weight - similarity << " Sim: " <<
-    // similarity << " Weight + Sim: " << p.weight << std::endl;
 
     p.prev_filtered_laser = filtered_laser_scan;
     p.prev_pose = p.pose;
