@@ -27,9 +27,11 @@ pf = {
   kRotateStdDev = 0.04;
   kTemporalConsistencyWeight = 0;
 
-  kMap = "./src/ServiceRobotControlStack/control_stack/maps/loop.map";
-  kInitX = 4;
-  kInitY = 0;
+  kMap = "./src/ServiceRobotControlStack/control_stack/maps/outside_grasp.map";
+  kInitX = 0;
+  kInitY = 0.44;
+  kGoalX = 1;
+  kGoalY = 0.44;
   kInitTheta = 0;
   kRobotRadius = 0.1;
   kSafetyMargin = 0.1;
@@ -51,9 +53,9 @@ od = {
 };
 
 limits = {
-  kMaxTraAcc = 3;
-  kMaxTraVel = 1;
-  kMaxRotAcc = 2;
+  kMaxTraAcc = 0.2;
+  kMaxTraVel = 0.5;
+  kMaxRotAcc = 0.5;
   kMaxRotVel = 1;
 };
 

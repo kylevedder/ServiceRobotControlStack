@@ -50,6 +50,8 @@ namespace params {
 CONFIG_STRING(kMap, "pf.kMap");
 CONFIG_FLOAT(kInitX, "pf.kInitX");
 CONFIG_FLOAT(kInitY, "pf.kInitY");
+CONFIG_FLOAT(kGoalX, "pf.kGoalX");
+CONFIG_FLOAT(kGoalY, "pf.kGoalY");
 CONFIG_FLOAT(kInitTheta, "pf.kInitTheta");
 CONFIG_FLOAT(kRobotRadius, "pf.kRobotRadius");
 CONFIG_FLOAT(kSafetyMargin, "pf.kSafetyMargin");
@@ -161,7 +163,7 @@ struct CallbackWrapper {
     const auto path =
         path_finder_.FindPath(dynamic_map,
                               est_pose.tra,
-                              {-params::CONFIG_kInitX, params::CONFIG_kInitY},
+                              {params::CONFIG_kGoalX, params::CONFIG_kGoalY},
                               &rrt_tree_pub_);
     robot_path_pub_.publish(visualization::DrawPath(path, "map", "path"));
     util::Twist desired_command(0, 0, 0);
