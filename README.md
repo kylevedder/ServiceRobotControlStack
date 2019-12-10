@@ -18,5 +18,5 @@ Full planning and control stack for GRASP LML Service Robots @ Penn.
 
 ## License:
 
-[LGPLv3](../LICENSE)
+[MIT](../master/LICENSE)
 
