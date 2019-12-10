@@ -1,3 +1,6 @@
 [submodule "config_reader"]
 	path = config_reader
 	url = ../../ut-amrl/config-reader.git
+[submodule "shared"]
+	path = shared_lib/shared
+	url = ../../ut-amrl/amrl_shared_lib.git

@@ -25,9 +25,10 @@
 
 #include <algorithm>
 
-#include "cs/util/geometry.h"
+#include "cs/util/constants.h"
 #include "cs/util/map.h"
 #include "cs/util/params.h"
+#include "shared/math/geometry.h"
 
 namespace cs {
 namespace obstacle_avoidance {
@@ -58,8 +59,8 @@ util::Pose AchievedVelocityPose(const util::Pose& start_pose,
   const float delta_x = current_v.tra.x() * time +
                         0.5f * params::kMaxTraAcc * math_util::Sq(time);
   const float& rot = start_pose.rot;
-  const Eigen::Vector2f position_delta(math_util::Cos(rot) * delta_x,
-                                       math_util::Sin(rot) * delta_x);
+  const Eigen::Vector2f position_delta(std::cos(rot) * delta_x,
+                                       std::sin(rot) * delta_x);
   return {start_pose.tra + position_delta, start_pose.rot};
 }
 
@@ -79,8 +80,8 @@ util::Pose RotateFinalPose(const util::Pose& start_pose,
                            const float& rotate_radians,
                            const float& radius) {
   const Eigen::Vector2f robot_frame_delta(
-      math_util::Sin(fabs(rotate_radians)) * radius,
-      (1.0f - math_util::Cos(fabs(rotate_radians))) * radius *
+      std::sin(fabs(rotate_radians)) * radius,
+      (1.0f - std::cos(fabs(rotate_radians))) * radius *
           math_util::Sign(rotate_radians));
   const Eigen::Vector2f start_frame_delta =
       Eigen::Rotation2Df(start_pose.rot) * robot_frame_delta;
@@ -137,11 +138,10 @@ TrajectoryRollout::TrajectoryRollout(const util::Pose& start_pose,
     const float delta_dist = commanded_v.tra.x() * std::max(rotate_time, 0.0f);
     rotate_circle_center = achieved_vel_pose.tra;
     rotate_circle_radius = 0;
-    final_pose =
-        achieved_vel_pose +
-        util::Pose({math_util::Cos(achieved_vel_pose.rot) * delta_dist,
-                    math_util::Sin(achieved_vel_pose.rot) * delta_dist},
-                   0);
+    final_pose = achieved_vel_pose +
+                 util::Pose({std::cos(achieved_vel_pose.rot) * delta_dist,
+                             std::sin(achieved_vel_pose.rot) * delta_dist},
+                            0);
     NP_CHECK(final_pose.IsFinite());
 
   } else {

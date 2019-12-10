@@ -29,6 +29,7 @@
 #include <string>
 
 #include "config_reader/macros.h"
+#include "cs/util/constants.h"
 
 namespace cs {
 namespace path_finding {

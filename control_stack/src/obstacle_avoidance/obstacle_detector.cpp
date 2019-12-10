@@ -29,11 +29,10 @@
 #include "config_reader/macros.h"
 #include "cs/obstacle_avoidance/obstacle_detector.h"
 #include "cs/obstacle_avoidance/trajectory_rollout.h"
-#include "cs/util/geometry.h"
 #include "cs/util/laser_scan.h"
-#include "cs/util/math_util.h"
 #include "cs/util/params.h"
 #include "cs/util/visualization.h"
+#include "shared/math/geometry.h"
 
 namespace cs {
 namespace obstacle_avoidance {

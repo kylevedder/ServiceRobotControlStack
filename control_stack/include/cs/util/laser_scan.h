@@ -30,6 +30,7 @@
 
 #include "cs/util/constants.h"
 #include "cs/util/pose.h"
+#include "shared/math/math_util.h"
 
 namespace util {
 class LaserScan {
@@ -76,8 +77,8 @@ class LaserScan {
     const float& range_max = ros_laser_scan_.range_max;
 
     const Eigen::Vector2f endpoint =
-        Eigen::Vector2f(math_util::Cos(ray_angle_obs_frame) * range_max,
-                        math_util::Sin(ray_angle_obs_frame) * range_max) +
+        Eigen::Vector2f(std::cos(ray_angle_obs_frame) * range_max,
+                        std::sin(ray_angle_obs_frame) * range_max) +
         obs_pose.tra;
     NP_CHECK((endpoint - obs_pose.tra).norm() <= range_max + kEpsilon);
     return endpoint;

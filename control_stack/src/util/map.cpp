@@ -27,9 +27,9 @@
 #include <sstream>
 #include <string>
 
-#include "cs/util/geometry.h"
 #include "cs/util/map.h"
 #include "cs/util/visualization.h"
+#include "shared/math/geometry.h"
 
 namespace util {
 

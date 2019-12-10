@@ -32,9 +32,8 @@
 #include "config_reader/config_reader.h"
 #include "cs/particle_filter/particle_filter.h"
 #include "cs/util/constants.h"
-#include "cs/util/geometry.h"
-#include "cs/util/math_util.h"
 #include "cs/util/visualization.h"
+#include "shared/math/math_util.h"
 
 namespace pf {
 CONFIG_FLOAT(kLaserStdDev, "pf.kLaserStdDev");
@@ -63,16 +62,16 @@ util::Pose FollowTrajectory(const util::Pose& pose_global_frame,
 
   const float circle_radius = distance_along_arc / rotation;
 
-  const float move_x_dist = Sin(rotation) * circle_radius;
+  const float move_x_dist = std::sin(rotation) * circle_radius;
   const float move_y_dist =
-      (Cos(fabs(rotation)) * circle_radius - circle_radius);
+      (std::cos(fabs(rotation)) * circle_radius - circle_radius);
 
   const Eigen::Vector2f movement_arc_robot_frame(move_x_dist, move_y_dist);
   const Eigen::Vector2f movement_arc_global_frame =
       robot_to_global_frame * movement_arc_robot_frame;
 
   return {movement_arc_global_frame + pose_global_frame.tra,
-          AngleMod(rotation + pose_global_frame.rot)};
+          math_util::AngleMod(rotation + pose_global_frame.rot)};
 }
 
 util::Pose MotionModel::ForwardPredict(const util::Pose& pose_global_frame,
@@ -346,8 +345,8 @@ util::Pose ParticleFilter::WeightedCentroid() const {
   for (const Particle& p : particles_) {
     const float scale = p.weight / total_weight;
     weighted_centroid.tra += (p.pose.tra * scale);
-    sum_of_sins += math_util::Sin(p.pose.rot) * scale;
-    sum_of_coss += math_util::Cos(p.pose.rot) * scale;
+    sum_of_sins += std::sin(p.pose.rot) * scale;
+    sum_of_coss += std::cos(p.pose.rot) * scale;
   }
 
   weighted_centroid.rot = math_util::AngleMod(atan2(sum_of_sins, sum_of_coss));

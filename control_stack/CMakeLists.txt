@@ -152,6 +152,8 @@ catkin_package(
 include_directories(
   include
   ../config_reader/include
+  ../shared_lib/
+  ../shared_lib/shared/
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
 )

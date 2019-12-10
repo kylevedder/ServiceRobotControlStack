@@ -148,8 +148,8 @@ inline void DrawPose(const util::Pose& pose,
     start.z = z;
     geometry_msgs::Point end;
     static constexpr float kArrowLength = 0.1f;
-    const Eigen::Vector2f delta(math_util::Cos(pose.rot) * kArrowLength,
-                                math_util::Sin(pose.rot) * kArrowLength);
+    const Eigen::Vector2f delta(std::cos(pose.rot) * kArrowLength,
+                                std::sin(pose.rot) * kArrowLength);
     end.x = pose.tra.x() + delta.x();
     end.y = pose.tra.y() + delta.y();
     end.z = z;

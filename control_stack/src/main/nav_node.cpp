@@ -38,11 +38,11 @@
 #include "cs/particle_filter/particle_filter.h"
 #include "cs/path_finding/rrt.h"
 #include "cs/util/datastructures/circular_buffer.h"
-#include "cs/util/math_util.h"
 #include "cs/util/pose.h"
 #include "cs/util/twist.h"
 #include "cs/util/util.h"
 #include "cs/util/visualization.h"
+#include "shared/math/math_util.h"
 
 static constexpr bool kDebug = true;
 

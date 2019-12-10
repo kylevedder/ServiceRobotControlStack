@@ -36,12 +36,12 @@
 #include <vector>
 
 #include "cs/util/constants.h"
-#include "cs/util/geometry.h"
 #include "cs/util/map.h"
-#include "cs/util/math_util.h"
 #include "cs/util/pose.h"
 #include "cs/util/util.h"
 #include "cs/util/visualization.h"
+#include "shared/math/geometry.h"
+#include "shared/math/math_util.h"
 
 #include "config_reader/config_reader.h"
 

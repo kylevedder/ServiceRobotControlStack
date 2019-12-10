@@ -31,9 +31,9 @@
 
 #include "cs/path_finding/path_finder.h"
 #include "cs/util/constants.h"
-#include "cs/util/geometry.h"
-#include "cs/util/math_util.h"
 #include "cs/util/visualization.h"
+#include "shared/math/geometry.h"
+#include "shared/math/math_util.h"
 
 namespace cs {
 namespace path_finding {
