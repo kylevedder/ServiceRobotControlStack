@@ -45,6 +45,9 @@ od = {
   kOdomFilteringPriorBias = 0.7;
   kThresholdRotateInPlace = 0.9;
   kTranslateCommandSign = 1;
+  kOdomFilteringPriorBias = 0.7;
+  kThresholdRotateInPlace = 0.9;
+  kTranslationCostScaleFactor = 1000;
 };
 
 limits = {

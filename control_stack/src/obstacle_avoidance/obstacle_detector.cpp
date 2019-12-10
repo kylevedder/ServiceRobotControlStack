@@ -30,12 +30,26 @@
 #include "cs/obstacle_avoidance/obstacle_detector.h"
 #include "cs/obstacle_avoidance/trajectory_rollout.h"
 #include "cs/util/laser_scan.h"
-#include "cs/util/params.h"
 #include "cs/util/visualization.h"
 #include "shared/math/geometry.h"
 
 namespace cs {
 namespace obstacle_avoidance {
+
+namespace od_params {
+CONFIG_FLOAT(kMinDistanceThreshold, "od.kMinDistanceThreshold");
+CONFIG_FLOAT(kProposedTranslationStdDev, "od.kProposedTranslationStdDev");
+CONFIG_FLOAT(kProposedRotationStdDev, "od.kProposedRotationStdDev");
+
+CONFIG_FLOAT(kMaxTraAcc, "limits.kMaxTraAcc");
+CONFIG_FLOAT(kMaxTraVel, "limits.kMaxTraVel");
+CONFIG_FLOAT(kMaxRotAcc, "limits.kMaxRotAcc");
+CONFIG_FLOAT(kMaxRotVel, "limits.kMaxRotVel");
+
+CONFIG_FLOAT(kOdomFilteringPriorBias, "od.kOdomFilteringPriorBias");
+CONFIG_FLOAT(kThresholdRotateInPlace, "od.kThresholdRotateInPlace");
+CONFIG_FLOAT(kTranslationCostScaleFactor, "od.kTranslationCostScaleFactor");
+}  // namespace od_params
 
 ObstacleDetector::ObstacleDetector(const util::Map& map)
     : map_(map),
@@ -54,8 +68,9 @@ std::vector<Eigen::Vector2f> ObstacleDetector::GetNonMapPoints(
     const util::LaserScan& observation) const {
   std::vector<Eigen::Vector2f> v;
   const auto points = observation.TransformPointsFrameSparse(
-      observation_pose.ToAffine(),
-      [](const float& f) { return f > params::kMinDistanceThreshold; });
+      observation_pose.ToAffine(), [](const float& f) {
+        return f > od_params::CONFIG_kMinDistanceThreshold;
+      });
   for (const auto& p : points) {
     if (!IsMapObservation(map_.MinDistanceToWall(p))) {
       v.push_back(p);
@@ -126,8 +141,9 @@ util::Wall FitWallToCluster(const std::vector<Eigen::Vector2f>& points,
 }
 
 util::Twist ObstacleDetector::EstimateCurrentVelocity() const {
-  return odom_velocity_ * (1 - params::kOdomFilteringPriorBias) +
-         prior_commanded_velocity_ * (params::kOdomFilteringPriorBias);
+  return odom_velocity_ * (1 - od_params::CONFIG_kOdomFilteringPriorBias) +
+         prior_commanded_velocity_ *
+             (od_params::CONFIG_kOdomFilteringPriorBias);
 }
 
 void ObstacleDetector::UpdateOdom(const util::Pose& pose,
@@ -310,12 +326,12 @@ util::Twist ObstacleDetector::ApplyCommandLimits(
   }
 
   // Cap translational velocity.
-  if (c.tra.squaredNorm() > math_util::Sq(params::kMaxTraVel)) {
-    c.tra = c.tra.normalized() * params::kMaxTraVel;
+  if (c.tra.squaredNorm() > math_util::Sq(od_params::CONFIG_kMaxTraVel)) {
+    c.tra = c.tra.normalized() * od_params::CONFIG_kMaxTraVel;
   }
   // Cap rotational velocity.
-  if (fabs(c.rot) > params::kMaxRotVel) {
-    c.rot = math_util::Sign(c.rot) * params::kMaxRotVel;
+  if (fabs(c.rot) > od_params::CONFIG_kMaxRotVel) {
+    c.rot = math_util::Sign(c.rot) * od_params::CONFIG_kMaxRotVel;
   }
 
   if (kDebug) {
@@ -333,10 +349,12 @@ util::Twist ObstacleDetector::ApplyCommandLimits(
   }
 
   // Cap translational acceleration.
-  if (acceleration.tra.squaredNorm() > math_util::Sq(params::kMaxTraAcc)) {
+  if (acceleration.tra.squaredNorm() >
+      math_util::Sq(od_params::CONFIG_kMaxTraAcc)) {
     // m/s = m/s + m/s^2 * s
-    c.tra = estimated_velocity.tra +
-            acceleration.tra.normalized() * params::kMaxTraAcc * time_delta;
+    c.tra = estimated_velocity.tra + acceleration.tra.normalized() *
+                                         od_params::CONFIG_kMaxTraAcc *
+                                         time_delta;
   }
 
   if (kDebug) {
@@ -344,10 +362,11 @@ util::Twist ObstacleDetector::ApplyCommandLimits(
   }
 
   // Cap rotational acceleration.
-  if (fabs(acceleration.rot) > math_util::Sq(params::kMaxRotAcc)) {
+  if (fabs(acceleration.rot) > math_util::Sq(od_params::CONFIG_kMaxRotAcc)) {
     // rad/s = rad/s + rad/s^2 * s
-    c.rot = estimated_velocity.rot +
-            math_util::Sign(acceleration.rot) * params::kMaxRotAcc * time_delta;
+    c.rot = estimated_velocity.rot + math_util::Sign(acceleration.rot) *
+                                         od_params::CONFIG_kMaxRotAcc *
+                                         time_delta;
   }
 
   if (kDebug) {
@@ -429,16 +448,16 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
   std::array<std::pair<util::Twist, float>, kIterations> proposed_commands;
 
   std::normal_distribution<> translational_noise_dist(
-      0.0f, params::kProposedTranslationStdDev);
+      0.0f, od_params::CONFIG_kProposedTranslationStdDev);
   std::normal_distribution<> rotational_noise_dist(
-      0.0f, params::kProposedRotationStdDev);
+      0.0f, od_params::CONFIG_kProposedRotationStdDev);
 
   const std::array<util::Twist, 5> special_poses = {
       {{0, 0, 0},
-       {0, 0, params::kMaxRotVel},
-       {0, 0, -params::kMaxRotVel},
-       {est_vel.tra, params::kMaxRotVel},
-       {est_vel.tra, -params::kMaxRotVel}}};
+       {0, 0, od_params::CONFIG_kMaxRotVel},
+       {0, 0, -od_params::CONFIG_kMaxRotVel},
+       {est_vel.tra, od_params::CONFIG_kMaxRotVel},
+       {est_vel.tra, -od_params::CONFIG_kMaxRotVel}}};
 
   const auto generate_special =
       [&special_poses,
@@ -446,9 +465,10 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
     NP_CHECK(static_cast<size_t>(i) < special_poses.size());
     const auto& special = special_poses[i];
     const auto delta_pose = commanded_velocity - special;
-    const float cost = math_util::Sq(delta_pose.tra.lpNorm<1>() *
-                                     params::kTranslationCostScaleFactor) +
-                       fabs(delta_pose.rot);
+    const float cost =
+        math_util::Sq(delta_pose.tra.lpNorm<1>() *
+                      od_params::CONFIG_kTranslationCostScaleFactor) +
+        fabs(delta_pose.rot);
     return std::make_pair(special, cost);
   };
   const auto generate_random =
@@ -457,10 +477,11 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
        &rotational_noise_dist]() -> std::pair<util::Twist, float> {
     const float translational_noise = translational_noise_dist(random_gen_);
     const float rotational_noise = rotational_noise_dist(random_gen_);
-    return std::make_pair(util::Twist(translational_noise, 0, rotational_noise),
-                          math_util::Sq(translational_noise *
-                                        params::kTranslationCostScaleFactor) +
-                              fabs(rotational_noise));
+    return std::make_pair(
+        util::Twist(translational_noise, 0, rotational_noise),
+        math_util::Sq(translational_noise *
+                      od_params::CONFIG_kTranslationCostScaleFactor) +
+            fabs(rotational_noise));
   };
 
   for (int i = 0; i < kIterations; ++i) {
@@ -510,9 +531,10 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
   const util::Twist est_current_velocity = EstimateCurrentVelocity();
   if (est_current_velocity.tra.squaredNorm() +
           math_util::Sq(est_current_velocity.rot) <
-      math_util::Sq(params::kThresholdRotateInPlace)) {
+      math_util::Sq(od_params::CONFIG_kThresholdRotateInPlace)) {
     ROS_INFO("Rotate in place!!");
-    return ApplyCommandLimits({0, 0, params::kMaxRotVel / 2}, time_delta);
+    return ApplyCommandLimits({0, 0, od_params::CONFIG_kMaxRotVel / 2},
+                              time_delta);
   }
   return {0, 0, 0};
 }

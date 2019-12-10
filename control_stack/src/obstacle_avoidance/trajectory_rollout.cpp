@@ -25,18 +25,33 @@
 
 #include <algorithm>
 
+#include "config_reader/macros.h"
 #include "cs/util/constants.h"
 #include "cs/util/map.h"
-#include "cs/util/params.h"
 #include "shared/math/geometry.h"
 
 namespace cs {
 namespace obstacle_avoidance {
 
+namespace tr_params {
+CONFIG_FLOAT(kMinDistanceThreshold, "od.kMinDistanceThreshold");
+CONFIG_FLOAT(kProposedTranslationStdDev, "od.kProposedTranslationStdDev");
+CONFIG_FLOAT(kProposedRotationStdDev, "od.kProposedRotationStdDev");
+
+CONFIG_FLOAT(kMaxTraAcc, "limits.kMaxTraAcc");
+CONFIG_FLOAT(kMaxTraVel, "limits.kMaxTraVel");
+CONFIG_FLOAT(kMaxRotAcc, "limits.kMaxRotAcc");
+CONFIG_FLOAT(kMaxRotVel, "limits.kMaxRotVel");
+
+CONFIG_FLOAT(kOdomFilteringPriorBias, "od.kOdomFilteringPriorBias");
+CONFIG_FLOAT(kThresholdRotateInPlace, "od.kThresholdRotateInPlace");
+CONFIG_FLOAT(kTranslationCostScaleFactor, "od.kTranslationCostScaleFactor");
+}  // namespace tr_params
+
 float AchievedVelocityTime(const util::Twist& current_v,
                            const util::Twist& commanded_v) {
   const float vel_delta = (commanded_v.tra.x() - current_v.tra.x());  // m/s
-  return vel_delta / params::kMaxTraAcc;
+  return vel_delta / tr_params::CONFIG_kMaxTraAcc;
 }
 
 Eigen::Vector2f CircleCenter(const util::Pose& pose,
@@ -56,8 +71,9 @@ Eigen::Vector2f CircleCenter(const util::Pose& pose,
 util::Pose AchievedVelocityPose(const util::Pose& start_pose,
                                 const util::Twist& current_v,
                                 const float& time) {
-  const float delta_x = current_v.tra.x() * time +
-                        0.5f * params::kMaxTraAcc * math_util::Sq(time);
+  const float delta_x =
+      current_v.tra.x() * time +
+      0.5f * tr_params::CONFIG_kMaxTraAcc * math_util::Sq(time);
   const float& rot = start_pose.rot;
   const Eigen::Vector2f position_delta(std::cos(rot) * delta_x,
                                        std::sin(rot) * delta_x);
