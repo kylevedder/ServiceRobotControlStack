@@ -128,6 +128,33 @@ util::Twist AddReadingOdomNoise(util::Twist move) {
   return move;
 }
 
+template <typename T>
+util::Pose FollowTrajectory(const util::Pose& pose_global_frame,
+                            const T& distance_along_arc,
+                            const T& rotation) {
+  const Eigen::Rotation2Df robot_to_global_frame(pose_global_frame.rot);
+  const Eigen::Matrix<T, 2, 1> robot_forward_global_frame =
+      robot_to_global_frame * Eigen::Matrix<T, 2, 1>(1, 0);
+
+  if (rotation == 0) {
+    util::Pose updated_pose = pose_global_frame;
+    updated_pose.tra += robot_forward_global_frame * distance_along_arc;
+    return updated_pose;
+  }
+
+  const T circle_radius = distance_along_arc / rotation;
+
+  const T move_x_dst = std::sin(rotation) * circle_radius;
+  const T move_y_dst = std::cos(fabs(rotation)) * circle_radius - circle_radius;
+
+  const Eigen::Matrix<T, 2, 1> movement_arc_robot_frame(move_x_dst, move_y_dst);
+  const Eigen::Matrix<T, 2, 1> movement_arc_global_frame =
+      robot_to_global_frame * movement_arc_robot_frame;
+
+  return {movement_arc_global_frame + pose_global_frame.tra,
+          math_util::AngleMod(rotation + pose_global_frame.rot)};
+}
+
 util::Twist commanded_velocity;
 
 void CommandedVelocityCallback(const geometry_msgs::Twist& nv) {
@@ -169,7 +196,7 @@ int main(int argc, char** argv) {
     const util::Twist executed_move =
         AddExecutionOdomNoise(commanded_velocity / kLoopRate);
     const util::Twist reported_move = AddReadingOdomNoise(executed_move);
-    current_pose = geometry::FollowTrajectory(
+    current_pose = FollowTrajectory(
         current_pose, executed_move.tra.x(), executed_move.rot);
 
     scan_pub.publish(MakeScan(current_pose, map, sim::CONFIG_kLaserStdDev));
