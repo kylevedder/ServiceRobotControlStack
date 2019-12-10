@@ -52,6 +52,10 @@ CONFIG_FLOAT(kCollisionRollout, "pf.kCollisionRollout");
 CONFIG_FLOAT(kDesiredCommandX, "od.kDesiredCommandX");
 CONFIG_FLOAT(kDesiredCommandRot, "od.kDesiredCommandRot");
 CONFIG_INT(kTranslateCommandSign, "od.kTranslateCommandSign");
+
+CONFIG_FLOAT(rotation_drive_threshold, "control.rotation_drive_threshold");
+CONFIG_FLOAT(rotation_p, "control.rotation_p");
+CONFIG_FLOAT(translation_p, "control.translation_p");
 }  // namespace params
 
 static constexpr size_t kTimeBufferSize = 5;
@@ -112,20 +116,22 @@ struct CallbackWrapper {
     }
   }
 
-  util::Twist DriveToWaypoint(const util::Pose& pose,
-                              const Eigen::Vector2f& waypoint) {
+  static util::Twist DriveToWaypoint(const util::Pose& pose,
+                                     const Eigen::Vector2f& waypoint) {
     const auto robot_heading = geometry::Heading(pose.rot);
     const auto waypoint_delta = (waypoint - pose.tra);
     const auto waypoint_heading = waypoint_delta.normalized();
-    const float area = geometry::Cross(robot_heading, waypoint_heading);
-    static constexpr float kRotationDriveAngle = 0.2;
-    static constexpr float kRotP = 1;
-    static constexpr float kTraP = 1;
+    const int angle_direction =
+        math_util::Sign(geometry::Cross(robot_heading, waypoint_heading));
+    const float angle = std::acos(robot_heading.dot(waypoint_heading));
+    NP_CHECK(angle >= 0 && angle <= kPi);
     float x = 0;
-    if (fabs(area) < kRotationDriveAngle) {
+    if (angle < params::CONFIG_rotation_drive_threshold) {
       x = waypoint_delta.norm();
     }
-    return {x * kTraP, 0, area * kRotP};
+    return {x * params::CONFIG_translation_p,
+            0,
+            angle * angle_direction * params::CONFIG_rotation_p};
   }
 
   void LaserCallback(const sensor_msgs::LaserScan& msg) {
@@ -136,7 +142,7 @@ struct CallbackWrapper {
             ? kEpsilon
             : (laser_times_buffer_.back() - laser_times_buffer_.front())
                       .toSec() /
-                  (laser_times_buffer_.size() - 1);
+                  static_cast<double>(laser_times_buffer_.size() - 1);
     NP_CHECK_VAL(mean_time_delta > 0, mean_time_delta);
     util::LaserScan laser(msg);
     particle_filter_.UpdateObservation(laser);
@@ -158,7 +164,7 @@ struct CallbackWrapper {
       desired_command = DriveToWaypoint(est_pose, path.waypoints[1]);
     }
     const util::Twist commanded_velocity =
-        CommandVelocity(desired_command, mean_time_delta);
+        CommandVelocity(desired_command, static_cast<float>(mean_time_delta));
     obstacle_detector_.UpdateCommand(commanded_velocity);
     PublishTransforms();
     if (kDebug) {
@@ -194,7 +200,7 @@ struct CallbackWrapper {
         TransformTwistUsingSign(util::Twist(msg.twist.twist));
     const double mean_time_delta =
         (odom_times_buffer_.back() - odom_times_buffer_.front()).toSec() /
-        (odom_times_buffer_.size() - 1);
+        static_cast<double>(odom_times_buffer_.size() - 1);
     NP_CHECK(mean_time_delta > 0);
     const util::Twist delta = velocity * static_cast<float>(mean_time_delta);
     particle_filter_.UpdateOdom(delta.tra.x(), delta.rot);

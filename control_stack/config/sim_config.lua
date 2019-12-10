@@ -16,6 +16,7 @@
 -- If not, see <http://www.gnu.org/licenses/>.
 -- ========================================================================
 
+
 sim = {
   kLaserStdDev = 0.015;
   kArcExecStdDev = 0.4;
@@ -27,4 +28,16 @@ sim = {
   kStartPositionTheta = 0;
 
   kMap = "./src/ServiceRobotControlStack/control_stack/maps/loop_small_bumps.map";
+
+  laser = {
+    min_angle = -math.pi / 2.0,
+    max_angle = math.pi / 2.0,
+    num_readings = 100,
+    min_reading = 0.1,
+    max_reading = 5.0,
+  };
 };
+sim.laser.angle_delta = math.abs(sim.laser.max_angle - sim.laser.min_angle) / (sim.laser.num_readings - 1.0);
+-- print(math.abs(sim.laser.max_angle - sim.laser.min_angle))
+-- print(sim.laser.num_readings - 1.0)
+-- print(sim.laser.angle_delta)

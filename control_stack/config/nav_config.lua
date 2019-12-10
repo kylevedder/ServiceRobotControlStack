@@ -49,9 +49,19 @@ limits = {
   kMaxRotVel = 1;
 };
 
+path_finding = {
+  switch_historesis_threshold = 0.4; -- Meters
+};
+
 rrt = {
   max_iterations = 1000;
   goal_bias = 0.1;
   is_goal_threshold = 0.4; -- Meters
   delta_q = 1; -- Meters
+};
+
+control = {
+  rotation_drive_threshold = 0.2; -- Radians.
+  rotation_p = 1;
+  translation_p = 1;
 };

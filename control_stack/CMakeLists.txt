@@ -192,6 +192,7 @@ add_library(util_lib
 
 add_library(nav_lib
         src/path_finding/rrt.cpp
+        src/path_finding/path_finder.cpp
         src/obstacle_avoidance/obstacle_detector.cpp
         src/obstacle_avoidance/trajectory_rollout.cpp
         src/particle_filter/particle_filter.cpp)

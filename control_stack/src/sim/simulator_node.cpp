@@ -51,6 +51,13 @@ CONFIG_FLOAT(kStartPositionY, "sim.kStartPositionY");
 CONFIG_FLOAT(kStartPositionTheta, "sim.kStartPositionTheta");
 CONFIG_STRING(kMap, "sim.kMap");
 
+CONFIG_FLOAT(laser_min_angle, "sim.laser.min_angle");
+CONFIG_FLOAT(laser_max_angle, "sim.laser.max_angle");
+CONFIG_INT(laser_num_readings, "sim.laser.num_readings");
+CONFIG_FLOAT(laser_angle_delta, "sim.laser.angle_delta");
+CONFIG_FLOAT(laser_min_reading, "sim.laser.min_reading");
+CONFIG_FLOAT(laser_max_reading, "sim.laser.max_reading");
+
 }  // namespace sim
 
 // std::random_device rd;
@@ -72,21 +79,24 @@ sensor_msgs::LaserScan MakeScan(const util::Pose& robot_pose,
 
   sensor_msgs::LaserScan scan;
   scan.header = MakeHeader("laser");
-  scan.angle_min = constants::kMinAngle;
-  scan.angle_max = constants::kMaxAngle;
-  scan.angle_increment = constants::kAngleDelta;
-  scan.range_min = constants::kMinReading;
-  scan.range_max = constants::kMaxReading;
+  scan.angle_min = sim::CONFIG_laser_min_angle;
+  scan.angle_max = sim::CONFIG_laser_max_angle;
+  scan.angle_increment = sim::CONFIG_laser_angle_delta;
+  scan.range_min = sim::CONFIG_laser_min_reading;
+  scan.range_max = sim::CONFIG_laser_max_reading;
   scan.scan_time = 0;
   scan.time_increment = 0;
 
-  for (int ray_idx = 0; ray_idx < constants::kNumReadings; ++ray_idx) {
-    const float angle = math_util::AngleMod(
-        constants::kMinAngle +
-        constants::kAngleDelta * static_cast<float>(ray_idx) + robot_pose.rot);
+  for (int ray_idx = 0; ray_idx < sim::CONFIG_laser_num_readings; ++ray_idx) {
+    const float angle = math_util::AngleMod(sim::CONFIG_laser_min_angle +
+                                            sim::CONFIG_laser_angle_delta *
+                                                static_cast<float>(ray_idx) +
+                                            robot_pose.rot);
     const util::Pose ray(robot_pose.tra, angle);
-    const float dist = map.MinDistanceAlongRay(
-        ray, constants::kMinReading, constants::kMaxReading - kEpsilon);
+    const float dist =
+        map.MinDistanceAlongRay(ray,
+                                sim::CONFIG_laser_min_reading,
+                                sim::CONFIG_laser_max_reading - kEpsilon);
     scan.ranges.push_back(dist + noise_dist(gen));
   }
 

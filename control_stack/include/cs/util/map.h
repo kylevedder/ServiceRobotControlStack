@@ -41,8 +41,8 @@ struct Map {
   explicit Map(const std::string& filepath);
 
   float MinDistanceAlongRay(const util::Pose& ray,
-                            const float min_depth,
-                            const float max_depth) const;
+                            const float& min_depth,
+                            const float& max_depth) const;
 
   float MinDistanceToWall(const Eigen::Vector2f& observation) const;
 

@@ -50,10 +50,11 @@ Map::Map(const std::string& filepath) {
 }
 
 float Map::MinDistanceAlongRay(const util::Pose& ray,
-                               const float min_depth,
-                               const float max_depth) const {
+                               const float& min_depth,
+                               const float& max_depth) const {
   NP_FINITE(ray.tra.x());
-  NP_FINITE(ray.tra.x());
+  NP_FINITE(ray.tra.y());
+  NP_FINITE(min_depth);
   NP_FINITE(max_depth);
 
   Eigen::Vector2f delta =
@@ -72,7 +73,7 @@ float Map::MinDistanceAlongRay(const util::Pose& ray,
       delta = collision_delta;
     }
   }
-  if (delta.squaredNorm() < math_util::Sq(constants::kMinReading)) {
+  if (delta.squaredNorm() < math_util::Sq(min_depth)) {
     return min_depth;
   }
   return delta.norm();
