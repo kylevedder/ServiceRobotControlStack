@@ -29,9 +29,9 @@ pf = {
 
   kMap = "./src/ServiceRobotControlStack/control_stack/maps/outside_grasp.map";
   kInitX = 0;
-  kInitY = 0.44;
-  kGoalX = 1;
-  kGoalY = 0.44;
+  kInitY = -0.95;
+  kGoalX = -1;
+  kGoalY = -3.95;
   kInitTheta = 0;
   kRobotRadius = 0.1;
   kSafetyMargin = 0.1;
