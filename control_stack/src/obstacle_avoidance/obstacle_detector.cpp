@@ -50,6 +50,12 @@ CONFIG_FLOAT(kMaxRotVel, "limits.kMaxRotVel");
 CONFIG_FLOAT(kOdomFilteringPriorBias, "od.kOdomFilteringPriorBias");
 CONFIG_FLOAT(kThresholdRotateInPlace, "od.kThresholdRotateInPlace");
 CONFIG_FLOAT(kTranslationCostScaleFactor, "od.kTranslationCostScaleFactor");
+
+CONFIG_FLOAT(max_dist_between_readings,
+             "od.clustering.max_dist_between_readings");
+CONFIG_FLOAT(min_distance_btw_readings_to_reason_angle,
+             "od.clustering.min_distance_btw_readings_to_reason_angle");
+CONFIG_FLOAT(line_similarity, "od.clustering.line_similarity");
 }  // namespace od_params
 
 ObstacleDetector::ObstacleDetector(const util::Map& map)
@@ -92,11 +98,9 @@ size_t GetClusterEndIdx(const std::vector<Eigen::Vector2f>& points,
 
   const auto in_same_cluster = [&start_v](const Eigen::Vector2f& prev,
                                           const Eigen::Vector2f& curr) -> bool {
-    static constexpr float kMaxDistanceBetweenReadings = 0.01;
-    static constexpr float kMinDistanceBetweenReadingsToReasonAngle = 0.001;
-
     const Eigen::Vector2f delta = (curr - prev);
-    if (delta.squaredNorm() > math_util::Sq(kMaxDistanceBetweenReadings)) {
+    if (delta.squaredNorm() >
+        math_util::Sq(od_params::CONFIG_max_dist_between_readings)) {
       return false;
     }
 
@@ -105,7 +109,8 @@ size_t GetClusterEndIdx(const std::vector<Eigen::Vector2f>& points,
     }
 
     if (delta.squaredNorm() <
-        math_util::Sq(kMinDistanceBetweenReadingsToReasonAngle)) {
+        math_util::Sq(
+            od_params::CONFIG_min_distance_btw_readings_to_reason_angle)) {
       return true;
     }
 
@@ -113,8 +118,7 @@ size_t GetClusterEndIdx(const std::vector<Eigen::Vector2f>& points,
     const Eigen::Vector2f new_segment_dir = delta.normalized();
     const float dot = current_line_dir.dot(new_segment_dir);
 
-    static constexpr float kSimilarity = 0.17;  // Cos(80 deg)
-    return fabs(dot) > kSimilarity;
+    return fabs(dot) > od_params::CONFIG_line_similarity;
   };
 
   size_t prev_idx = cluster_start_idx;
