@@ -32,7 +32,7 @@ pf = {
   kInitY = -0.95;
   kInitTheta = 0;
   kGoalX = -1;
-  kGoalY = -8.95;
+  kGoalY = -2.95;
   kRobotRadius = 0.1;
   kSafetyMargin = 0.1;
   kCollisionRollout = 2;
@@ -55,7 +55,7 @@ od = {
 limits = {
   kMaxTraAcc = 0.2;
   kMaxTraVel = 0.5;
-  kMaxRotAcc = 0.5;
+  kMaxRotAcc = 0.75;
   kMaxRotVel = 1;
 };
 
@@ -73,7 +73,7 @@ rrt = {
 
 control = {
   rotation_drive_threshold = 0.2; -- Radians.
-  rotation_p = 0.5;
+  rotation_p = 0.75;
   translation_p = 0.5;
   goal_deadzone_tra = 0.1; -- Meters.
 };
