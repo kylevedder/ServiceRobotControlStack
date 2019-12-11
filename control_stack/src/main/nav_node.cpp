@@ -22,6 +22,7 @@
 // SOFTWARE.
 // ========================================================================
 
+#include <geometry_msgs/Pose2D.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
 #include <sensor_msgs/LaserScan.h>
@@ -78,11 +79,13 @@ struct CallbackWrapper {
   cs::datastructures::CircularBuffer<ros::Time, kTimeBufferSize>
       laser_times_buffer_;
   tf::TransformBroadcaster br_;
+  Eigen::Vector2f current_goal_;
 
   // Functionality pub/sub
   ros::Publisher velocity_pub_;
   ros::Subscriber odom_sub_;
   ros::Subscriber laser_sub_;
+  ros::Subscriber goal_sub_;
 
   // Debug pub/sub
   ros::Publisher particle_pub_;
@@ -102,13 +105,16 @@ struct CallbackWrapper {
                           params::CONFIG_kInitTheta}),
         obstacle_detector_(map_),
         path_finder_(
-            map_, params::CONFIG_kRobotRadius, params::CONFIG_kSafetyMargin) {
+            map_, params::CONFIG_kRobotRadius, params::CONFIG_kSafetyMargin),
+        current_goal_(params::CONFIG_kGoalX, params::CONFIG_kGoalY) {
     velocity_pub_ = n->advertise<geometry_msgs::Twist>(
         constants::kCommandVelocityTopic, 10);
     laser_sub_ = n->subscribe(
         constants::kLaserTopic, 10, &CallbackWrapper::LaserCallback, this);
     odom_sub_ = n->subscribe(
         constants::kOdomTopic, 10, &CallbackWrapper::OdomCallback, this);
+    goal_sub_ = n->subscribe(
+        constants::kGoalTopic, 10, &CallbackWrapper::GoalCallback, this);
 
     if (kDebug) {
       particle_pub_ =
@@ -148,6 +154,10 @@ struct CallbackWrapper {
             angle * angle_direction * params::CONFIG_rotation_p};
   }
 
+  void GoalCallback(const geometry_msgs::Pose2D& msg) {
+    current_goal_ = {msg.x, msg.y};
+  }
+
   void LaserCallback(const sensor_msgs::LaserScan& msg) {
     const ros::Time& current_time = msg.header.stamp;
     laser_times_buffer_.push_back(current_time);
@@ -167,11 +177,8 @@ struct CallbackWrapper {
     //             est_pose.tra.y(),
     //             est_pose.rot);
     const auto& dynamic_map = obstacle_detector_.GetDynamicMap();
-    const auto path =
-        path_finder_.FindPath(dynamic_map,
-                              est_pose.tra,
-                              {params::CONFIG_kGoalX, params::CONFIG_kGoalY},
-                              &rrt_tree_pub_);
+    const auto path = path_finder_.FindPath(
+        dynamic_map, est_pose.tra, current_goal_, &rrt_tree_pub_);
     robot_path_pub_.publish(visualization::DrawPath(path, "map", "path"));
     util::Twist desired_command(0, 0, 0);
     if (path.IsValid()) {
