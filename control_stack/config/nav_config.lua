@@ -23,7 +23,7 @@
 
 pf = {
   kLaserStdDev = 0.1;
-  kArcStdDev = 0.1;
+  kArcStdDev = 0.05;
   kRotateStdDev = 0.04;
   kTemporalConsistencyWeight = 0;
 
@@ -32,9 +32,9 @@ pf = {
   kInitY = -0.95;
   kInitTheta = 0;
   kGoalX = -1;
-  kGoalY = -12.95;
+  kGoalY = -10.95;
   kRobotRadius = 0.1;
-  kSafetyMargin = 0.1;
+  kSafetyMargin = 0.2;
   kCollisionRollout = 2;
 };
 
