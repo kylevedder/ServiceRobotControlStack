@@ -51,6 +51,11 @@ od = {
   kOdomFilteringPriorBias = 0.7;
   kThresholdRotateInPlace = 0.9;
   kTranslationCostScaleFactor = 1000;
+  clustering = {
+    max_dist_between_readings = 0.01;
+    min_distance_btw_readings_to_reason_angle = 0.01;
+    line_similarity = math.cos(80);
+  };
 };
 
 limits = {
