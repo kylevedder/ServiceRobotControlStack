@@ -40,6 +40,7 @@ pf = {
 
 od = {
   kMinDistanceThreshold = 0.05;
+  kDistanceFromMax = 0.1;
   kProposedTranslationStdDev = 1.0;
   kProposedRotationStdDev = 5;
   kDesiredCommandX = 0.2;
