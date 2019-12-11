@@ -50,9 +50,9 @@ namespace params {
 CONFIG_STRING(kMap, "pf.kMap");
 CONFIG_FLOAT(kInitX, "pf.kInitX");
 CONFIG_FLOAT(kInitY, "pf.kInitY");
+CONFIG_FLOAT(kInitTheta, "pf.kInitTheta");
 CONFIG_FLOAT(kGoalX, "pf.kGoalX");
 CONFIG_FLOAT(kGoalY, "pf.kGoalY");
-CONFIG_FLOAT(kInitTheta, "pf.kInitTheta");
 CONFIG_FLOAT(kRobotRadius, "pf.kRobotRadius");
 CONFIG_FLOAT(kSafetyMargin, "pf.kSafetyMargin");
 CONFIG_FLOAT(kCollisionRollout, "pf.kCollisionRollout");
@@ -64,7 +64,6 @@ CONFIG_FLOAT(rotation_drive_threshold, "control.rotation_drive_threshold");
 CONFIG_FLOAT(rotation_p, "control.rotation_p");
 CONFIG_FLOAT(translation_p, "control.translation_p");
 CONFIG_FLOAT(goal_deadzone_tra, "control.goal_deadzone_tra");
-CONFIG_FLOAT(goal_deadzone_rot, "control.goal_deadzone_rot");
 }  // namespace params
 
 static constexpr size_t kTimeBufferSize = 5;
@@ -129,21 +128,20 @@ struct CallbackWrapper {
                                      const Eigen::Vector2f& waypoint) {
     const auto robot_heading = geometry::Heading(pose.rot);
     const auto waypoint_delta = (waypoint - pose.tra);
+    const float distance_to_goal_sq = waypoint_delta.squaredNorm();
+    if (distance_to_goal_sq < Sq(params::CONFIG_goal_deadzone_tra)) {
+      return {0, 0, 0};
+    }
+
     const auto waypoint_heading = waypoint_delta.normalized();
     const int angle_direction =
         math_util::Sign(geometry::Cross(robot_heading, waypoint_heading));
-    float angle = std::acos(robot_heading.dot(waypoint_heading));
+    const float angle = std::acos(robot_heading.dot(waypoint_heading));
     NP_CHECK(angle >= 0 && angle <= kPi);
     float x = 0;
     if (angle < params::CONFIG_rotation_drive_threshold) {
-      x = waypoint_delta.norm();
-    }
-
-    if (x < params::CONFIG_goal_deadzone_tra) {
-      x = 0;
-      if (fabs(angle) < params::CONFIG_goal_deadzone_rot) {
-        angle = 0;
-      }
+      x = std::sqrt(distance_to_goal_sq);
+      x *= math_util::Sign(waypoint_heading.dot(robot_heading));
     }
     return {x * params::CONFIG_translation_p,
             0,
@@ -164,10 +162,10 @@ struct CallbackWrapper {
     particle_filter_.UpdateObservation(laser);
     const auto est_pose = particle_filter_.WeightedCentroid();
     obstacle_detector_.UpdateObservation(est_pose, laser, &detected_walls_pub_);
-    ROS_INFO("Laser update. Est pose: (%f, %f), %f",
-             est_pose.tra.x(),
-             est_pose.tra.y(),
-             est_pose.rot);
+    //    ROS_INFO("Laser update. Est pose: (%f, %f), %f",
+    //             est_pose.tra.x(),
+    //             est_pose.tra.y(),
+    //             est_pose.rot);
     const auto& dynamic_map = obstacle_detector_.GetDynamicMap();
     const auto path =
         path_finder_.FindPath(dynamic_map,
@@ -178,7 +176,15 @@ struct CallbackWrapper {
     util::Twist desired_command(0, 0, 0);
     if (path.IsValid()) {
       desired_command = DriveToWaypoint(est_pose, path.waypoints[1]);
+      //      ROS_INFO("Waypoint drive: (%f, %f,) %f",
+      //               desired_command.tra.x(),
+      //               desired_command.tra.y(),
+      //               desired_command.rot);
     }
+    //    ROS_INFO("Desired command: (%f, %f,) %f",
+    //             desired_command.tra.x(),
+    //             desired_command.tra.y(),
+    //             desired_command.rot);
     const util::Twist commanded_velocity =
         CommandVelocity(desired_command, static_cast<float>(mean_time_delta));
     obstacle_detector_.UpdateCommand(commanded_velocity);
@@ -205,7 +211,7 @@ struct CallbackWrapper {
 
   void OdomCallback(const nav_msgs::Odometry& msg) {
     const ros::Time& current_time = msg.header.stamp;
-    ROS_INFO("Odom update");
+    //    ROS_INFO("Odom update");
     if (odom_times_buffer_.empty() ||
         odom_times_buffer_.back().toSec() >= current_time.toSec()) {
       odom_times_buffer_.push_back(current_time);
@@ -230,11 +236,11 @@ struct CallbackWrapper {
 
   util::Twist CommandVelocity(const util::Twist& desired_command,
                               const float& time_delta) {
-    ROS_INFO("Command (%f, %f), %f desired for delta t: %f",
-             desired_command.tra.x(),
-             desired_command.tra.y(),
-             desired_command.rot,
-             time_delta);
+    //    ROS_INFO("Command (%f, %f), %f desired for delta t: %f",
+    //             desired_command.tra.x(),
+    //             desired_command.tra.y(),
+    //             desired_command.rot,
+    //             time_delta);
     const util::Twist safe_cmd =
         obstacle_detector_.MakeCommandSafe(desired_command,
                                            time_delta,
@@ -243,14 +249,14 @@ struct CallbackWrapper {
                                            params::CONFIG_kSafetyMargin);
     const util::Twist sent_cmd = TransformTwistUsingSign(safe_cmd);
     velocity_pub_.publish(sent_cmd.ToTwist());
-    ROS_INFO("Command (%f, %f), %f safe",
-             safe_cmd.tra.x(),
-             safe_cmd.tra.y(),
-             safe_cmd.rot);
-    ROS_INFO("Command (%f, %f), %f sent",
-             sent_cmd.tra.x(),
-             sent_cmd.tra.y(),
-             sent_cmd.rot);
+    //    ROS_INFO("Command (%f, %f), %f safe",
+    //             safe_cmd.tra.x(),
+    //             safe_cmd.tra.y(),
+    //             safe_cmd.rot);
+    //    ROS_INFO("Command (%f, %f), %f sent",
+    //             sent_cmd.tra.x(),
+    //             sent_cmd.tra.y(),
+    //             sent_cmd.rot);
     return safe_cmd;
   }
 
@@ -269,7 +275,6 @@ struct CallbackWrapper {
     transform.setRotation(q);
     br_.sendTransform(tf::StampedTransform(
         transform.inverse(), ros::Time::now(), "base_link", "map"));
-    ROS_INFO("Transforms published!");
   }
 };
 

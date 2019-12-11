@@ -30,9 +30,9 @@ pf = {
   kMap = "./src/ServiceRobotControlStack/control_stack/maps/outside_grasp.map";
   kInitX = 0;
   kInitY = -0.95;
-  kGoalX = -1;
-  kGoalY = -3.95;
   kInitTheta = 0;
+  kGoalX = -1;
+  kGoalY = -8.95;
   kRobotRadius = 0.1;
   kSafetyMargin = 0.1;
   kCollisionRollout = 2;
@@ -60,11 +60,12 @@ limits = {
 };
 
 path_finding = {
+  goal_delta_change = 0.8; -- Meters
   switch_historesis_threshold = 0.4; -- Meters
 };
 
 rrt = {
-  max_iterations = 1000;
+  max_iterations = 5000;
   goal_bias = 0.1;
   is_goal_threshold = 0.4; -- Meters
   delta_q = 1; -- Meters
@@ -72,8 +73,7 @@ rrt = {
 
 control = {
   rotation_drive_threshold = 0.2; -- Radians.
-  rotation_p = 1;
-  translation_p = 1;
-  goal_deadzone_tra = 0.05; -- Meters.
-  goal_deadzone_rot = 0.15; -- Radians.
+  rotation_p = 0.5;
+  translation_p = 0.5;
+  goal_deadzone_tra = 0.1; -- Meters.
 };

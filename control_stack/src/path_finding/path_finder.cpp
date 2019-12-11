@@ -35,36 +35,58 @@ namespace cs {
 namespace path_finding {
 
 namespace params {
-CONFIG_FLOAT(switch_historesis_threshold, "switch_historesis_threshold");
-};
+CONFIG_FLOAT(switch_historesis_threshold,
+             "path_finding.switch_historesis_threshold");
+CONFIG_FLOAT(goal_delta_change, "path_finding.goal_delta_change");
+};  // namespace params
 
 Path2d PathFinder::UsePrevPathOrUpdate(const util::Map& dynamic_map,
                                        const Path2d& proposed_path) {
+  static constexpr bool kDebug = false;
   NP_CHECK(!proposed_path.IsValid() ||
            !IsPathColliding(dynamic_map, proposed_path));
 
   if (!prev_path_.IsValid()) {
-    ROS_INFO("Prev path invalid");
+    if (kDebug) {
+      ROS_INFO("Prev path invalid");
+    }
     prev_path_ = proposed_path;
     return proposed_path;
   }
 
   if (IsPathColliding(dynamic_map, prev_path_)) {
-    ROS_INFO("Prev path colliding");
+    if (kDebug) {
+      ROS_INFO("Prev path colliding");
+    }
+    prev_path_ = proposed_path;
+    return proposed_path;
+  }
+
+  if (proposed_path.IsValid() &&
+      (prev_path_.waypoints.back() - proposed_path.waypoints.back())
+              .squaredNorm() >
+          math_util::Sq(params::CONFIG_goal_delta_change)) {
+    if (kDebug) {
+      ROS_INFO("Goal Changed");
+    }
     prev_path_ = proposed_path;
     return proposed_path;
   }
 
   const float distance_between_starts =
-      (proposed_path.waypoints.front() - prev_path_.waypoints.front())
-          .squaredNorm();
+      proposed_path.IsValid()
+          ? (proposed_path.waypoints.front() - prev_path_.waypoints.front())
+                .squaredNorm()
+          : std::numeric_limits<float>::max();
 
   if (proposed_path.IsValid() &&
       (params::CONFIG_switch_historesis_threshold + proposed_path.cost <
            prev_path_.cost ||
        distance_between_starts >
            math_util::Sq(params::CONFIG_switch_historesis_threshold))) {
-    ROS_INFO("Proposed path better");
+    if (kDebug) {
+      ROS_INFO("Proposed path better");
+    }
     prev_path_ = proposed_path;
     return proposed_path;
   }

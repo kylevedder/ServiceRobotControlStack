@@ -28,11 +28,11 @@ sim = {
   kArcReadStdDev = 0.2;
   kRotateExecStdDev = 0.001;
   kRotateReadStdDev = 0.001;
-  kStartPositionX = 4;
-  kStartPositionY = 0;
+  kStartPositionX = 0;
+  kStartPositionY = -0.95;
   kStartPositionTheta = 0;
 
-  kMap = "./src/ServiceRobotControlStack/control_stack/maps/loop_small_bumps.map";
+  kMap = "./src/ServiceRobotControlStack/control_stack/maps/outside_grasp.map";
 
   laser = {
     min_angle = -math.pi / 2.0,

@@ -85,8 +85,6 @@ class RRT : public PathFinder {
                Tree* tree,
                const Eigen::Vector2f& steering_point);
 
-  bool IsNearGoal(const Eigen::Vector2f& goal, const Eigen::Vector2f& point);
-
   Path2d SmoothPath(const util::Map& dynamic_map, Path2d path);
 
   Path2d GenerateNewPath(const util::Map& dynamic_map,
@@ -96,6 +94,9 @@ class RRT : public PathFinder {
 
   bool IsPathColliding(const util::Map& dynamic_map,
                        const Path2d& path) const override;
+
+  bool IsNearGoal(const Eigen::Vector2f& goal,
+                  const Eigen::Vector2f& point) const;
 };
 
 }  // namespace path_finding

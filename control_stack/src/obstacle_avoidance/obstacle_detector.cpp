@@ -404,10 +404,13 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
                                               const float rollout_duration,
                                               const float robot_radius,
                                               const float safety_margin) {
-  ROS_INFO("Initial command: (%f, %f), %f",
-           commanded_velocity.tra.x(),
-           commanded_velocity.tra.y(),
-           commanded_velocity.rot);
+  static constexpr bool kDebug = false;
+  if (kDebug) {
+    ROS_INFO("Initial command: (%f, %f), %f",
+             commanded_velocity.tra.x(),
+             commanded_velocity.tra.y(),
+             commanded_velocity.rot);
+  }
   commanded_velocity = ApplyCommandLimits(commanded_velocity, time_delta);
 
   // if (StartedInCollision(robot_radius)) {
@@ -415,17 +418,16 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
   //   return {0, 0, 1};
   // }
   const auto est_vel = EstimateCurrentVelocity();
-  ROS_INFO("Limited command: (%f, %f), %f",
-           commanded_velocity.tra.x(),
-           commanded_velocity.tra.y(),
-           commanded_velocity.rot);
-  ROS_INFO("Estimated velocity: (%f, %f), %f",
-           est_vel.tra.x(),
-           est_vel.tra.y(),
-           est_vel.rot);
-  ROS_INFO("Time delta: %f", time_delta);
-  static constexpr bool kDebug = false;
   if (kDebug) {
+    ROS_INFO("Limited command: (%f, %f), %f",
+             commanded_velocity.tra.x(),
+             commanded_velocity.tra.y(),
+             commanded_velocity.rot);
+    ROS_INFO("Estimated velocity: (%f, %f), %f",
+             est_vel.tra.x(),
+             est_vel.tra.y(),
+             est_vel.rot);
+    ROS_INFO("Time delta: %f", time_delta);
     ROS_INFO("Current position: (%f, %f), %f",
              estimated_pose_.tra.x(),
              estimated_pose_.tra.y(),
@@ -494,19 +496,23 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
             proposed_command, rollout_duration, robot_radius, safety_margin)) {
       const float cost = delta.second;
       if (static_cast<size_t>(i) < special_poses.size()) {
-        ROS_INFO("Special command: (%f, %f), %f cost %f (non-colliding)",
-                 proposed_command.tra.x(),
-                 proposed_command.tra.y(),
-                 proposed_command.rot,
-                 cost);
+        if (kDebug) {
+          ROS_INFO("Special command: (%f, %f), %f cost %f (non-colliding)",
+                   proposed_command.tra.x(),
+                   proposed_command.tra.y(),
+                   proposed_command.rot,
+                   cost);
+        }
       }
       proposed_commands[i] = {proposed_command, cost};
     } else {
       if (static_cast<size_t>(i) < special_poses.size()) {
-        ROS_INFO("Proposed command: (%f, %f), %f (colliding)",
-                 proposed_command.tra.x(),
-                 proposed_command.tra.y(),
-                 proposed_command.rot);
+        if (kDebug) {
+          ROS_INFO("Proposed command: (%f, %f), %f (colliding)",
+                   proposed_command.tra.x(),
+                   proposed_command.tra.y(),
+                   proposed_command.rot);
+        }
       }
       proposed_commands[i] = {proposed_command,
                               std::numeric_limits<float>::max()};
@@ -521,10 +527,12 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
   }
   const auto& best = proposed_commands[min_index];
   if (best.second < std::numeric_limits<float>::max()) {
-    ROS_INFO("Final cmd velocity: (%f, %f), %f",
-             best.first.tra.x(),
-             best.first.tra.y(),
-             best.first.rot);
+    if (kDebug) {
+      ROS_INFO("Final cmd velocity: (%f, %f), %f",
+               best.first.tra.x(),
+               best.first.tra.y(),
+               best.first.rot);
+    }
     return best.first;
   }
 
@@ -532,7 +540,9 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
   if (est_current_velocity.tra.squaredNorm() +
           math_util::Sq(est_current_velocity.rot) <
       math_util::Sq(od_params::CONFIG_kThresholdRotateInPlace)) {
-    ROS_INFO("Rotate in place!!");
+    if (kDebug) {
+      ROS_INFO("Rotate in place!!");
+    }
     return ApplyCommandLimits({0, 0, od_params::CONFIG_kMaxRotVel / 2},
                               time_delta);
   }

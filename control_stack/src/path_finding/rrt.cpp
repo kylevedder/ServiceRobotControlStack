@@ -105,7 +105,7 @@ int RRT::AddPoint(const util::Map& dynamic_map,
 }
 
 bool RRT::IsNearGoal(const Eigen::Vector2f& goal,
-                     const Eigen::Vector2f& point) {
+                     const Eigen::Vector2f& point) const {
   return (goal - point).squaredNorm() <
          math_util::Sq(params::CONFIG_is_goal_threshold);
 }
