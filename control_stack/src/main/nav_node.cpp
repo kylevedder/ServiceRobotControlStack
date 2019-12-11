@@ -44,6 +44,7 @@
 #include "cs/util/util.h"
 #include "cs/util/visualization.h"
 #include "shared/math/math_util.h"
+#include "shared/math/geometry.h"
 
 static constexpr bool kDebug = true;
 
@@ -133,17 +134,21 @@ struct CallbackWrapper {
   static util::Twist DriveToWaypoint(const util::Pose& pose,
                                      const Eigen::Vector2f& waypoint) {
     const auto robot_heading = geometry::Heading(pose.rot);
-    const auto waypoint_delta = (waypoint - pose.tra);
+    const Eigen::Vector2f waypoint_delta = (waypoint - pose.tra);
     const float distance_to_goal_sq = waypoint_delta.squaredNorm();
+    NP_FINITE(distance_to_goal_sq);
     if (distance_to_goal_sq < Sq(params::CONFIG_goal_deadzone_tra)) {
       return {0, 0, 0};
     }
 
-    const auto waypoint_heading = waypoint_delta.normalized();
+    const auto waypoint_heading = geometry::GetNormalizedOrZero(waypoint_delta);
+    NP_FINITE_2F(waypoint_heading);
     const int angle_direction =
         math_util::Sign(geometry::Cross(robot_heading, waypoint_heading));
+    NP_FINITE(angle_direction);
     const float angle = std::acos(robot_heading.dot(waypoint_heading));
-    NP_CHECK(angle >= 0 && angle <= kPi);
+    NP_FINITE(angle);
+    NP_CHECK_VAL(angle >= 0 && angle <= kPi + kEpsilon, angle);
     float x = 0;
     if (angle < params::CONFIG_rotation_drive_threshold) {
       x = std::sqrt(distance_to_goal_sq);

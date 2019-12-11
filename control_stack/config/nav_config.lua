@@ -28,8 +28,8 @@ pf = {
   kTemporalConsistencyWeight = 0;
 
   kMap = "./src/ServiceRobotControlStack/control_stack/maps/outside_grasp.map";
-  kInitX = 0;
-  kInitY = -0.95;
+  kInitX = -1;
+  kInitY = -1.95;
   kInitTheta = 0;
   kGoalX = -1;
   kGoalY = -10.95;
@@ -39,7 +39,7 @@ pf = {
 };
 
 od = {
-  kMinDistanceThreshold = 0.05;
+  kMinDistanceThreshold = 0.02;
   kDistanceFromMax = 0.1;
   kProposedTranslationStdDev = 1.0;
   kProposedRotationStdDev = 5;
@@ -56,7 +56,7 @@ od = {
 limits = {
   kMaxTraAcc = 0.2;
   kMaxTraVel = 0.5;
-  kMaxRotAcc = 0.75;
+  kMaxRotAcc = 1;
   kMaxRotVel = 1;
 };
 
