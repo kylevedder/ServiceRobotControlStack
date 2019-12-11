@@ -74,4 +74,6 @@ control = {
   rotation_drive_threshold = 0.2; -- Radians.
   rotation_p = 1;
   translation_p = 1;
+  goal_deadzone_tra = 0.05; -- Meters.
+  goal_deadzone_rot = 0.15; -- Radians.
 };

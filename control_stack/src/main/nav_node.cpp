@@ -63,6 +63,8 @@ CONFIG_INT(kTranslateCommandSign, "od.kTranslateCommandSign");
 CONFIG_FLOAT(rotation_drive_threshold, "control.rotation_drive_threshold");
 CONFIG_FLOAT(rotation_p, "control.rotation_p");
 CONFIG_FLOAT(translation_p, "control.translation_p");
+CONFIG_FLOAT(goal_deadzone_tra, "control.goal_deadzone_tra");
+CONFIG_FLOAT(goal_deadzone_rot, "control.goal_deadzone_rot");
 }  // namespace params
 
 static constexpr size_t kTimeBufferSize = 5;
@@ -130,11 +132,18 @@ struct CallbackWrapper {
     const auto waypoint_heading = waypoint_delta.normalized();
     const int angle_direction =
         math_util::Sign(geometry::Cross(robot_heading, waypoint_heading));
-    const float angle = std::acos(robot_heading.dot(waypoint_heading));
+    float angle = std::acos(robot_heading.dot(waypoint_heading));
     NP_CHECK(angle >= 0 && angle <= kPi);
     float x = 0;
     if (angle < params::CONFIG_rotation_drive_threshold) {
       x = waypoint_delta.norm();
+    }
+
+    if (x < params::CONFIG_goal_deadzone_tra) {
+      x = 0;
+      if (fabs(angle) < params::CONFIG_goal_deadzone_rot) {
+        angle = 0;
+      }
     }
     return {x * params::CONFIG_translation_p,
             0,
