@@ -30,6 +30,7 @@
 
 #include "config_reader/macros.h"
 #include "cs/util/constants.h"
+#include "shared/math/geometry.h"
 
 namespace cs {
 namespace path_finding {
@@ -38,6 +39,7 @@ namespace params {
 CONFIG_FLOAT(switch_historesis_threshold,
              "path_finding.switch_historesis_threshold");
 CONFIG_FLOAT(goal_delta_change, "path_finding.goal_delta_change");
+CONFIG_FLOAT(max_distance_off_path, "path_finding.max_distance_off_path");
 };  // namespace params
 
 Path2d PathFinder::UsePrevPathOrUpdate(const util::Map& dynamic_map,
@@ -46,6 +48,7 @@ Path2d PathFinder::UsePrevPathOrUpdate(const util::Map& dynamic_map,
   NP_CHECK(!proposed_path.IsValid() ||
            !IsPathColliding(dynamic_map, proposed_path));
 
+  // Old path invalid.
   if (!prev_path_.IsValid()) {
     if (kDebug) {
       ROS_INFO("Prev path invalid");
@@ -54,6 +57,7 @@ Path2d PathFinder::UsePrevPathOrUpdate(const util::Map& dynamic_map,
     return proposed_path;
   }
 
+  // Old path colliding.
   if (IsPathColliding(dynamic_map, prev_path_)) {
     if (kDebug) {
       ROS_INFO("Prev path colliding");
@@ -62,10 +66,18 @@ Path2d PathFinder::UsePrevPathOrUpdate(const util::Map& dynamic_map,
     return proposed_path;
   }
 
-  if (proposed_path.IsValid() &&
+  // New path invalid.
+  if (!proposed_path.IsValid()) {
+    return prev_path_;
+  }
+
+  const float distance_between_goals_sq =
       (prev_path_.waypoints.back() - proposed_path.waypoints.back())
-              .squaredNorm() >
-          math_util::Sq(params::CONFIG_goal_delta_change)) {
+          .squaredNorm();
+
+  // Goal moved.
+  if (distance_between_goals_sq >
+      math_util::Sq(params::CONFIG_goal_delta_change)) {
     if (kDebug) {
       ROS_INFO("Goal Changed");
     }
@@ -73,20 +85,41 @@ Path2d PathFinder::UsePrevPathOrUpdate(const util::Map& dynamic_map,
     return proposed_path;
   }
 
-  const float distance_between_starts =
-      proposed_path.IsValid()
-          ? (proposed_path.waypoints.front() - prev_path_.waypoints.front())
-                .squaredNorm()
-          : std::numeric_limits<float>::max();
+  const Eigen::Vector2f robot_position = proposed_path.waypoints.front();
+  const float distance_from_first_segment_sq =
+      (geometry::ProjectPointOntoLine(
+           robot_position, prev_path_.waypoints[0], prev_path_.waypoints[1]) -
+       robot_position)
+          .squaredNorm();
 
-  if (proposed_path.IsValid() &&
-      (params::CONFIG_switch_historesis_threshold + proposed_path.cost <
-           prev_path_.cost ||
-       distance_between_starts >
-           math_util::Sq(params::CONFIG_switch_historesis_threshold))) {
+  // Too far away from old path.
+  if (distance_from_first_segment_sq >
+      math_util::Sq(params::CONFIG_max_distance_off_path)) {
+    prev_path_ = proposed_path;
+    return proposed_path;
+  }
+
+  // New path is significantly less expensive.
+  if (params::CONFIG_switch_historesis_threshold + proposed_path.cost <
+      prev_path_.cost) {
     if (kDebug) {
       ROS_INFO("Proposed path better");
     }
+
+    if (prev_path_.waypoints.size() >= 3) {
+      prev_path_.waypoints.erase(prev_path_.waypoints.begin());
+      const float distance_from_new_first_segment_sq =
+          (geometry::ProjectPointOntoLine(robot_position,
+                                          prev_path_.waypoints[0],
+                                          prev_path_.waypoints[1]) -
+           robot_position)
+              .squaredNorm();
+      if (distance_from_new_first_segment_sq <=
+          math_util::Sq(params::CONFIG_max_distance_off_path)) {
+        return prev_path_;
+      }
+    }
+
     prev_path_ = proposed_path;
     return proposed_path;
   }

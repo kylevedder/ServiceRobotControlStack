@@ -32,7 +32,7 @@ pf = {
   kInitY = -0.95;
   kInitTheta = 0;
   kGoalX = -1;
-  kGoalY = -2.95;
+  kGoalY = -12.95;
   kRobotRadius = 0.1;
   kSafetyMargin = 0.1;
   kCollisionRollout = 2;
@@ -62,6 +62,7 @@ limits = {
 path_finding = {
   goal_delta_change = 0.8; -- Meters
   switch_historesis_threshold = 0.4; -- Meters
+  max_distance_off_path = 0.2; -- Meters
 };
 
 rrt = {
