@@ -43,8 +43,8 @@
 #include "cs/util/twist.h"
 #include "cs/util/util.h"
 #include "cs/util/visualization.h"
-#include "shared/math/math_util.h"
 #include "shared/math/geometry.h"
+#include "shared/math/math_util.h"
 
 static constexpr bool kDebug = true;
 
