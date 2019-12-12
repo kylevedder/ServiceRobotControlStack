@@ -98,17 +98,18 @@ size_t GetClusterEndIdx(const std::vector<Eigen::Vector2f>& points,
 
   const auto in_same_cluster = [&start_v](const Eigen::Vector2f& prev,
                                           const Eigen::Vector2f& curr) -> bool {
-    const Eigen::Vector2f delta = (curr - prev);
-    if (delta.squaredNorm() >
-        math_util::Sq(od_params::CONFIG_max_dist_between_readings)) {
-      return false;
-    }
-
     if (start_v == prev) {
       return true;
     }
 
-    if (delta.squaredNorm() <
+    const Eigen::Vector2f delta = (curr - prev);
+    const float delta_sq_norm = delta.squaredNorm();
+    if (delta_sq_norm >
+        math_util::Sq(od_params::CONFIG_max_dist_between_readings)) {
+      return false;
+    }
+
+    if (delta_sq_norm <
         math_util::Sq(
             od_params::CONFIG_min_distance_btw_readings_to_reason_angle)) {
       return true;
