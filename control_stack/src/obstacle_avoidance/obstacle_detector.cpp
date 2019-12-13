@@ -96,26 +96,30 @@ size_t GetClusterEndIdx(const std::vector<Eigen::Vector2f>& points,
 
   const Eigen::Vector2f& start_v = points[cluster_start_idx];
 
-  const auto in_same_cluster = [&start_v](const Eigen::Vector2f& prev,
-                                          const Eigen::Vector2f& curr) -> bool {
-    if (start_v == prev) {
-      return true;
-    }
-
+  const auto in_same_cluster = [&start_v](
+                                   const Eigen::Vector2f& current_cluster_line,
+                                   const Eigen::Vector2f& prev,
+                                   const Eigen::Vector2f& curr) -> bool {
     const Eigen::Vector2f delta = (curr - prev);
-    const float delta_sq_norm = delta.squaredNorm();
-    if (delta_sq_norm >
+    if (delta.squaredNorm() >
         math_util::Sq(od_params::CONFIG_max_dist_between_readings)) {
       return false;
     }
 
-    if (delta_sq_norm <
-        math_util::Sq(
-            od_params::CONFIG_min_distance_btw_readings_to_reason_angle)) {
+    if (start_v == prev) {
       return true;
     }
 
-    const Eigen::Vector2f current_line_dir = (prev - start_v).normalized();
+    if (current_cluster_line.squaredNorm() <
+            math_util::Sq(
+                od_params::CONFIG_min_distance_btw_readings_to_reason_angle) ||
+        delta.squaredNorm() <
+            math_util::Sq(
+                od_params::CONFIG_min_distance_btw_readings_to_reason_angle)) {
+      return true;
+    }
+
+    const Eigen::Vector2f current_line_dir = current_cluster_line.normalized();
     const Eigen::Vector2f new_segment_dir = delta.normalized();
     const float dot = current_line_dir.dot(new_segment_dir);
 
@@ -127,8 +131,9 @@ size_t GetClusterEndIdx(const std::vector<Eigen::Vector2f>& points,
     NP_CHECK(prev_idx < points.size());
     NP_CHECK(i < points.size());
     const Eigen::Vector2f& prev_v = points[prev_idx];
+    const Eigen::Vector2f& current_cluster_line = prev_v - start_v;
     const Eigen::Vector2f& curr_v = points[i];
-    if (!in_same_cluster(prev_v, curr_v)) {
+    if (!in_same_cluster(current_cluster_line, prev_v, curr_v)) {
       return prev_idx;
     }
     prev_idx = i;
