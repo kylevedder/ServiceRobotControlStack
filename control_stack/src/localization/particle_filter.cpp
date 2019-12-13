@@ -30,7 +30,7 @@
 #include <limits>
 
 #include "config_reader/config_reader.h"
-#include "cs/particle_filter/particle_filter.h"
+#include "cs/localization/particle_filter.h"
 #include "cs/util/constants.h"
 #include "cs/util/visualization.h"
 #include "shared/math/math_util.h"

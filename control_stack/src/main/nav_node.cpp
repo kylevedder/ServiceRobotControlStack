@@ -35,8 +35,8 @@
 #include <string>
 
 #include "config_reader/config_reader.h"
+#include "cs/localization/particle_filter.h"
 #include "cs/obstacle_avoidance/obstacle_detector.h"
-#include "cs/particle_filter/particle_filter.h"
 #include "cs/path_finding/rrt.h"
 #include "cs/util/datastructures/circular_buffer.h"
 #include "cs/util/pose.h"

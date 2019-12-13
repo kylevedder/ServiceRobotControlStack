@@ -160,7 +160,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/particle_filter.cpp
+#   src/${PROJECT_NAME}/localization.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -197,7 +197,7 @@ add_library(nav_lib
         src/path_finding/path_finder.cpp
         src/obstacle_avoidance/obstacle_detector.cpp
         src/obstacle_avoidance/trajectory_rollout.cpp
-        src/particle_filter/particle_filter.cpp)
+        src/localization/particle_filter.cpp)
 target_link_libraries(nav_lib
         util_lib
         ${catkin_LIBRARIES}
