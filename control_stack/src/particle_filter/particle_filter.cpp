@@ -34,6 +34,7 @@
 #include "cs/util/constants.h"
 #include "cs/util/visualization.h"
 #include "shared/math/math_util.h"
+#include "shared/math/statistics.h"
 
 namespace pf {
 CONFIG_FLOAT(kLaserStdDev, "pf.kLaserStdDev");
@@ -102,7 +103,7 @@ float GetDepthProbability(const float& sensor_reading,
 
   const float people_noise = 0;
   // math_util::ProbabilityDensityExp(sensor_reading, 0.01f) * 0.0f;
-  const float sensor_reading_noise = math_util::ProbabilityDensityGuassian(
+  const float sensor_reading_noise = statistics::ProbabilityDensityGaussian(
       sensor_reading, map_reading, pf::CONFIG_kLaserStdDev);
   const float sensor_random_reading = 0;
   // math_util::ProbabilityDensityUniform(sensor_reading, ray_min, ray_max)
