@@ -32,7 +32,7 @@ pf = {
   kInitY = -1.95;
   kInitTheta = 0;
   kGoalX = -1;
-  kGoalY = -10.95;
+  kGoalY = -7.95;
   kRobotRadius = 0.1;
   kSafetyMargin = 0.2;
   kCollisionRollout = 2;
@@ -54,7 +54,7 @@ od = {
   clustering = {
     max_dist_between_readings = 0.05;
     min_distance_btw_readings_to_reason_angle = 0.01;
-    line_similarity = math.cos(80);
+    line_similarity = math.cos(math.rad(20));
   };
 };
 
