@@ -58,8 +58,6 @@ CONFIG_FLOAT(kGoalY, "pf.kGoalY");
 CONFIG_FLOAT(kRobotRadius, "pf.kRobotRadius");
 CONFIG_FLOAT(kSafetyMargin, "pf.kSafetyMargin");
 CONFIG_FLOAT(kCollisionRollout, "pf.kCollisionRollout");
-CONFIG_FLOAT(kDesiredCommandX, "od.kDesiredCommandX");
-CONFIG_FLOAT(kDesiredCommandRot, "od.kDesiredCommandRot");
 CONFIG_INT(kTranslateCommandSign, "od.kTranslateCommandSign");
 
 CONFIG_FLOAT(rotation_drive_threshold, "control.rotation_drive_threshold");

@@ -13,7 +13,7 @@ pub = rospy.Publisher('/nav_goal', Pose2D, queue_size=10)
 rospy.init_node('goal_publisher', anonymous=True)
 rate = rospy.Rate(100) # 10hz
 
-named_locations = {"door" : [-1, -1, 0], "water": [-2, -7, 0], "middle": [-1.5, -3, 0]}
+named_locations = {"door" : [-1, -1, 0], "water": [-2, -7, 0], "middle": [-1.5, -3, 0], "setup": [-1, -1.95, 0]}
 
 shutting_down = False
 def signal_handler(signal, frame):

@@ -43,13 +43,9 @@ od = {
   kDistanceFromMax = 0.1;
   kProposedTranslationStdDev = 1.0;
   kProposedRotationStdDev = 5;
-  kDesiredCommandX = 0.2;
-  kDesiredCommandRot = 0;
-  kOdomFilteringPriorBias = 0.7;
+  kOdomFilteringPriorBias = 0.9;
   kThresholdRotateInPlace = 0.9;
   kTranslateCommandSign = 1;
-  kOdomFilteringPriorBias = 0.7;
-  kThresholdRotateInPlace = 0.9;
   kTranslationCostScaleFactor = 1000;
   clustering = {
     max_dist_between_readings = 0.05;
@@ -60,8 +56,8 @@ od = {
 
 limits = {
   kMaxTraAcc = 0.2;
-  kMaxTraVel = 0.5;
-  kMaxRotAcc = 1;
+  kMaxTraVel = 1;
+  kMaxRotAcc = 2;
   kMaxRotVel = 1;
 };
 
@@ -72,14 +68,14 @@ path_finding = {
 };
 
 rrt = {
-  max_iterations = 5000;
+  max_iterations = 10000;
   goal_bias = 0.1;
   is_goal_threshold = 0.4; -- Meters
-  delta_q = 1; -- Meters
+  delta_q = 0.25; -- Meters
 };
 
 control = {
-  rotation_drive_threshold = 0.2; -- Radians.
+  rotation_drive_threshold = 0.7; -- Radians.
   rotation_p = 0.75;
   translation_p = 0.5;
   goal_deadzone_tra = 0.1; -- Meters.
