@@ -1,5 +1,5 @@
 #pragma once
-// Copyright 2019 kvedder@seas.upenn.edu
+// Copyright 2019 - 2020 kvedder@seas.upenn.edu
 // School of Engineering and Applied Sciences,
 // University of Pennsylvania
 //
@@ -26,6 +26,7 @@
 #include <sensor_msgs/LaserScan.h>
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Geometry>
+#include <limits>
 #include <vector>
 
 #include "cs/util/constants.h"
@@ -42,6 +43,14 @@ class LaserScan {
       : ros_laser_scan_(ros_laser_scan) {}
 
   bool IsEmpty() const { return ros_laser_scan_.ranges.empty(); }
+
+  void ClearDataInIndexRange(const size_t start_idx, const size_t end_idx) {
+    NP_CHECK(start_idx <= end_idx);
+    NP_CHECK(end_idx < ros_laser_scan_.ranges.size());
+    for (size_t i = start_idx; i <= end_idx; ++i) {
+      ros_laser_scan_.ranges[i] = std::numeric_limits<float>::quiet_NaN();
+    }
+  }
 
   std::vector<Eigen::Vector2f> TransformPointsFrameSparse(
       const Eigen::Affine2f& transform,

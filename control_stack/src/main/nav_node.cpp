@@ -1,4 +1,4 @@
-// Copyright 2019 kvedder@seas.upenn.edu
+// Copyright 2019 - 2020 kvedder@seas.upenn.edu
 // School of Engineering and Applied Sciences,
 // University of Pennsylvania
 //
@@ -87,6 +87,7 @@ struct CallbackWrapper {
   ros::Subscriber goal_sub_;
 
   // Debug pub/sub
+  ros::Publisher modified_laser_pub_;
   ros::Publisher particle_pub_;
   ros::Publisher map_pub_;
   ros::Publisher detected_walls_pub_;
@@ -116,6 +117,8 @@ struct CallbackWrapper {
         constants::kGoalTopic, 10, &CallbackWrapper::GoalCallback, this);
 
     if (kDebug) {
+      modified_laser_pub_ =
+          n->advertise<sensor_msgs::LaserScan>("scan_modified", 10);
       particle_pub_ =
           n->advertise<visualization_msgs::MarkerArray>("particles", 10);
       map_pub_ = n->advertise<visualization_msgs::Marker>("map", 10);
@@ -162,6 +165,11 @@ struct CallbackWrapper {
   }
 
   void LaserCallback(const sensor_msgs::LaserScan& msg) {
+    util::LaserScan laser(msg);
+    laser.ClearDataInIndexRange(720, 725);
+    if (kDebug) {
+      modified_laser_pub_.publish(laser.ros_laser_scan_);
+    }
     const ros::Time& current_time = msg.header.stamp;
     laser_times_buffer_.push_back(current_time);
     const double mean_time_delta =
@@ -171,7 +179,6 @@ struct CallbackWrapper {
                       .toSec() /
                   static_cast<double>(laser_times_buffer_.size() - 1);
     NP_CHECK_VAL(mean_time_delta > 0, mean_time_delta);
-    util::LaserScan laser(msg);
     particle_filter_.UpdateObservation(laser);
     const auto est_pose = particle_filter_.WeightedCentroid();
     obstacle_detector_.UpdateObservation(est_pose, laser, &detected_walls_pub_);
