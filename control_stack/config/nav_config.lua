@@ -1,4 +1,4 @@
--- Copyright 2019 kvedder@seas.upenn.edu
+-- Copyright 2019 - 2020 kvedder@seas.upenn.edu
 -- School of Engineering and Applied Sciences,
 -- University of Pennsylvania
 --
@@ -21,6 +21,13 @@
 -- SOFTWARE.
 -- ========================================================================
 
+laser = {
+  laser_deadzone_left_min = 640;
+  laser_deadzone_left_max = 725;
+  laser_deadzone_right_min = 0;
+  laser_deadzone_right_max = 85;
+};
+
 pf = {
   kLaserStdDev = 0.1;
   kArcStdDev = 0.05;
@@ -39,7 +46,7 @@ pf = {
 };
 
 od = {
-  kMinDistanceThreshold = 0.02;
+  kMinDistanceThreshold = 0.05;
   kDistanceFromMax = 0.1;
   kProposedTranslationStdDev = 1.0;
   kProposedRotationStdDev = 5;

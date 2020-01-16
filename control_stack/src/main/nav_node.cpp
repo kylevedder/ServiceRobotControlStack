@@ -64,6 +64,10 @@ CONFIG_FLOAT(rotation_drive_threshold, "control.rotation_drive_threshold");
 CONFIG_FLOAT(rotation_p, "control.rotation_p");
 CONFIG_FLOAT(translation_p, "control.translation_p");
 CONFIG_FLOAT(goal_deadzone_tra, "control.goal_deadzone_tra");
+CONFIG_INT(laser_deadzone_left_min, "laser.laser_deadzone_left_min");
+CONFIG_INT(laser_deadzone_left_max, "laser.laser_deadzone_left_max");
+CONFIG_INT(laser_deadzone_right_min, "laser.laser_deadzone_right_min");
+CONFIG_INT(laser_deadzone_right_max, "laser.laser_deadzone_right_max");
 }  // namespace params
 
 static constexpr size_t kTimeBufferSize = 5;
@@ -166,7 +170,10 @@ struct CallbackWrapper {
 
   void LaserCallback(const sensor_msgs::LaserScan& msg) {
     util::LaserScan laser(msg);
-    laser.ClearDataInIndexRange(720, 725);
+    laser.ClearDataInIndexRange(params::CONFIG_laser_deadzone_right_min,
+                                params::CONFIG_laser_deadzone_right_max);
+    laser.ClearDataInIndexRange(params::CONFIG_laser_deadzone_left_min,
+                                params::CONFIG_laser_deadzone_left_max);
     if (kDebug) {
       modified_laser_pub_.publish(laser.ros_laser_scan_);
     }
