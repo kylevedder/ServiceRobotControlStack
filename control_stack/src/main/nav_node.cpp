@@ -85,6 +85,7 @@ struct CallbackWrapper {
   Eigen::Vector2f current_goal_;
 
   // Functionality pub/sub
+  ros::Publisher position_pub_;
   ros::Publisher velocity_pub_;
   ros::Subscriber odom_sub_;
   ros::Subscriber laser_sub_;
@@ -111,6 +112,8 @@ struct CallbackWrapper {
         path_finder_(
             map_, params::CONFIG_kRobotRadius, params::CONFIG_kSafetyMargin),
         current_goal_(params::CONFIG_kGoalX, params::CONFIG_kGoalY) {
+    position_pub_ =
+        n->advertise<geometry_msgs::Twist>(constants::kPositionTopic, 10);
     velocity_pub_ = n->advertise<geometry_msgs::Twist>(
         constants::kCommandVelocityTopic, 10);
     laser_sub_ = n->subscribe(
@@ -188,6 +191,7 @@ struct CallbackWrapper {
     NP_CHECK_VAL(mean_time_delta > 0, mean_time_delta);
     particle_filter_.UpdateObservation(laser);
     const auto est_pose = particle_filter_.WeightedCentroid();
+    position_pub_.publish(est_pose.ToTwist());
     obstacle_detector_.UpdateObservation(est_pose, laser, &detected_walls_pub_);
     //    ROS_INFO("Laser update. Est pose: (%f, %f), %f",
     //             est_pose.tra.x(),
@@ -303,7 +307,6 @@ struct CallbackWrapper {
 };
 
 int main(int argc, char** argv) {
-  ROS_ERROR("Directory: %s", util::GetCurrentWorkingDirectory().c_str());
   config_reader::ConfigReader reader(
       {"src/ServiceRobotControlStack/control_stack/config/nav_config.lua"});
   ros::init(argc, argv, "nav_node");

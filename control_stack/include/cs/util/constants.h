@@ -1,5 +1,5 @@
 #pragma once
-// Copyright 2019 kvedder@seas.upenn.edu
+// Copyright 2019 - 2020 kvedder@seas.upenn.edu
 // School of Engineering and Applied Sciences,
 // University of Pennsylvania
 //
@@ -29,6 +29,7 @@ static constexpr float kEpsilon = 0.001f;
 static constexpr float kPi = M_PI;
 
 namespace constants {
+static constexpr auto kPositionTopic = "/localization_position";
 static constexpr auto kCommandVelocityTopic = "/mobile_base/commands/velocity";
 static constexpr auto kOdomTopic = "/odom";
 static constexpr auto kLaserTopic = "/scan";

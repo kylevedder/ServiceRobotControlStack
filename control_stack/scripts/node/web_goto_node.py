@@ -8,9 +8,9 @@ import signal
 from subprocess import check_output
 
 
-PORT = 8000
+PORT = 8001
 pub = rospy.Publisher('/nav_goal', Pose2D, queue_size=10)
-rospy.init_node('goal_publisher', anonymous=True)
+rospy.init_node('goal_publisher')
 rate = rospy.Rate(100) # 10hz
 
 named_locations = {"door" : [-1, -1, 0], "water": [-2, -7, 0], "middle": [-1.5, -3, 0], "setup": [-1, -1.95, 0]}
