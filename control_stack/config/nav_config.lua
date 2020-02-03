@@ -42,11 +42,11 @@ pf = {
   kGoalY = -7.95;
   kRobotRadius = 0.1;
   kSafetyMargin = 0.2;
-  kCollisionRollout = 2;
+  kCollisionRollout = 40;
 };
 
 od = {
-  kMinDistanceThreshold = 0.05;
+  kMinDistanceThreshold = 0.15;
   kDistanceFromMax = 0.1;
   kProposedTranslationStdDev = 1.0;
   kProposedRotationStdDev = 5;
@@ -59,6 +59,7 @@ od = {
     min_distance_btw_readings_to_reason_angle = 0.01;
     line_similarity = math.cos(math.rad(20));
   };
+  min_trajectory_rotation = 0.005;
 };
 
 limits = {

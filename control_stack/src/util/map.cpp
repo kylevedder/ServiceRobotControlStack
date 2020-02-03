@@ -89,6 +89,9 @@ visualization_msgs::Marker Map::ToMarker() const {
 }
 
 float Map::MinDistanceToWall(const Eigen::Vector2f& observation) const {
+  if (walls.empty()) {
+    return std::numeric_limits<float>::max();
+  }
   float min_distance = std::numeric_limits<float>::max();
   for (const Wall& w : walls) {
     const Eigen::Vector2f wall_dir = (w.p1 - w.p2).normalized();

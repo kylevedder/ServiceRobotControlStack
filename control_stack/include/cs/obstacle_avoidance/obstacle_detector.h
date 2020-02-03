@@ -1,5 +1,5 @@
 #pragma once
-// Copyright 2019 kvedder@seas.upenn.edu
+// Copyright 2019 - 2020 kvedder@seas.upenn.edu
 // School of Engineering and Applied Sciences,
 // University of Pennsylvania
 //
@@ -64,12 +64,12 @@ class ObstacleDetector {
                               const float robot_radius,
                               const float safety_margin);
 
+  util::Twist ApplyCommandLimits(util::Twist c, const float& time_delta) const;
+
  private:
   std::vector<Eigen::Vector2f> GetNonMapPoints(
       const util::Pose& observation_pose,
       const util::LaserScan& observation) const;
-
-  util::Twist ApplyCommandLimits(util::Twist c, const float& time_delta) const;
 
   util::Twist EstimateCurrentVelocity() const;
 

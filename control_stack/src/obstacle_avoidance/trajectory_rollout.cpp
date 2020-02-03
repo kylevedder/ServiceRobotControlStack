@@ -1,4 +1,4 @@
-// Copyright 2019 kvedder@seas.upenn.edu
+// Copyright 2019 - 2020 kvedder@seas.upenn.edu
 // School of Engineering and Applied Sciences,
 // University of Pennsylvania
 //
@@ -46,6 +46,7 @@ CONFIG_FLOAT(kMaxRotVel, "limits.kMaxRotVel");
 CONFIG_FLOAT(kOdomFilteringPriorBias, "od.kOdomFilteringPriorBias");
 CONFIG_FLOAT(kThresholdRotateInPlace, "od.kThresholdRotateInPlace");
 CONFIG_FLOAT(kTranslationCostScaleFactor, "od.kTranslationCostScaleFactor");
+CONFIG_FLOAT(min_trajectory_rotation, "od.min_trajectory_rotation");
 }  // namespace tr_params
 
 float AchievedVelocityTime(const util::Twist& current_v,
@@ -139,8 +140,6 @@ TrajectoryRollout::TrajectoryRollout(const util::Pose& start_pose,
   NP_FINITE(current_v.rot);
   NP_FINITE(commanded_v.rot);
 
-  static constexpr float kMinRotatonRadSec = 0.05f;
-
   const float achieved_vel_time = AchievedVelocityTime(current_v, commanded_v);
   NP_FINITE(achieved_vel_time);
   achieved_vel_pose =
@@ -149,7 +148,8 @@ TrajectoryRollout::TrajectoryRollout(const util::Pose& start_pose,
   const float rotate_time = rollout_duration - achieved_vel_time;
   NP_FINITE(rotate_time);
 
-  if (fabs(commanded_v.rot) < kMinRotatonRadSec || rotate_time <= 0) {
+  if (fabs(commanded_v.rot) < tr_params::CONFIG_min_trajectory_rotation ||
+      rotate_time <= 0) {
     // Handle small rotation case where numerically unstable.
     const float delta_dist = commanded_v.tra.x() * std::max(rotate_time, 0.0f);
     rotate_circle_center = achieved_vel_pose.tra;
@@ -214,6 +214,7 @@ bool TrajectoryRollout::IsColliding(const util::Wall& wall,
                                    rotate_circle_achieved_vel_angle,
                                    rotate_circle_finale_pose_angle,
                                    rotation_sign);
+
   NP_FINITE(dist);
   NP_CHECK_VAL(dist >= 0.0f, dist);
   return dist <= min_dist_threshold;

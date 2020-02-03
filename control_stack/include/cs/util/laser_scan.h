@@ -52,6 +52,41 @@ class LaserScan {
     }
   }
 
+  void ClearDataInPredicate(
+      const std::function<bool(const float&)>& filter_func) {
+    for (size_t i = 0; i < ros_laser_scan_.ranges.size(); ++i) {
+      float& depth = ros_laser_scan_.ranges[i];
+      if (!filter_func(depth)) {
+        depth = std::numeric_limits<float>::quiet_NaN();
+      }
+    }
+  }
+
+  std::vector<Eigen::Vector2f> TransformPointsFrame(
+      const Eigen::Affine2f& transform,
+      const Eigen::Vector2f non_finite_value = Eigen::Vector2f(0, 0)) const {
+    std::vector<Eigen::Vector2f> robot_frame_points;
+    for (size_t i = 0; i < ros_laser_scan_.ranges.size(); ++i) {
+      const float& depth = ros_laser_scan_.ranges[i];
+      if (!std::isfinite(depth)) {
+        robot_frame_points.push_back(non_finite_value);
+        continue;
+      }
+
+      const float theta =
+          ros_laser_scan_.angle_min + i * ros_laser_scan_.angle_increment;
+      const Eigen::Vector2f point(cos(theta) * depth, sin(theta) * depth);
+      NP_FINITE(point.x());
+      NP_FINITE(point.y());
+      const Eigen::Vector2f transformed_point = transform * point;
+      NP_FINITE(transformed_point.x());
+      NP_FINITE(transformed_point.y());
+      robot_frame_points.push_back(transformed_point);
+    }
+
+    return robot_frame_points;
+  }
+
   std::vector<Eigen::Vector2f> TransformPointsFrameSparse(
       const Eigen::Affine2f& transform,
       const std::function<bool(const float&)>& filter_func =

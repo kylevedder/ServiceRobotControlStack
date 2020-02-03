@@ -209,7 +209,16 @@ target_link_libraries(simulator_node util_lib lua5.1 ${catkin_LIBRARIES})
 
 add_executable(nav_node src/main/nav_node.cpp)
 target_link_libraries(nav_node util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
+
+add_executable(bag_nav src/util/bag_nav.cpp)
+target_link_libraries(bag_nav util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
 #add_dependencies(nav_node util_lib particle_filter_lib obstacle_avoidance_lib)
+
+add_executable(bag_outputs_nav_classification src/util/bag_outputs_nav_classification.cpp)
+target_link_libraries(bag_outputs_nav_classification util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
+
+add_executable(bag_outputs_nav_control src/util/bag_outputs_nav_control.cpp)
+target_link_libraries(bag_outputs_nav_control util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
 
 #particle_filter_generate_messages_cpp
 

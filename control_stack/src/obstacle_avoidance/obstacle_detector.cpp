@@ -1,4 +1,4 @@
-// Copyright 2019 kvedder@seas.upenn.edu
+// Copyright 2019 - 2020 kvedder@seas.upenn.edu
 // School of Engineering and Applied Sciences,
 // University of Pennsylvania
 //
@@ -73,7 +73,6 @@ bool IsMapObservation(const float& distance_to_wall) {
 std::vector<Eigen::Vector2f> ObstacleDetector::GetNonMapPoints(
     const util::Pose& observation_pose,
     const util::LaserScan& observation) const {
-  std::vector<Eigen::Vector2f> v;
   const float min_depth = od_params::CONFIG_kMinDistanceThreshold;
   const float max_depth = observation.ros_laser_scan_.range_max -
                           od_params::CONFIG_kDistanceFromMax;
@@ -81,6 +80,8 @@ std::vector<Eigen::Vector2f> ObstacleDetector::GetNonMapPoints(
       observation_pose.ToAffine(), [min_depth, max_depth](const float& f) {
         return f > min_depth && f < max_depth;
       });
+
+  std::vector<Eigen::Vector2f> v;
   for (const auto& p : points) {
     if (!IsMapObservation(map_.MinDistanceToWall(p))) {
       v.push_back(p);
@@ -241,6 +242,7 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
     cluster_start = cluster_end + 1;
     ++num_clusters;
   }
+
   if (pub != nullptr) {
     pub->publish(old_markers);
     pub->publish(new_markers);
@@ -460,7 +462,7 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
     return commanded_velocity;
   }
 
-  static constexpr int kIterations = 50;
+  static constexpr int kIterations = 5;
   std::array<std::pair<util::Twist, float>, kIterations> proposed_commands;
 
   std::normal_distribution<> translational_noise_dist(
