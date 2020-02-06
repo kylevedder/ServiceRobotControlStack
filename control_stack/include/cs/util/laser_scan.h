@@ -52,8 +52,7 @@ class LaserScan {
     }
   }
 
-  void ClearDataInPredicate(
-      const std::function<bool(const float&)>& filter_func) {
+  void ClearDataFilter(const std::function<bool(const float&)>& filter_func) {
     for (size_t i = 0; i < ros_laser_scan_.ranges.size(); ++i) {
       float& depth = ros_laser_scan_.ranges[i];
       if (!filter_func(depth)) {
@@ -64,13 +63,12 @@ class LaserScan {
 
   std::vector<Eigen::Vector2f> TransformPointsFrame(
       const Eigen::Affine2f& transform,
-      const Eigen::Vector2f non_finite_value = Eigen::Vector2f(0, 0)) const {
+      const float non_finite_depth = 0) const {
     std::vector<Eigen::Vector2f> robot_frame_points;
     for (size_t i = 0; i < ros_laser_scan_.ranges.size(); ++i) {
-      const float& depth = ros_laser_scan_.ranges[i];
+      float depth = ros_laser_scan_.ranges[i];
       if (!std::isfinite(depth)) {
-        robot_frame_points.push_back(non_finite_value);
-        continue;
+        depth = non_finite_depth;
       }
 
       const float theta =

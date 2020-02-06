@@ -42,11 +42,11 @@ pf = {
   kGoalY = -7.95;
   kRobotRadius = 0.1;
   kSafetyMargin = 0.2;
-  kCollisionRollout = 2;
+  kCollisionRollout = 40;
 };
 
 od = {
-  kMinDistanceThreshold = 0.05;
+  kMinDistanceThreshold = 0.15;
   kDistanceFromMax = 0.1;
   kProposedTranslationStdDev = 1.0;
   kProposedRotationStdDev = 5;

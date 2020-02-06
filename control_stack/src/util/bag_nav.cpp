@@ -34,8 +34,8 @@
 
 #include <cmath>
 #include <fstream>
-#include <tuple>
 #include <string>
+#include <tuple>
 
 #include "config_reader/config_reader.h"
 #include "cs/localization/particle_filter.h"
@@ -94,9 +94,10 @@ struct CallbackWrapper {
                                 params::CONFIG_laser_deadzone_right_max);
     laser.ClearDataInIndexRange(params::CONFIG_laser_deadzone_left_min,
                                 params::CONFIG_laser_deadzone_left_max);
-    laser.ClearDataInPredicate([&laser](const float& e) {
-      return e <
-             laser.ros_laser_scan_.range_max - params::CONFIG_kDistanceFromMax;
+    laser.ClearDataFilter([&laser](const float& e) {
+      return e > laser.ros_laser_scan_.range_min &&
+             e < laser.ros_laser_scan_.range_max -
+                     params::CONFIG_kDistanceFromMax;
     });
 
     obstacle_detector_.UpdateObservation({0, 0, 0}, laser, nullptr);
@@ -152,8 +153,10 @@ void WriteResults(std::ofstream* laser_file,
                   const util::LaserScan& laser_scan,
                   const std::array<util::Twist, 3>& commands,
                   const util::Map& dynamic_map) {
+  static constexpr float kNoDataRange = 50;
   {
-    auto points = laser_scan.TransformPointsFrame(Eigen::Affine2f::Identity());
+    auto points = laser_scan.TransformPointsFrame(Eigen::Affine2f::Identity(),
+                                                  kNoDataRange);
     std::stringstream ss;
     for (const auto& p : points) {
       ss << p.x() << " " << p.y() << " ";
@@ -201,7 +204,7 @@ void WriteResults(std::ofstream* laser_file,
 
 int main(int argc, char** argv) {
   config_reader::ConfigReader reader(
-      {"src/ServiceRobotControlStack/control_stack/config/nav_config.lua"});
+      {"src/ServiceRobotControlStack/control_stack/config/bag_nav_config.lua"});
   auto res = GetArgs(argc, argv);
   rosbag::Bag bag(std::get<0>(res));
   CallbackWrapper cw;
@@ -224,7 +227,7 @@ int main(int argc, char** argv) {
                    std::get<0>(commands),
                    std::get<1>(commands),
                    std::get<2>(commands));
-      iter++;
+      ++iter;
     }
   }
   bag.close();
