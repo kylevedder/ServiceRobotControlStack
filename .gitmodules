@@ -4,3 +4,6 @@
 [submodule "shared"]
 	path = shared_lib/shared
 	url = ../../ut-amrl/amrl_shared_lib.git
+[submodule "robot_status_gui/robot_status_gui"]
+	path = robot_status_gui/robot_status_gui
+	url = ../../ut-amrl/robot_status_gui.git

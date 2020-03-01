@@ -1,0 +1,17 @@
+#!/bin/bash
+clear
+cat << "EOF"
+ _      _   ___ _  _ ___ ___ _
+ | |    /_\ / __| || |_ _| __/_\
+ | |__ / _ \\__ \ __ || || _/ _ \
+ |____/_/ \_\___/_||_|___|_/_/ \_\
+EOF
+roscore &
+pushd ~/code/catkin_ws/
+source devel/setup.bash
+sleep 1.5
+~/code/catkin_ws/src/ServiceRobotControlStack/robot_status_gui/robot_status_gui/bin/gui_monitor --config=src/ServiceRobotControlStack/robot_status_gui/gui_config/gui_config.txt
+killall rviz
+killall roscore
+sleep 1
+popd
