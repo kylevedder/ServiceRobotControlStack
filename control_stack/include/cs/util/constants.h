@@ -36,18 +36,20 @@ static constexpr auto kLaserTopic = "/scan";
 static constexpr auto kGoalTopic = "/nav_goal";
 }  // namespace constants
 
+static constexpr int kAssertFailReturnCode = 1;
+
 #define CHECK(exp)                                                      \
   if (!(exp)) {                                                         \
     std::cerr << __FILE__ << ":" << __LINE__ << " Assertion \"" << #exp \
               << "\" failed!" << std::endl;                             \
-    exit(0);                                                            \
+    exit(kAssertFailReturnCode);                                        \
   }
 
 #define CHECK_PRINT_VAL(exp, val)                                       \
   if (!(exp)) {                                                         \
     std::cerr << __FILE__ << ":" << __LINE__ << " Assertion \"" << #exp \
               << "\" (value: " << (val) << ")  failed!" << std::endl;   \
-    exit(0);                                                            \
+    exit(kAssertFailReturnCode);                                        \
   }
 
 #define CHECK_PRINT_VALS(exp, val1, val2)                               \
@@ -55,7 +57,7 @@ static constexpr auto kGoalTopic = "/nav_goal";
     std::cerr << __FILE__ << ":" << __LINE__ << " Assertion \"" << #exp \
               << "\" (value: " << (val1) << " vs value: " << (val2)     \
               << ")  failed!" << std::endl;                             \
-    exit(0);                                                            \
+    exit(kAssertFailReturnCode);                                        \
   }
 
 #define NP_CHECK(exp) \

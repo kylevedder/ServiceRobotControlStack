@@ -2,6 +2,8 @@
 
 Full planning and control stack for GRASP LML Service Robots @ Penn.
 
+[![Build Status](https://travis-ci.com/kylevedder/ServiceRobotControlStack.svg?branch=master)](https://travis-ci.com/kylevedder/ServiceRobotControlStack)
+
 ## Requirements
 
  - ROS Melodic

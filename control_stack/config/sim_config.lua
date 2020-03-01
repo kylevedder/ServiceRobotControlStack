@@ -1,4 +1,4 @@
--- Copyright 2019 kvedder@seas.upenn.edu
+-- Copyright 2019 - 2020 kvedder@seas.upenn.edu
 -- School of Engineering and Applied Sciences,
 -- University of Pennsylvania
 --
@@ -37,7 +37,7 @@ sim = {
   laser = {
     min_angle = -math.pi / 2.0,
     max_angle = math.pi / 2.0,
-    num_readings = 100,
+    num_readings = 1000,
     min_reading = 0.1,
     max_reading = 5.0,
   };

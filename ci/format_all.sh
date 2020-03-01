@@ -1,6 +1,6 @@
 #!/bin/bash
-header_files=$(find control_stack/ -name \*.h)
-source_files=$(find control_stack/ -name \*.cpp)
+header_files=$(find src/ServiceRobotControlStack/control_stack/ -name \*.h)
+source_files=$(find src/ServiceRobotControlStack/control_stack/ -name \*.cpp)
 
 echo "Formatting Headers!"
 
