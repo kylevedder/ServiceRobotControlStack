@@ -122,7 +122,7 @@ std::array<util::Twist, 3> GetCommandsFromFile(std::string line) {
 
 int main(int argc, char** argv) {
   config_reader::ConfigReader reader(
-      {"src/ServiceRobotControlStack/control_stack/config/nav_config.lua"});
+      {"src/ServiceRobotControlStack/control_stack/config/bag_nav_config.lua"});
   auto res = GetArgs(argc, argv);
   std::ifstream commands_file(std::get<0>(res));
   std::ofstream trajectory_file(std::get<1>(res));
