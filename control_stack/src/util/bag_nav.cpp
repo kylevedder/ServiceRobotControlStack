@@ -167,10 +167,8 @@ void WriteResults(std::ofstream* laser_file,
   {
     std::stringstream ss;
     for (const auto& cmd : commands) {
-      std::cout << cmd << " ";
       ss << cmd.tra.x() << " " << cmd.rot << " ";
     }
-    std::cout << std::endl;
     ss << "\n";
     (*commands_file) << ss.str();
   }
@@ -215,10 +213,9 @@ int main(int argc, char** argv) {
 
   int iter = 0;
   for (const auto& m : rosbag::View(bag)) {
-    if (m.getTopic() == "/scan_modified") {
+    if (m.getTopic() == "/scan") {
       auto s = m.instantiate<sensor_msgs::LaserScan>();
       CHECK(s != nullptr);
-      std::cout << "Iter: " << iter << std::endl;
       auto commands = cw.LaserCallback(*s);
       WriteResults(&laser_file,
                    &commands_file,
