@@ -23,6 +23,7 @@ def sigint_handler(signal, frame):
     cv2.destroyAllWindows()
 signal.signal(signal.SIGINT, sigint_handler)
 cap = cv2.VideoCapture(opt.camera_index)
+cap.set(cv2.CAP_PROP_BUFFERSIZE, 0)
 previous_time = 0
 while True:
     current_time = timer()
