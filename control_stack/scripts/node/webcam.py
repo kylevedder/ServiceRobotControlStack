@@ -7,6 +7,7 @@ import pickle
 import requests
 import sys
 import argparse
+from timeit import default_timer as timer
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--ip", type=str, default="localhost", help="Server hostname")
@@ -22,22 +23,24 @@ def sigint_handler(signal, frame):
     cv2.destroyAllWindows()
 signal.signal(signal.SIGINT, sigint_handler)
 cap = cv2.VideoCapture(opt.camera_index)
-i = 0
-while(True):
-    # Capture frame-by-frame
+previous_time = 0
+while True:
+    current_time = timer()
     ret, frame = cap.read()
-    i += 1
-    if frame is None:
+
+    delta = (current_time - previous_time)
+    if frame is None or  delta < 1:
         continue
-    if i % 30 == 0:
-      print("Sending image...")
-      try:
+    print(delta)
+    print("Sending image...")
+    previous_time = current_time
+    try:
         r = requests.post(url, data = pickle.dumps(frame))
         if r is None or r.status_code != 200:
-          print("POST failed")
-          continue
+             print("POST failed")
+             continue
         print(r.text)
-      except Exception as e:
+    except Exception as e:
         print(e)
         
 cap.release()
