@@ -93,11 +93,37 @@ PC16 AveragePC(rosbag::Bag* bag) {
   return acc_pc;
 }
 
+PC16 DiffPCs(const PC16& base_pc, PC16 object_pc) {
+  std::pair<util::pc::Point16 const*, util::pc::Point16*> it_pair = {
+      base_pc.begin(), object_pc.begin()};
+  const std::pair<util::pc::Point16 const*, util::pc::Point16*> it_pair_end = {
+      base_pc.end(), object_pc.end()};
+  for (; it_pair != it_pair_end;
+       it_pair = {++it_pair.first, ++it_pair.second}) {
+    const auto* base_pt = it_pair.first;
+    auto* object_pt = it_pair.second;
+
+    const auto dist_sq =
+        (base_pt->GetMappedVector3f() - object_pt->GetMappedVector3f())
+            .squaredNorm();
+
+    static constexpr float kMaxDist = 0.05;  // Meters
+
+    if (dist_sq > kMaxDist) {
+      object_pt->Invalidate();
+    }
+  }
+
+  return object_pc;
+}
+
 int main(int argc, char** argv) {
   auto res = GetArgs(argc, argv);
   rosbag::Bag base_bag(std::get<0>(res));
   rosbag::Bag object_bag(std::get<1>(res));
-  AveragePC(&base_bag);
+  const PC16 base_pc = AveragePC(&base_bag);
+  const PC16 object_pc = AveragePC(&object_bag);
+  const PC16 object_only_pc = DiffPCs(base_pc, object_pc);
   //  CallbackWrapper cw;
   //  std::ofstream laser_file(std::get<1>(res));
   //  std::ofstream commands_file(std::get<2>(res));

@@ -61,6 +61,12 @@ struct __attribute__((packed)) Point16 {
   bool IsValid() const {
     return std::isfinite(x) && std::isfinite(y) && std::isfinite(z);
   }
+
+  void Invalidate() {
+    this->x = std::numeric_limits<float>::quiet_NaN();
+    this->y = std::numeric_limits<float>::quiet_NaN();
+    this->z = std::numeric_limits<float>::quiet_NaN();
+  }
 };
 static_assert(sizeof(Point16) == 16, "Point16 is not 16 bytes!");
 
@@ -85,6 +91,12 @@ struct __attribute__((packed)) Point20 {
 
   bool IsValid() const {
     return std::isfinite(x) && std::isfinite(y) && std::isfinite(z);
+  }
+
+  void Invalidate() {
+    this->x = std::numeric_limits<float>::quiet_NaN();
+    this->y = std::numeric_limits<float>::quiet_NaN();
+    this->z = std::numeric_limits<float>::quiet_NaN();
   }
 };
 static_assert(sizeof(Point20) == 20, "Point20 is not 20 bytes!");
@@ -113,6 +125,12 @@ struct __attribute__((packed)) Point32 {
 
   bool IsValid() const {
     return std::isfinite(x) && std::isfinite(y) && std::isfinite(z);
+  }
+
+  void Invalidate() {
+    this->x = std::numeric_limits<float>::quiet_NaN();
+    this->y = std::numeric_limits<float>::quiet_NaN();
+    this->z = std::numeric_limits<float>::quiet_NaN();
   }
 };
 static_assert(sizeof(Point32) == 32, "Point32 is not 32 bytes!");
