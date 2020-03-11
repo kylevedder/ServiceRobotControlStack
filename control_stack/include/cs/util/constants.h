@@ -38,12 +38,14 @@ static constexpr auto kGoalTopic = "/nav_goal";
 
 static constexpr int kAssertFailReturnCode = 1;
 
+#ifndef CHECK
 #define CHECK(exp)                                                      \
   if (!(exp)) {                                                         \
     std::cerr << __FILE__ << ":" << __LINE__ << " Assertion \"" << #exp \
               << "\" failed!" << std::endl;                             \
     exit(kAssertFailReturnCode);                                        \
   }
+#endif
 
 #define CHECK_PRINT_VAL(exp, val)                                       \
   if (!(exp)) {                                                         \

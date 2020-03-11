@@ -50,6 +50,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package(Eigen3 REQUIRED)
+find_package(Ceres REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -156,6 +157,7 @@ include_directories(
   ../shared_lib/shared/
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
+  ${CERES_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -213,6 +215,9 @@ target_link_libraries(nav_node util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
 add_executable(bag_fill_in src/util/bag_fill_in.cpp)
 target_link_libraries(bag_fill_in util_lib ${catkin_LIBRARIES})
 #add_dependencies(nav_node util_lib particle_filter_lib obstacle_avoidance_lib)
+
+add_executable(bag_slam src/util/bag_slam.cpp)
+target_link_libraries(bag_slam util_lib nav_lib lua5.1 ${catkin_LIBRARIES} ${CERES_LIBRARIES} )
 
 add_executable(bag_nav src/util/bag_nav.cpp)
 target_link_libraries(bag_nav util_lib nav_lib lua5.1 ${catkin_LIBRARIES})

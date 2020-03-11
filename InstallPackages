@@ -1,4 +1,4 @@
 #!/bin/bash
 sudo apt-get install -y clang g++ cmake \
     libeigen3-dev libgoogle-perftools-dev kcachegrind valgrind \
-    clang-format cimg-dev massif-visualizer
+    clang-format cimg-dev massif-visualizer libceres-dev

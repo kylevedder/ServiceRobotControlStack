@@ -60,7 +60,9 @@ PC16 AveragePC(rosbag::Bag* bag) {
       if (s == nullptr) {
         continue;
       }
-      pcs.push_back(PC16(*s));
+      auto pc = PC16(*s);
+      return pc;
+      pcs.push_back(pc);
     }
   }
 
@@ -93,7 +95,7 @@ PC16 AveragePC(rosbag::Bag* bag) {
   return acc_pc;
 }
 
-PC16 DiffPCs(const PC16& base_pc, PC16 object_pc) {
+PC16 DiffPCs(const PC16& base_pc, PC16 object_pc, const bool keep_same) {
   std::pair<util::pc::Point16 const*, util::pc::Point16*> it_pair = {
       base_pc.begin(), object_pc.begin()};
   const std::pair<util::pc::Point16 const*, util::pc::Point16*> it_pair_end = {
@@ -109,8 +111,19 @@ PC16 DiffPCs(const PC16& base_pc, PC16 object_pc) {
 
     static constexpr float kMaxDist = 0.05;  // Meters
 
-    if (dist_sq > kMaxDist) {
+    if (!base_pt->IsValid() || !object_pt->IsValid()) {
       object_pt->Invalidate();
+      continue;
+    }
+
+    if (keep_same) {
+      if (dist_sq > kMaxDist) {
+        object_pt->Invalidate();
+      }
+    } else {
+      if (dist_sq < kMaxDist) {
+        object_pt->Invalidate();
+      }
     }
   }
 
@@ -118,12 +131,36 @@ PC16 DiffPCs(const PC16& base_pc, PC16 object_pc) {
 }
 
 int main(int argc, char** argv) {
+  ros::init(argc, argv, "bag_fill_in");
   auto res = GetArgs(argc, argv);
   rosbag::Bag base_bag(std::get<0>(res));
   rosbag::Bag object_bag(std::get<1>(res));
-  const PC16 base_pc = AveragePC(&base_bag);
-  const PC16 object_pc = AveragePC(&object_bag);
-  const PC16 object_only_pc = DiffPCs(base_pc, object_pc);
+  PC16 base_pc = AveragePC(&base_bag);
+  PC16 object_pc = AveragePC(&object_bag);
+
+  static const Eigen::Affine3f transform =
+      (Eigen::Affine3f::Identity() * Eigen::Translation3f(0, 0, 0.78) *
+       Eigen::AngleAxisf(-kPi / 2, Eigen::Vector3f::UnitZ())) *
+      Eigen::AngleAxisf(-kPi / 2.05, Eigen::Vector3f::UnitX());
+
+  base_pc.TransformFrame(transform, "robot_frame");
+  object_pc.TransformFrame(transform, "robot_frame");
+
+  const PC16 object_only_pc = DiffPCs(base_pc, object_pc, false);
+  const PC16 no_object_pc = DiffPCs(base_pc, object_pc, true);
+
+  ros::NodeHandle n;
+
+  auto object_only_pub =
+      n.advertise<sensor_msgs::PointCloud2>("/object_only", 10);
+  auto no_object_pub = n.advertise<sensor_msgs::PointCloud2>("/no_object", 10);
+  auto plane_pub = n.advertise<visualization_msgs::Marker>("/ground_plane", 10);
+
+  while (ros::ok()) {
+    object_only_pub.publish(object_only_pc.GetRosPC());
+    no_object_pub.publish(no_object_pc.GetRosPC());
+    ros::spinOnce();
+  }
   //  CallbackWrapper cw;
   //  std::ofstream laser_file(std::get<1>(res));
   //  std::ofstream commands_file(std::get<2>(res));

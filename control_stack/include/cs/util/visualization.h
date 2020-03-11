@@ -1,5 +1,5 @@
 #pragma once
-// Copyright 2019 kvedder@seas.upenn.edu
+// Copyright 2019 - 2020 kvedder@seas.upenn.edu
 // School of Engineering and Applied Sciences,
 // University of Pennsylvania
 //
@@ -103,6 +103,43 @@ inline visualization_msgs::Marker DrawPath(const cs::path_finding::Path2d& path,
   }
 
   return marker;
+}
+
+inline void DrawPoints(const std::vector<Eigen::Vector2f>& points,
+                       const std::string& frame_id,
+                       const std::string& ns,
+                       const float r,
+                       const float g,
+                       const float b,
+                       const float alpha,
+                       visualization_msgs::MarkerArray* arr,
+                       const float z = 0.0f) {
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = frame_id;
+  marker.header.stamp = ros::Time();
+  marker.ns = ns;
+  marker.id = arr->markers.size();
+  marker.type = visualization_msgs::Marker::POINTS;
+  marker.action = visualization_msgs::Marker::ADD;
+  int i = 0;
+  for (const auto& p : points) {
+    if (++i % 3 != 0) {
+      continue;
+    }
+    geometry_msgs::Point pm;
+    pm.x = p.x();
+    pm.y = p.y();
+    pm.z = z;
+    marker.points.push_back(pm);
+  }
+  marker.scale.x = 0.1;
+  marker.scale.y = 0.1;
+  marker.scale.z = 0.1;
+  marker.color.a = alpha;
+  marker.color.r = r;
+  marker.color.g = g;
+  marker.color.b = b;
+  arr->markers.push_back(marker);
 }
 
 inline void DrawPose(const util::Pose& pose,
