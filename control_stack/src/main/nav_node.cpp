@@ -98,6 +98,7 @@ struct CallbackWrapper {
   ros::Publisher detected_walls_pub_;
   ros::Publisher robot_size_pub_;
   ros::Publisher robot_path_pub_;
+  ros::Publisher base_link_robot_path_pub_;
   ros::Publisher rrt_tree_pub_;
 
   CallbackWrapper() = delete;
@@ -135,6 +136,8 @@ struct CallbackWrapper {
           n->advertise<visualization_msgs::Marker>("robot_size", 10);
       robot_path_pub_ =
           n->advertise<visualization_msgs::Marker>("robot_path", 10);
+      base_link_robot_path_pub_ =
+          n->advertise<visualization_msgs::Marker>("base_link_robot_path", 10);
       rrt_tree_pub_ = n->advertise<visualization_msgs::Marker>("rrt_tree", 10);
     }
   }
@@ -196,7 +199,11 @@ struct CallbackWrapper {
     const auto& dynamic_map = obstacle_detector_.GetDynamicMap();
     const auto path = path_finder_.FindPath(
         dynamic_map, est_pose.tra, current_goal_, &rrt_tree_pub_);
+    const auto base_link_path =
+        path.TransformPath((-particle_filter_.WeightedCentroid()).ToAffine());
     robot_path_pub_.publish(visualization::DrawPath(path, "map", "path"));
+    base_link_robot_path_pub_.publish(
+        visualization::DrawPath(base_link_path, "base_link", "path"));
     util::Twist desired_command(0, 0, 0);
     if (path.IsValid()) {
       desired_command = DriveToWaypoint(est_pose, path.waypoints[1]);

@@ -45,6 +45,15 @@ struct Path {
       : waypoints(waypoints), cost(cost) {}
 
   bool IsValid() const { return !waypoints.empty(); }
+
+  template <typename Transform>
+  Path TransformPath(const Transform& t) const {
+    Path path = *this;
+    for (auto& p : path.waypoints) {
+      p = t * p;
+    }
+    return path;
+  }
 };
 
 using Path2d = Path<Eigen::Vector2f, float>;
