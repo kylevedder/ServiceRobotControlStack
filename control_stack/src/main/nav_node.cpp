@@ -193,10 +193,6 @@ struct CallbackWrapper {
     const auto est_pose = particle_filter_.WeightedCentroid();
     position_pub_.publish(est_pose.ToTwist());
     obstacle_detector_.UpdateObservation(est_pose, laser, &detected_walls_pub_);
-    //    ROS_INFO("Laser update. Est pose: (%f, %f), %f",
-    //             est_pose.tra.x(),
-    //             est_pose.tra.y(),
-    //             est_pose.rot);
     const auto& dynamic_map = obstacle_detector_.GetDynamicMap();
     const auto path = path_finder_.FindPath(
         dynamic_map, est_pose.tra, current_goal_, &rrt_tree_pub_);
@@ -204,21 +200,14 @@ struct CallbackWrapper {
     util::Twist desired_command(0, 0, 0);
     if (path.IsValid()) {
       desired_command = DriveToWaypoint(est_pose, path.waypoints[1]);
-      //      ROS_INFO("Waypoint drive: (%f, %f,) %f",
-      //               desired_command.tra.x(),
-      //               desired_command.tra.y(),
-      //               desired_command.rot);
     }
-    //    ROS_INFO("Desired command: (%f, %f,) %f",
-    //             desired_command.tra.x(),
-    //             desired_command.tra.y(),
-    //             desired_command.rot);
     const util::Twist commanded_velocity =
         CommandVelocity(desired_command, static_cast<float>(mean_time_delta));
     obstacle_detector_.UpdateCommand(commanded_velocity);
     PublishTransforms();
     if (kDebug) {
       particle_filter_.DrawParticles(&particle_pub_);
+      map_pub_.publish(map_.ToMarker());
       robot_size_pub_.publish(
           visualization::MakeCylinder(est_pose.tra,
                                       params::CONFIG_kRobotRadius,
@@ -264,11 +253,6 @@ struct CallbackWrapper {
 
   util::Twist CommandVelocity(const util::Twist& desired_command,
                               const float& time_delta) {
-    //    ROS_INFO("Command (%f, %f), %f desired for delta t: %f",
-    //             desired_command.tra.x(),
-    //             desired_command.tra.y(),
-    //             desired_command.rot,
-    //             time_delta);
     const util::Twist safe_cmd =
         obstacle_detector_.MakeCommandSafe(desired_command,
                                            time_delta,
@@ -277,14 +261,6 @@ struct CallbackWrapper {
                                            params::CONFIG_kSafetyMargin);
     const util::Twist sent_cmd = TransformTwistUsingSign(safe_cmd);
     velocity_pub_.publish(sent_cmd.ToTwist());
-    //    ROS_INFO("Command (%f, %f), %f safe",
-    //             safe_cmd.tra.x(),
-    //             safe_cmd.tra.y(),
-    //             safe_cmd.rot);
-    //    ROS_INFO("Command (%f, %f), %f sent",
-    //             sent_cmd.tra.x(),
-    //             sent_cmd.tra.y(),
-    //             sent_cmd.rot);
     return safe_cmd;
   }
 
