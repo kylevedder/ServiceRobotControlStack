@@ -40,149 +40,164 @@
 #include <vector>
 
 #include "cs/util/point_cloud.h"
+#include "shared/math/geometry.h"
+#include "shared/math/math_util.h"
 
 using PC16 = util::pc::PointCloud<util::pc::Point16>;
 using PC20 = util::pc::PointCloud<util::pc::Point20>;
 
-std::tuple<std::string, std::string> GetArgs(int argc, char** argv) {
-  if (argc != 3) {
-    std::cerr << "Usage: [base file] [object file]" << std::endl;
+std::tuple<std::string> GetArgs(int argc, char** argv) {
+  if (argc != 2) {
+    std::cerr << "Usage: [base file]" << std::endl;
     exit(0);
   }
-  return {argv[1], argv[2]};
+  return {argv[1]};
 }
 
-PC16 AveragePC(rosbag::Bag* bag) {
-  std::vector<PC16> pcs;
+PC16 GetPC(rosbag::Bag* bag) {
   for (const auto& m : rosbag::View(*bag)) {
     if (m.getTopic() == "/camera/depth/points") {
       auto s = m.instantiate<sensor_msgs::PointCloud2>();
       if (s == nullptr) {
         continue;
       }
-      auto pc = PC16(*s);
-      return pc;
-      pcs.push_back(pc);
+      return PC16(*s);
     }
   }
+  return {};
+}
+using PathSegment = std::pair<Eigen::Vector2f, Eigen::Vector2f>;
+using PathSegments = std::vector<PathSegment>;
 
-  CHECK(!pcs.empty());
-
-  PC16 acc_pc = pcs.front();
-  for (auto pcs_it = pcs.begin() + 1; pcs_it != pcs.end(); ++pcs_it) {
-    std::pair<util::pc::Point16*, util::pc::Point16 const*> it_pair = {
-        acc_pc.begin(), pcs_it->begin()};
-    const std::pair<util::pc::Point16*, util::pc::Point16 const*> it_pair_end =
-        {acc_pc.end(), pcs_it->end()};
-
-    for (; it_pair != it_pair_end;
-         it_pair = {++it_pair.first, ++it_pair.second}) {
-      auto* acc_it = it_pair.first;
-      const auto* curr_it = it_pair.second;
-      acc_it->x += curr_it->x;
-      acc_it->y += curr_it->y;
-      acc_it->z += curr_it->z;
-    }
+PathSegments GetPathSegments(const visualization_msgs::Marker& s) {
+  static const auto to_eigen =
+      [](const geometry_msgs::Point& p) -> Eigen::Vector2f {
+    return {p.x, p.y};
+  };
+  PathSegments path;
+  CHECK_EQ(s.points.size() % 2, 0);
+  for (size_t i = 0; i < s.points.size() - 1; i += 2) {
+    path.push_back({to_eigen(s.points[i]), to_eigen(s.points[i + 1])});
   }
-
-  const float divisor = static_cast<float>(pcs.size());
-  for (auto& p : acc_pc) {
-    p.x /= divisor;
-    p.y /= divisor;
-    p.z /= divisor;
-  }
-
-  return acc_pc;
+  return path;
 }
 
-PC16 DiffPCs(const PC16& base_pc, PC16 object_pc, const bool keep_same) {
-  std::pair<util::pc::Point16 const*, util::pc::Point16*> it_pair = {
-      base_pc.begin(), object_pc.begin()};
-  const std::pair<util::pc::Point16 const*, util::pc::Point16*> it_pair_end = {
-      base_pc.end(), object_pc.end()};
-  for (; it_pair != it_pair_end;
-       it_pair = {++it_pair.first, ++it_pair.second}) {
-    const auto* base_pt = it_pair.first;
-    auto* object_pt = it_pair.second;
-
-    const auto dist_sq =
-        (base_pt->GetMappedVector3f() - object_pt->GetMappedVector3f())
-            .squaredNorm();
-
-    static constexpr float kMaxDist = 0.05;  // Meters
-
-    if (!base_pt->IsValid() || !object_pt->IsValid()) {
-      object_pt->Invalidate();
-      continue;
-    }
-
-    if (keep_same) {
-      if (dist_sq > kMaxDist) {
-        object_pt->Invalidate();
+visualization_msgs::Marker GetPathMsg(rosbag::Bag* bag) {
+  for (const auto& m : rosbag::View(*bag)) {
+    if (m.getTopic() == "/base_link_robot_path") {
+      auto s = m.instantiate<visualization_msgs::Marker>();
+      if (s == nullptr) {
+        continue;
       }
-    } else {
-      if (dist_sq < kMaxDist) {
-        object_pt->Invalidate();
+      if (s->points.empty()) {
+        continue;
       }
+      s->header.frame_id = "base_link";
+      return *s;
     }
   }
+  return {};
+}
 
-  return object_pc;
+void FilterFloorPlane(PC16* pc) {
+  for (auto& p : *pc) {
+    if (p.z < 0.05) {
+      p.Invalidate();
+    }
+  }
+}
+std::string vtos(const Eigen::Vector2f& v) {
+  return std::to_string(v.x()) + ", " + std::to_string(v.y());
+}
+
+bool IsInFrontSegment(const Eigen::Vector2f& point, const PathSegment& line) {
+  if (math_util::Sign(geometry::Cross(point, line.first)) !=
+      -math_util::Sign(geometry::Cross(point, line.second))) {
+    return false;
+  }
+
+  //  std::cout << vtos(line.first) << " -> " << vtos(line.second) << std::endl;
+
+  // Line is in the format (from, to).
+  const int line_direction = math_util::Sign(line.second.y() - line.first.y());
+  const Eigen::Vector2f from_to_vector = line.second - line.first;
+  const Eigen::Vector2f from_point_vector = point - line.first;
+  const int directional_side =
+      math_util::Sign(geometry::Cross(from_to_vector, from_point_vector));
+
+  return (directional_side == line_direction);
+}
+
+void FilterNotInFrontOfPath(PC16* pc, const PathSegments& path_segments) {
+  for (auto& p : *pc) {
+    const Eigen::Vector2f v(p.x, p.y);
+    bool in_front = false;
+    for (const auto& ps : path_segments) {
+      if (IsInFrontSegment(v, ps)) {
+        in_front = true;
+        break;
+      }
+    }
+
+    if (!in_front) {
+      p.Invalidate();
+    }
+  }
+}
+
+visualization_msgs::Marker SetPath(const visualization_msgs::Marker& marker,
+                                   const PathSegments& path_segments) {
+  auto m = marker;
+  m.points.clear();
+  for (const auto& s : path_segments) {
+    geometry_msgs::Point from;
+    from.x = s.first.x();
+    from.y = s.first.y();
+    geometry_msgs::Point to;
+    to.x = s.second.x();
+    to.y = s.second.y();
+
+    m.points.push_back(from);
+    m.points.push_back(to);
+  }
+  return m;
 }
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "bag_fill_in");
   auto res = GetArgs(argc, argv);
-  rosbag::Bag base_bag(std::get<0>(res));
-  rosbag::Bag object_bag(std::get<1>(res));
-  PC16 base_pc = AveragePC(&base_bag);
-  PC16 object_pc = AveragePC(&object_bag);
+  rosbag::Bag bag(std::get<0>(res));
+  PC16 pc = GetPC(&bag);
+  auto path_msg = GetPathMsg(&bag);
+  //  auto path_segments = GetPathSegments(path_msg);
+  PathSegments path_segments = {{{0, 0}, {1.4, -0.3}}, {{1.4, -0.3}, {2, 0.5}}};
+  path_msg = SetPath(path_msg, path_segments);
 
   static const Eigen::Affine3f transform =
-      (Eigen::Affine3f::Identity() * Eigen::Translation3f(0, 0, 0.78) *
+      (Eigen::Affine3f::Identity() * Eigen::Translation3f(0, 0, 0.28) *
        Eigen::AngleAxisf(-kPi / 2, Eigen::Vector3f::UnitZ())) *
-      Eigen::AngleAxisf(-kPi / 2.05, Eigen::Vector3f::UnitX());
+      Eigen::AngleAxisf(-kPi / 1.95, Eigen::Vector3f::UnitX());
 
-  base_pc.TransformFrame(transform, "robot_frame");
-  object_pc.TransformFrame(transform, "robot_frame");
-
-  const PC16 object_only_pc = DiffPCs(base_pc, object_pc, false);
-  const PC16 no_object_pc = DiffPCs(base_pc, object_pc, true);
+  pc.TransformFrame(transform, "base_link");
+  FilterFloorPlane(&pc);
+  PC16 filtered_pc = pc;
+  FilterNotInFrontOfPath(&filtered_pc, path_segments);
 
   ros::NodeHandle n;
 
-  auto object_only_pub =
-      n.advertise<sensor_msgs::PointCloud2>("/object_only", 10);
-  auto no_object_pub = n.advertise<sensor_msgs::PointCloud2>("/no_object", 10);
-  auto plane_pub = n.advertise<visualization_msgs::Marker>("/ground_plane", 10);
+  auto pc_pub = n.advertise<sensor_msgs::PointCloud2>("/pc", 10);
+  auto filtered_pc_pub =
+      n.advertise<sensor_msgs::PointCloud2>("/filtered_pc", 10);
+  auto path_pub = n.advertise<visualization_msgs::Marker>("/path", 10);
 
+  ros::Rate r(10);
   while (ros::ok()) {
-    object_only_pub.publish(object_only_pc.GetRosPC());
-    no_object_pub.publish(no_object_pc.GetRosPC());
+    pc_pub.publish(*pc.GetRosPC());
+    filtered_pc_pub.publish(*filtered_pc.GetRosPC());
+    path_pub.publish(path_msg);
     ros::spinOnce();
+    r.sleep();
   }
-  //  CallbackWrapper cw;
-  //  std::ofstream laser_file(std::get<1>(res));
-  //  std::ofstream commands_file(std::get<2>(res));
-  //  int iter = 0;
-  //  for (const auto& m : rosbag::View(bag)) {
-  //    if (m.getTopic() == "/scan") {
-  //      auto s = m.instantiate<sensor_msgs::LaserScan>();
-  //      CHECK(s != nullptr);
-  //      auto commands = cw.LaserCallback(*s);
-  //      WriteResults(&laser_file,
-  //                   &commands_file,
-  //                   &dynamic_map_file,
-  //                   &trajectory_file,
-  //                   std::get<0>(commands),
-  //                   std::get<1>(commands),
-  //                   std::get<2>(commands));
-  //      ++iter;
-  //    }
-  //  }
-  //  bag.close();
-  //  laser_file.close();
-  //  commands_file.close();
 
   return 0;
 }
