@@ -77,9 +77,13 @@ static constexpr int kAssertFailReturnCode = 1;
     CHECK_PRINT_VAL(exp, val1, val2);  \
   }
 
-#define NP_CHECK_EQ(exp1, exp2)                     \
-  if (!kProduction) {                               \
-    CHECK_PRINT_VALS((exp1) == (exp2), exp1, exp2); \
+#ifndef CHECK_EQ
+#define CHECK_EQ(exp1, exp2) CHECK_PRINT_VALS((exp1) == (exp2), exp1, exp2);
+#endif
+
+#define NP_CHECK_EQ(exp1, exp2) \
+  if (!kProduction) {           \
+    CHECK_EQ(exp1, exp2);       \
   }
 
 #define NP_FINITE(exp)                          \
