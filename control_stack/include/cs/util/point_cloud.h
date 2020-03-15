@@ -44,7 +44,7 @@ struct __attribute__((packed)) Point16 {
   float x;
   float y;
   float z;
-  float pad;
+  std::uint32_t pad;
 
   Point16() = delete;
 
@@ -74,8 +74,8 @@ struct __attribute__((packed)) Point20 {
   float x;
   float y;
   float z;
-  float pad;
-  float pad2;
+  std::uint32_t pad;
+  std::uint32_t pad2;
 
   Point20() = delete;
 
@@ -105,11 +105,11 @@ struct __attribute__((packed)) Point32 {
   float x;
   float y;
   float z;
-  float pad;
-  float pad2;
-  float pad3;
-  float pad4;
-  float pad5;
+  std::uint32_t pad;
+  std::uint32_t pad2;
+  std::uint32_t pad3;
+  std::uint32_t pad4;
+  std::uint32_t pad5;
 
   Point32() = delete;
 
@@ -186,7 +186,7 @@ class PointCloud {
 
   sensor_msgs::PointCloud2* GetRosPC() { return &ros_pc_; }
 
-  const sensor_msgs::PointCloud2& GetRosPC() const { return ros_pc_; }
+  const sensor_msgs::PointCloud2* GetRosPC() const { return &ros_pc_; }
 
   util::img::Image<util::img::PixelRGB8> ToColorDepthImage(
       const float max_range) const {
@@ -259,6 +259,162 @@ class PointCloud {
   double GetTime() const { return ros_pc_.header.stamp.toSec(); }
 
   bool IsEmpty() const { return ros_pc_.data.empty(); }
+
+  size_t NumColumns() const { return ros_pc_.width; }
+
+  size_t NumRows() const { return ros_pc_.height; }
+
+  template <typename PCType, typename PointType, bool Forward>
+  class PointCloudRowIter {
+    PCType* pc_;
+    const size_t row_;
+
+   public:
+    PointCloudRowIter(PCType* pc, const size_t row) : pc_(pc), row_(row) {
+      NP_CHECK_MSG(pc_->NumRows() > row,
+                   "Num rows: " << pc_->NumRows() << " Row: " << row);
+    }
+
+    struct PointRow {
+      PCType* pc_;
+      int idx_;
+
+      PointRow(PointCloud* pc, const int idx) : pc_(pc), idx_(idx) {
+        NP_CHECK(static_cast<int>(pc->NumColumns() * pc->NumRows()) >= idx_);
+      }
+
+      PointType& operator*() {
+        auto* p = reinterpret_cast<PointType*>(&pc_->GetRosPC()->data[0]);
+        return p[idx_];
+      }
+
+      void operator++() {
+        if (Forward) {
+          ++idx_;
+        } else {
+          --idx_;
+        }
+      }
+
+      bool operator==(const PointRow& other) const {
+        return other.idx_ == idx_;
+      }
+
+      bool operator!=(const PointRow& other) const { return !(*this == other); }
+    };
+
+    PointRow begin() {
+      if (Forward) {
+        return PointRow(pc_, row_ * pc_->NumColumns());
+      } else {
+        return PointRow(pc_, (row_ + 1) * pc_->NumColumns() - 1);
+      }
+    }
+
+    PointRow end() {
+      if (Forward) {
+        return PointRow(pc_, (row_ + 1) * pc_->NumColumns());
+      } else {
+        return PointRow(pc_, static_cast<int>(row_ * pc_->NumColumns()) - 1);
+      }
+    }
+  };
+
+  PointCloudRowIter<PointCloud, Point, true> RowIter(const size_t row) {
+    return PointCloudRowIter<PointCloud, Point, true>(this, row);
+  }
+
+  PointCloudRowIter<const PointCloud, Point const, true> RowIter(
+      const size_t row) const {
+    return PointCloudRowIter<const PointCloud, Point const, true>(this, row);
+  }
+
+  PointCloudRowIter<PointCloud, Point, false> RevRowIter(const size_t row) {
+    return PointCloudRowIter<PointCloud, Point, false>(this, row);
+  }
+
+  PointCloudRowIter<const PointCloud, Point const, false> RevRowIter(
+      const size_t row) const {
+    return PointCloudRowIter<const PointCloud, Point const, false>(this, row);
+  }
+
+  template <typename PCType, typename PointType, bool Forward>
+  class PointCloudColIter {
+    PCType* pc_;
+    const size_t col_;
+
+   public:
+    PointCloudColIter(PCType* pc, const size_t col) : pc_(pc), col_(col) {
+      NP_CHECK_MSG(pc_->NumRows() > col,
+                   "Num rows: " << pc_->NumRows() << " Col: " << col);
+    }
+
+    struct PointCol {
+      PCType* pc_;
+      const size_t col_;
+      int row_;
+
+      PointCol(PCType* pc, const size_t col, const int row)
+          : pc_(pc), col_(col), row_(row) {
+        NP_CHECK(pc->NumColumns() > col_);
+        NP_CHECK_MSG(static_cast<int>(pc->NumRows()) >= row_,
+                     "Num rows: " << pc->NumRows() << " row: " << row_);
+      }
+
+      PointType& operator*() {
+        auto* p = reinterpret_cast<PointType*>(&pc_->GetRosPC()->data[0]);
+        return p[pc_->NumColumns() * row_ + col_];
+      }
+
+      void operator++() {
+        if (Forward) {
+          ++row_;
+        } else {
+          --row_;
+        }
+      }
+
+      bool operator==(const PointCol& other) const {
+        return other.col_ == col_ && other.row_ == row_;
+      }
+
+      bool operator!=(const PointCol& other) const { return !(*this == other); }
+    };
+
+    PointCol begin() {
+      if (Forward) {
+        return PointCol(pc_, col_, 0);
+      } else {
+        return PointCol(pc_, col_, pc_->NumRows() - 1);
+      }
+    }
+
+    PointCol end() {
+      if (Forward) {
+        return PointCol(pc_, col_, pc_->NumRows());
+      } else {
+        return PointCol(pc_, col_, -1);
+      }
+    }
+  };
+
+  PointCloudColIter<PointCloud, Point, true> ColIter(const size_t col) {
+    return PointCloudColIter<PointCloud, Point, true>(this, col);
+  }
+
+  PointCloudColIter<PointCloud, Point, false> RevColIter(const size_t col) {
+    return PointCloudColIter<PointCloud, Point, false>(this, col);
+  }
+
+  PointCloudColIter<const PointCloud, Point const, true> ColIter(
+      const size_t col) const {
+    return PointCloudColIter<const PointCloud, Point const, true>(this, col);
+  }
+
+  PointCloudColIter<const PointCloud, Point const, false> RevColIter(
+      const size_t col) const {
+    return PointCloudColIter<const PointCloud, Point const, false>(this, col);
+  }
 
   Point* begin() {
     void* v = &ros_pc_.data[0];

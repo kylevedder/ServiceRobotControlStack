@@ -44,7 +44,6 @@
 #include "shared/math/math_util.h"
 
 using PC16 = util::pc::PointCloud<util::pc::Point16>;
-using PC20 = util::pc::PointCloud<util::pc::Point20>;
 
 std::tuple<std::string> GetArgs(int argc, char** argv) {
   if (argc != 2) {
@@ -128,7 +127,7 @@ bool IsInFrontSegment(const Eigen::Vector2f& point, const PathSegment& line) {
   return (directional_side == line_direction);
 }
 
-void FilterNotInFrontOfPath(PC16* pc, const PathSegments& path_segments) {
+void LabelNotInFrontOfPath(PC16* pc, const PathSegments& path_segments) {
   for (auto& p : *pc) {
     const Eigen::Vector2f v(p.x, p.y);
     bool in_front = false;
@@ -139,7 +138,11 @@ void FilterNotInFrontOfPath(PC16* pc, const PathSegments& path_segments) {
       }
     }
 
-    if (!in_front) {
+    p.pad = static_cast<std::uint32_t>(in_front);
+  }
+
+  for (size_t i = 100; i < 300; ++i) {
+    for (auto& p : pc->RowIter(i)) {
       p.Invalidate();
     }
   }
@@ -170,7 +173,8 @@ int main(int argc, char** argv) {
   PC16 pc = GetPC(&bag);
   auto path_msg = GetPathMsg(&bag);
   //  auto path_segments = GetPathSegments(path_msg);
-  PathSegments path_segments = {{{0, 0}, {1.4, -0.3}}, {{1.4, -0.3}, {2, 0.5}}};
+  PathSegments path_segments = {
+      {{0, 0}, {1.4, -0.3}}, {{1.4, -0.3}, {2, 0.4}}, {{2, 0.4}, {3, 0.7}}};
   path_msg = SetPath(path_msg, path_segments);
 
   static const Eigen::Affine3f transform =
@@ -181,7 +185,7 @@ int main(int argc, char** argv) {
   pc.TransformFrame(transform, "base_link");
   FilterFloorPlane(&pc);
   PC16 filtered_pc = pc;
-  FilterNotInFrontOfPath(&filtered_pc, path_segments);
+  LabelNotInFrontOfPath(&filtered_pc, path_segments);
 
   ros::NodeHandle n;
 

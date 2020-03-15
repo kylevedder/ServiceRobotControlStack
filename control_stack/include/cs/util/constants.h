@@ -47,6 +47,13 @@ static constexpr int kAssertFailReturnCode = 1;
   }
 #endif
 
+#define CHECK_MSG(exp, msg)                                             \
+  if (!(exp)) {                                                         \
+    std::cerr << __FILE__ << ":" << __LINE__ << " Assertion \"" << #exp \
+              << "\" failed with message: " << msg << std::endl;        \
+    exit(kAssertFailReturnCode);                                        \
+  }
+
 #define CHECK_PRINT_VAL(exp, val)                                       \
   if (!(exp)) {                                                         \
     std::cerr << __FILE__ << ":" << __LINE__ << " Assertion \"" << #exp \
@@ -65,6 +72,11 @@ static constexpr int kAssertFailReturnCode = 1;
 #define NP_CHECK(exp) \
   if (!kProduction) { \
     CHECK(exp);       \
+  }
+
+#define NP_CHECK_MSG(exp, msg) \
+  if (!kProduction) {          \
+    CHECK_MSG(exp, msg);       \
   }
 
 #define NP_CHECK_VAL(exp, val) \
