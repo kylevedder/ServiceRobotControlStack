@@ -39,7 +39,9 @@
 #include <utility>
 #include <vector>
 
+#include "cs/util/plane_fit.h"
 #include "cs/util/point_cloud.h"
+#include "cs/util/visualization.h"
 #include "shared/math/geometry.h"
 #include "shared/math/math_util.h"
 
@@ -109,6 +111,11 @@ std::string vtos(const Eigen::Vector2f& v) {
   return std::to_string(v.x()) + ", " + std::to_string(v.y());
 }
 
+std::string vtos(const Eigen::Vector3f& v) {
+  return std::to_string(v.x()) + ", " + std::to_string(v.y()) + ", " +
+         std::to_string(v.z());
+}
+
 bool IsInFrontSegment(const Eigen::Vector2f& point, const PathSegment& line) {
   if (math_util::Sign(geometry::Cross(point, line.first)) !=
       -math_util::Sign(geometry::Cross(point, line.second))) {
@@ -127,7 +134,9 @@ bool IsInFrontSegment(const Eigen::Vector2f& point, const PathSegment& line) {
   return (directional_side == line_direction);
 }
 
-void LabelNotInFrontOfPath(PC16* pc, const PathSegments& path_segments) {
+void FilterNotInFrontOfPath(PC16* pc, const PathSegments& path_segments) {
+  static constexpr std::uint32_t kPadKeep = 1;
+  static constexpr std::uint32_t kPadDelete = 0;
   for (auto& p : *pc) {
     const Eigen::Vector2f v(p.x, p.y);
     bool in_front = false;
@@ -138,11 +147,89 @@ void LabelNotInFrontOfPath(PC16* pc, const PathSegments& path_segments) {
       }
     }
 
-    p.pad = static_cast<std::uint32_t>(in_front);
+    p.pad = in_front ? kPadKeep : kPadDelete;
   }
 
-  for (size_t i = 100; i < 300; ++i) {
-    for (auto& p : pc->RowIter(i)) {
+  static constexpr int kNoIdxFound = -1;
+  // Sweep horizontally
+  for (int row_idx = 0; row_idx < static_cast<int>(pc->NumRows()); ++row_idx) {
+    auto row_iter = pc->RowIter(row_idx);
+    auto rev_row_iter = pc->RevRowIter(row_idx);
+    int first_idx_found = kNoIdxFound;
+    int last_idx_found = kNoIdxFound;
+    int i = 0;
+    for (auto& p : row_iter) {
+      if (p.pad == kPadKeep) {
+        last_idx_found = i;
+        if (first_idx_found == kNoIdxFound) {
+          first_idx_found = i;
+        }
+      }
+      ++i;
+    }
+
+    if (last_idx_found == kNoIdxFound) {
+      continue;
+    }
+
+    static constexpr float kMaxPlanarDistance = 0.5;
+    static constexpr int kHorizontalMaxMissing = 10;
+
+    static constexpr bool kGrowCluster = true;
+
+    if (kGrowCluster) {
+      // Sweep right
+      const auto& last_point = *(row_iter.begin() + last_idx_found);
+      NP_CHECK(last_point.pad == kPadKeep);
+      const float last_point_dist =
+          last_point.GetMappedVector2f().squaredNorm();
+      int last_missing_count = 0;
+      for (auto it = row_iter.begin() + last_idx_found; it != row_iter.end();
+           ++it) {
+        auto& query_point = *it;
+        const float query_point_dist =
+            query_point.GetMappedVector2f().squaredNorm();
+        if (std::abs(query_point_dist - last_point_dist) < kMaxPlanarDistance) {
+          query_point.pad = kPadKeep;
+        } else {
+          ++last_missing_count;
+          if (last_missing_count > kHorizontalMaxMissing) {
+            break;
+          }
+        }
+      }
+
+      // Sweep left
+      const auto& first_point =
+          *(rev_row_iter.begin() + (pc->NumColumns() - first_idx_found - 1));
+      NP_CHECK(first_point.pad == kPadKeep);
+      float current_point_dist = first_point.GetMappedVector2f().squaredNorm();
+      int first_missing_count = 0;
+      for (auto it =
+               rev_row_iter.begin() + (pc->NumColumns() - first_idx_found);
+           it != rev_row_iter.end();
+           ++it) {
+        auto& query_point = *it;
+        const float query_point_dist =
+            query_point.GetMappedVector2f().squaredNorm();
+        if (std::abs(query_point_dist - current_point_dist) <
+            kMaxPlanarDistance) {
+          query_point.pad = kPadKeep;
+          current_point_dist = query_point_dist;
+        } else {
+          ++first_missing_count;
+          if (first_missing_count > kHorizontalMaxMissing) {
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // Remove all not labeled as in front.
+
+  for (auto& p : *pc) {
+    if (p.pad == kPadDelete) {
       p.Invalidate();
     }
   }
@@ -174,7 +261,7 @@ int main(int argc, char** argv) {
   auto path_msg = GetPathMsg(&bag);
   //  auto path_segments = GetPathSegments(path_msg);
   PathSegments path_segments = {
-      {{0, 0}, {1.4, -0.3}}, {{1.4, -0.3}, {2, 0.4}}, {{2, 0.4}, {3, 0.7}}};
+      {{0, 0}, {1.4, -0.3}}, {{1.4, -0.3}, {2, 0.4}}, {{2, 0.4}, {3, 1.2}}};
   path_msg = SetPath(path_msg, path_segments);
 
   static const Eigen::Affine3f transform =
@@ -185,7 +272,7 @@ int main(int argc, char** argv) {
   pc.TransformFrame(transform, "base_link");
   FilterFloorPlane(&pc);
   PC16 filtered_pc = pc;
-  LabelNotInFrontOfPath(&filtered_pc, path_segments);
+  FilterNotInFrontOfPath(&filtered_pc, path_segments);
 
   ros::NodeHandle n;
 
@@ -193,12 +280,18 @@ int main(int argc, char** argv) {
   auto filtered_pc_pub =
       n.advertise<sensor_msgs::PointCloud2>("/filtered_pc", 10);
   auto path_pub = n.advertise<visualization_msgs::Marker>("/path", 10);
+  auto plane_pub = n.advertise<visualization_msgs::Marker>("/plane", 10);
 
   ros::Rate r(10);
   while (ros::ok()) {
     pc_pub.publish(*pc.GetRosPC());
     filtered_pc_pub.publish(*filtered_pc.GetRosPC());
     path_pub.publish(path_msg);
+
+    const auto plane = util::pca::FitPlane(filtered_pc);
+    const auto plane_msg = visualization::DrawPlane(
+        plane, "base_link", "ransac_plane", plane.ToQuaternion());
+    plane_pub.publish(plane_msg);
     ros::spinOnce();
     r.sleep();
   }

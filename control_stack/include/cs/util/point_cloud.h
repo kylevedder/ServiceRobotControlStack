@@ -37,6 +37,8 @@
 namespace util {
 namespace pc {
 
+using MapVector2f = Eigen::Map<Eigen::Vector2f, Eigen::Aligned32>;
+using ConstMapVector2f = Eigen::Map<const Eigen::Vector2f, Eigen::Aligned32>;
 using MapVector3f = Eigen::Map<Eigen::Vector3f, Eigen::Aligned32>;
 using ConstMapVector3f = Eigen::Map<const Eigen::Vector3f, Eigen::Aligned32>;
 
@@ -47,6 +49,16 @@ struct __attribute__((packed)) Point16 {
   std::uint32_t pad;
 
   Point16() = delete;
+
+  MapVector2f GetMappedVector2f() {
+    void* this_void = this;
+    return MapVector2f(static_cast<float*>(this_void));
+  }
+
+  ConstMapVector2f GetMappedVector2f() const {
+    const void* this_void = this;
+    return ConstMapVector2f(static_cast<const float*>(this_void));
+  }
 
   MapVector3f GetMappedVector3f() {
     void* this_void = this;
@@ -78,6 +90,16 @@ struct __attribute__((packed)) Point20 {
   std::uint32_t pad2;
 
   Point20() = delete;
+
+  MapVector2f GetMappedVector2f() {
+    void* this_void = this;
+    return MapVector2f(static_cast<float*>(this_void));
+  }
+
+  ConstMapVector2f GetMappedVector2f() const {
+    const void* this_void = this;
+    return ConstMapVector2f(static_cast<const float*>(this_void));
+  }
 
   MapVector3f GetMappedVector3f() {
     void* this_void = this;
@@ -112,6 +134,16 @@ struct __attribute__((packed)) Point32 {
   std::uint32_t pad5;
 
   Point32() = delete;
+
+  MapVector2f GetMappedVector2f() {
+    void* this_void = this;
+    return MapVector2f(static_cast<float*>(this_void));
+  }
+
+  ConstMapVector2f GetMappedVector2f() const {
+    const void* this_void = this;
+    return ConstMapVector2f(static_cast<const float*>(this_void));
+  }
 
   MapVector3f GetMappedVector3f() {
     void* this_void = this;
@@ -281,6 +313,7 @@ class PointCloud {
 
       PointRow(PointCloud* pc, const int idx) : pc_(pc), idx_(idx) {
         NP_CHECK(static_cast<int>(pc->NumColumns() * pc->NumRows()) >= idx_);
+        NP_CHECK(idx_ >= -1);
       }
 
       PointType& operator*() {
@@ -301,6 +334,14 @@ class PointCloud {
       }
 
       bool operator!=(const PointRow& other) const { return !(*this == other); }
+
+      PointRow operator+(const int offset) const {
+        if (Forward) {
+          return PointRow(pc_, idx_ + offset);
+        } else {
+          return PointRow(pc_, idx_ - offset);
+        }
+      }
     };
 
     PointRow begin() {
@@ -317,6 +358,18 @@ class PointCloud {
       } else {
         return PointRow(pc_, static_cast<int>(row_ * pc_->NumColumns()) - 1);
       }
+    }
+
+    PointType& operator[](const int offset) {
+      auto iterator = begin();
+      if (Forward) {
+        iterator.idx_ += offset;
+        NP_CHECK(iterator.idx_ < pc_->NumColumns());
+      } else {
+        iterator.idx_ -= offset;
+        NP_CHECK(iterator.idx_ >= 0);
+      }
+      return *iterator;
     }
   };
 
@@ -359,6 +412,7 @@ class PointCloud {
         NP_CHECK(pc->NumColumns() > col_);
         NP_CHECK_MSG(static_cast<int>(pc->NumRows()) >= row_,
                      "Num rows: " << pc->NumRows() << " row: " << row_);
+        NP_CHECK(row >= -1);
       }
 
       PointType& operator*() {
@@ -379,6 +433,16 @@ class PointCloud {
       }
 
       bool operator!=(const PointCol& other) const { return !(*this == other); }
+
+      PointCol operator+(const int offset) const {
+        if (Forward) {
+          return PointCol(pc_, col_, row_ + offset);
+        } else {
+          return PointCol(pc_, col_, row_ - offset);
+        }
+      }
+
+      PointCol operator-(const int offset) const { return *this - offset; }
     };
 
     PointCol begin() {
@@ -395,6 +459,18 @@ class PointCloud {
       } else {
         return PointCol(pc_, col_, -1);
       }
+    }
+
+    PointType& operator[](const int offset) {
+      auto iterator = begin();
+      if (Forward) {
+        iterator.row_ += offset;
+        NP_CHECK(iterator.row_ < pc_->NumRows());
+      } else {
+        iterator.row_ -= offset;
+        NP_CHECK(iterator.row_ >= 0);
+      }
+      return *iterator;
     }
   };
 

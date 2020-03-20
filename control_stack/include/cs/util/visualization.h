@@ -32,9 +32,40 @@
 #include "cs/path_finding/path_finder.h"
 #include "cs/util/laser_scan.h"
 #include "cs/util/map.h"
+#include "cs/util/plane_fit.h"
 #include "cs/util/pose.h"
 
 namespace visualization {
+
+inline visualization_msgs::Marker DrawPlane(
+    const util::Plane& p,
+    const std::string& frame_id,
+    const std::string& ns,
+    const Eigen::Quaternionf& quaternion) {
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = frame_id;
+  marker.header.stamp = ros::Time();
+  marker.ns = ns;
+  marker.id = 0;
+  marker.type = visualization_msgs::Marker::CUBE;
+  marker.action = visualization_msgs::Marker::ADD;
+  const Eigen::Vector3f center = p.anchor + p.v1 / 2 + p.v2 / 2;
+  marker.pose.position.x = center.x();
+  marker.pose.position.y = center.y();
+  marker.pose.position.z = center.z();
+  marker.pose.orientation.w = quaternion.w();
+  marker.pose.orientation.x = quaternion.x();
+  marker.pose.orientation.y = quaternion.y();
+  marker.pose.orientation.z = quaternion.z();
+  marker.scale.x = p.v1.norm();
+  marker.scale.y = p.v2.norm();
+  marker.scale.z = 0.0001;
+  marker.color.a = 1;
+  marker.color.r = 1;
+  marker.color.g = 0;
+  marker.color.b = 0;
+  return marker;
+}
 
 inline visualization_msgs::Marker DrawWalls(
     const std::vector<util::Wall>& walls,
