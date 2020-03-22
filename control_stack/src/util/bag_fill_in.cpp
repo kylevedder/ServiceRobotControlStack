@@ -188,6 +188,27 @@ int main(int argc, char** argv) {
         cs::danger_estimation::ObjectClosestPositions(
             plane, object_desc, params::CONFIG_kSensorHeight);
 
+    center_arr.markers.push_back(
+        visualization::ToLine({0, 0},
+                              closest_positions.left_side * 100,
+                              "base_link",
+                              "left_side",
+                              0,
+                              0,
+                              0,
+                              1,
+                              0.01));
+    center_arr.markers.push_back(
+        visualization::ToLine({0, 0},
+                              closest_positions.right_side * 100,
+                              "base_link",
+                              "right_side",
+                              0,
+                              0,
+                              0,
+                              1,
+                              0.01));
+
     for (const auto& path_segment : path_segments) {
       if (cs::danger_estimation::PathSegmentCollides(
               closest_positions, object_desc, path_segment)) {

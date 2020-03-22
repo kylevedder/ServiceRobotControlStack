@@ -254,7 +254,8 @@ ClosestPositions ObjectClosestPositions(
   }
 
   const float travel_perp_distance =
-      std::sin(side_bisecting_angle) * distance_along_bisecting_top_constraint;
+      std::sin(side_bisecting_angle) * distance_along_bisecting_top_constraint -
+      object_description.radius;
   return {bisecting_line,
           distance_along_bisecting_top_constraint,
           travel_perp_distance,
