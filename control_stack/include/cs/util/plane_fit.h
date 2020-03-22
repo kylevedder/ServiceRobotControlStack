@@ -37,57 +37,29 @@
 namespace util {
 
 struct Plane {
-  Eigen::Vector3f anchor;
+  Eigen::Vector3f center;
   Eigen::Vector3f v1;
   Eigen::Vector3f v1_normed;
   Eigen::Vector3f v2;
   Eigen::Vector3f v2_normed;
 
   Plane()
-      : anchor(Eigen::Vector3f::Zero()),
+      : center(Eigen::Vector3f::Zero()),
         v1(Eigen::Vector3f::Zero()),
         v1_normed(Eigen::Vector3f::Zero()),
         v2(Eigen::Vector3f::Zero()),
         v2_normed(Eigen::Vector3f::Zero()) {}
 
-  Plane(const Eigen::Vector3f& p1,
-        const Eigen::Vector3f& p2,
-        const Eigen::Vector3f& p3)
-      : anchor(p1),
-        v1(p2 - anchor),
-        v1_normed(geometry::GetNormalizedOrZero(v1)),
-        // Ensures that v1 and v2 are orthogonal.
-        v2((p3 - anchor) - (p3 - anchor).dot(v1_normed) * v1_normed),
-        v2_normed(geometry::GetNormalizedOrZero(v2)) {}
-
   Plane(const Eigen::Vector3f& center,
         const Eigen::Vector3f& v1_normed,
-        const float v1_max,
+        const float v1_magnitude,
         const Eigen::Vector3f& v2_normed,
-        const float v2_max)
-      : anchor(center - v1_normed * v1_max - v2_normed * v2_max),
-        v1(v1_normed * v1_max * 2),
+        const float v2_magnitude)
+      : center(center),
+        v1(v1_normed * v1_magnitude),
         v1_normed(v1_normed),
-        v2(v2_normed * v2_max * 2),
+        v2(v2_normed * v2_magnitude),
         v2_normed(v2_normed) {}
-
-  Eigen::Vector3f ProjectOntoPlane(const Eigen::Vector3f& q) const {
-    const Eigen::Vector3f diff = q - anchor;
-    const Eigen::Vector3f v1_proj = diff.dot(v1_normed) * v1_normed;
-    const Eigen::Vector3f v2_proj = diff.dot(v2_normed) * v2_normed;
-    return anchor + v1_proj + v2_proj;
-  }
-
-  float SquaredDistanceFromPlane(const Eigen::Vector3f& q) const {
-    const Eigen::Vector3f diff = q - anchor;
-    const Eigen::Vector3f v1_proj = diff.dot(v1_normed) * v1_normed;
-    const Eigen::Vector3f v2_proj = diff.dot(v2_normed) * v2_normed;
-    const Eigen::Vector3f plane_projection = anchor + v1_proj + v2_proj;
-    const float off_manifold_distance = (plane_projection - q).squaredNorm();
-    const float off_square_distance =
-        (v1_proj - v1).squaredNorm() + (v2_proj - v2).squaredNorm();
-    return off_square_distance + off_manifold_distance;
-  }
 
   Eigen::Quaternionf ToQuaternion() const {
     const auto plane_norm = v1_normed.cross(v2_normed).normalized();
@@ -96,6 +68,47 @@ struct Plane {
     mat.col(1) = v2_normed;
     mat.col(2) = plane_norm;
     return Eigen::Quaternionf(mat);
+  }
+
+  struct Corners {
+    Eigen::Vector3f upper_left;
+    Eigen::Vector3f upper_right;
+    Eigen::Vector3f lower_left;
+    Eigen::Vector3f lower_right;
+
+    Corners()
+        : upper_left(Eigen::Vector3f::Zero()),
+          upper_right(Eigen::Vector3f::Zero()),
+          lower_left(Eigen::Vector3f::Zero()),
+          lower_right(Eigen::Vector3f::Zero()) {}
+  };
+
+  Corners ToCorners() const {
+    static const Eigen::Vector3f kVerticalVector(0, 0, 1);
+    static const Eigen::Vector3f kHorizontalVector(0, 1, 0);
+
+    const float v1_vert_dist = kVerticalVector.dot(v1_normed);
+    const float v2_vert_dist = kVerticalVector.dot(v2_normed);
+
+    const float v1_horiz_dist = kHorizontalVector.dot(v1_normed);
+    const float v2_horiz_dist = kHorizontalVector.dot(v2_normed);
+
+    // If v1 is vertical, its dot product will have a larger magnitude.
+    const bool v1_vert = (std::abs(v1_vert_dist) > std::abs(v2_vert_dist));
+
+    // Sign() ensures that the vert vector is pointing positive Z.
+    Eigen::Vector3f vert = ((v1_vert) ? (v1 * math_util::Sign(v1_vert_dist))
+                                      : (v2 * math_util::Sign(v2_vert_dist)));
+    // Sign() ensures that the horiz vector is pointing positive Y.
+    Eigen::Vector3f horiz = ((v1_vert) ? (v2 * math_util::Sign(v2_horiz_dist))
+                                       : (v1 * math_util::Sign(v1_horiz_dist)));
+
+    Corners corners;
+    corners.upper_left = center + horiz + vert;
+    corners.upper_right = center - horiz + vert;
+    corners.lower_left = center + horiz - vert;
+    corners.lower_right = center - horiz - vert;
+    return corners;
   }
 };
 
@@ -139,42 +152,4 @@ Plane FitPlane(const PC& pc) {
   return Plane(center, v1, v1_dist, v2, v2_dist);
 }
 }  // namespace pca
-
-namespace ransac {
-template <typename PC, int Iterations>
-Plane FitPlane(const PC& pc) {
-  static std::default_random_engine generator;
-  std::vector<Eigen::Vector3f> points;
-  for (const auto& p : pc) {
-    if (!p.IsValid()) {
-      continue;
-    }
-    points.push_back(p.GetMappedVector3f());
-  }
-  std::uniform_int_distribution<int> distribution(0, points.size());
-
-  std::array<std::pair<Plane, float>, Iterations> plane_arr;
-  for (int i = 0; i < Iterations; ++i) {
-    const Eigen::Vector3f& p1 = points[distribution(generator)];
-    const Eigen::Vector3f& p2 = points[distribution(generator)];
-    const Eigen::Vector3f& p3 = points[distribution(generator)];
-    plane_arr[i].first = {p1, p2, p3};
-    plane_arr[i].second = 0;
-
-    for (const auto& p : points) {
-      plane_arr[i].second += plane_arr[i].first.SquaredDistanceFromPlane(p);
-    }
-  }
-
-  size_t min_index = 0;
-  for (size_t i = 0; i < plane_arr.size(); ++i) {
-    if (plane_arr[i].second < plane_arr[i].second) {
-      min_index = i;
-    }
-  }
-
-  return plane_arr[min_index].first;
-}
-
-}  // namespace ransac
 }  // namespace util

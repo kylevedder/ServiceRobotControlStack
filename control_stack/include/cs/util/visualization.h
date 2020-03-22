@@ -49,7 +49,7 @@ inline visualization_msgs::Marker DrawPlane(
   marker.id = 0;
   marker.type = visualization_msgs::Marker::CUBE;
   marker.action = visualization_msgs::Marker::ADD;
-  const Eigen::Vector3f center = p.anchor + p.v1 / 2 + p.v2 / 2;
+  const Eigen::Vector3f center = p.center;
   marker.pose.position.x = center.x();
   marker.pose.position.y = center.y();
   marker.pose.position.z = center.z();
@@ -57,8 +57,8 @@ inline visualization_msgs::Marker DrawPlane(
   marker.pose.orientation.x = quaternion.x();
   marker.pose.orientation.y = quaternion.y();
   marker.pose.orientation.z = quaternion.z();
-  marker.scale.x = p.v1.norm();
-  marker.scale.y = p.v2.norm();
+  marker.scale.x = p.v1.norm() * 2;
+  marker.scale.y = p.v2.norm() * 2;
   marker.scale.z = 0.0001;
   marker.color.a = 1;
   marker.color.r = 1;

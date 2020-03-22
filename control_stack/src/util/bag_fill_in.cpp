@@ -39,6 +39,7 @@
 #include <utility>
 #include <vector>
 
+#include "cs/danger_estimation/object_fill_in.h"
 #include "cs/util/plane_fit.h"
 #include "cs/util/point_cloud.h"
 #include "cs/util/visualization.h"
@@ -67,15 +68,14 @@ PC16 GetPC(rosbag::Bag* bag) {
   }
   return {};
 }
-using PathSegment = std::pair<Eigen::Vector2f, Eigen::Vector2f>;
-using PathSegments = std::vector<PathSegment>;
 
-PathSegments GetPathSegments(const visualization_msgs::Marker& s) {
+cs::danger_estimation::PathSegments GetPathSegments(
+    const visualization_msgs::Marker& s) {
   static const auto to_eigen =
       [](const geometry_msgs::Point& p) -> Eigen::Vector2f {
     return {p.x, p.y};
   };
-  PathSegments path;
+  cs::danger_estimation::PathSegments path;
   CHECK_EQ(s.points.size() % 2, 0);
   for (size_t i = 0; i < s.points.size() - 1; i += 2) {
     path.push_back({to_eigen(s.points[i]), to_eigen(s.points[i + 1])});
@@ -107,6 +107,7 @@ void FilterFloorPlane(PC16* pc) {
     }
   }
 }
+
 std::string vtos(const Eigen::Vector2f& v) {
   return std::to_string(v.x()) + ", " + std::to_string(v.y());
 }
@@ -116,127 +117,9 @@ std::string vtos(const Eigen::Vector3f& v) {
          std::to_string(v.z());
 }
 
-bool IsInFrontSegment(const Eigen::Vector2f& point, const PathSegment& line) {
-  if (math_util::Sign(geometry::Cross(point, line.first)) !=
-      -math_util::Sign(geometry::Cross(point, line.second))) {
-    return false;
-  }
-
-  //  std::cout << vtos(line.first) << " -> " << vtos(line.second) << std::endl;
-
-  // Line is in the format (from, to).
-  const int line_direction = math_util::Sign(line.second.y() - line.first.y());
-  const Eigen::Vector2f from_to_vector = line.second - line.first;
-  const Eigen::Vector2f from_point_vector = point - line.first;
-  const int directional_side =
-      math_util::Sign(geometry::Cross(from_to_vector, from_point_vector));
-
-  return (directional_side == line_direction);
-}
-
-void FilterNotInFrontOfPath(PC16* pc, const PathSegments& path_segments) {
-  static constexpr std::uint32_t kPadKeep = 1;
-  static constexpr std::uint32_t kPadDelete = 0;
-  for (auto& p : *pc) {
-    const Eigen::Vector2f v(p.x, p.y);
-    bool in_front = false;
-    for (const auto& ps : path_segments) {
-      if (IsInFrontSegment(v, ps)) {
-        in_front = true;
-        break;
-      }
-    }
-
-    p.pad = in_front ? kPadKeep : kPadDelete;
-  }
-
-  static constexpr int kNoIdxFound = -1;
-  // Sweep horizontally
-  for (int row_idx = 0; row_idx < static_cast<int>(pc->NumRows()); ++row_idx) {
-    auto row_iter = pc->RowIter(row_idx);
-    auto rev_row_iter = pc->RevRowIter(row_idx);
-    int first_idx_found = kNoIdxFound;
-    int last_idx_found = kNoIdxFound;
-    int i = 0;
-    for (auto& p : row_iter) {
-      if (p.pad == kPadKeep) {
-        last_idx_found = i;
-        if (first_idx_found == kNoIdxFound) {
-          first_idx_found = i;
-        }
-      }
-      ++i;
-    }
-
-    if (last_idx_found == kNoIdxFound) {
-      continue;
-    }
-
-    static constexpr float kMaxPlanarDistance = 0.5;
-    static constexpr int kHorizontalMaxMissing = 10;
-
-    static constexpr bool kGrowCluster = true;
-
-    if (kGrowCluster) {
-      // Sweep right
-      const auto& last_point = *(row_iter.begin() + last_idx_found);
-      NP_CHECK(last_point.pad == kPadKeep);
-      const float last_point_dist =
-          last_point.GetMappedVector2f().squaredNorm();
-      int last_missing_count = 0;
-      for (auto it = row_iter.begin() + last_idx_found; it != row_iter.end();
-           ++it) {
-        auto& query_point = *it;
-        const float query_point_dist =
-            query_point.GetMappedVector2f().squaredNorm();
-        if (std::abs(query_point_dist - last_point_dist) < kMaxPlanarDistance) {
-          query_point.pad = kPadKeep;
-        } else {
-          ++last_missing_count;
-          if (last_missing_count > kHorizontalMaxMissing) {
-            break;
-          }
-        }
-      }
-
-      // Sweep left
-      const auto& first_point =
-          *(rev_row_iter.begin() + (pc->NumColumns() - first_idx_found - 1));
-      NP_CHECK(first_point.pad == kPadKeep);
-      float current_point_dist = first_point.GetMappedVector2f().squaredNorm();
-      int first_missing_count = 0;
-      for (auto it =
-               rev_row_iter.begin() + (pc->NumColumns() - first_idx_found);
-           it != rev_row_iter.end();
-           ++it) {
-        auto& query_point = *it;
-        const float query_point_dist =
-            query_point.GetMappedVector2f().squaredNorm();
-        if (std::abs(query_point_dist - current_point_dist) <
-            kMaxPlanarDistance) {
-          query_point.pad = kPadKeep;
-          current_point_dist = query_point_dist;
-        } else {
-          ++first_missing_count;
-          if (first_missing_count > kHorizontalMaxMissing) {
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  // Remove all not labeled as in front.
-
-  for (auto& p : *pc) {
-    if (p.pad == kPadDelete) {
-      p.Invalidate();
-    }
-  }
-}
-
-visualization_msgs::Marker SetPath(const visualization_msgs::Marker& marker,
-                                   const PathSegments& path_segments) {
+visualization_msgs::Marker MakePathMarker(
+    const visualization_msgs::Marker& marker,
+    const cs::danger_estimation::PathSegments& path_segments) {
   auto m = marker;
   m.points.clear();
   for (const auto& s : path_segments) {
@@ -260,9 +143,9 @@ int main(int argc, char** argv) {
   PC16 pc = GetPC(&bag);
   auto path_msg = GetPathMsg(&bag);
   //  auto path_segments = GetPathSegments(path_msg);
-  PathSegments path_segments = {
+  cs::danger_estimation::PathSegments path_segments = {
       {{0, 0}, {1.4, -0.3}}, {{1.4, -0.3}, {2, 0.4}}, {{2, 0.4}, {3, 1.2}}};
-  path_msg = SetPath(path_msg, path_segments);
+  path_msg = MakePathMarker(path_msg, path_segments);
 
   static const Eigen::Affine3f transform =
       (Eigen::Affine3f::Identity() * Eigen::Translation3f(0, 0, 0.28) *
@@ -272,7 +155,7 @@ int main(int argc, char** argv) {
   pc.TransformFrame(transform, "base_link");
   FilterFloorPlane(&pc);
   PC16 filtered_pc = pc;
-  FilterNotInFrontOfPath(&filtered_pc, path_segments);
+  cs::danger_estimation::FilterNotInFrontOfPath(&filtered_pc, path_segments);
 
   ros::NodeHandle n;
 
