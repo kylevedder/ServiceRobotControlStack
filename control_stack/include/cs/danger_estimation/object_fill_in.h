@@ -158,19 +158,28 @@ PC<P> LabelPCWithObject(
 }
 
 struct ClosestPositions {
+  bool initialized;
   Eigen::Vector2f bisecting_line;
   float travel_bisecting;
   float travel_perp;
   Eigen::Vector2f left_side;
   Eigen::Vector2f right_side;
 
-  ClosestPositions() = delete;
+  ClosestPositions()
+      : initialized(false),
+        bisecting_line(Eigen::Vector2f::Zero()),
+        travel_bisecting(0),
+        travel_perp(0),
+        left_side(Eigen::Vector2f::Zero()),
+        right_side(Eigen::Vector2f::Zero()) {}
+
   ClosestPositions(const Eigen::Vector2f& bisecting_line,
                    const float travel_bisecting,
                    const float travel_perp,
                    const Eigen::Vector2f& left_side,
                    const Eigen::Vector2f& right_side)
-      : bisecting_line(bisecting_line),
+      : initialized(true),
+        bisecting_line(bisecting_line),
         travel_bisecting(travel_bisecting),
         travel_perp(travel_perp),
         left_side(left_side),
@@ -178,7 +187,12 @@ struct ClosestPositions {
 };
 
 ClosestPositions ObjectClosestPositions(
-    const util::Plane& plane, const ObjectDescription& object_description) {
+    const util::Plane& plane,
+    const ObjectDescription& object_description,
+    const float sensor_height) {
+  if (!plane.initialized) {
+    return {};
+  }
   static constexpr auto v3tov2 =
       [](const Eigen::Vector3f& v3) -> Eigen::Vector2f {
     return {v3.x(), v3.y()};
@@ -206,9 +220,11 @@ ClosestPositions ObjectClosestPositions(
     return v1;
   };
 
-  static constexpr auto get_top_slope = [](const Eigen::Vector3f& v1,
-                                           const Eigen::Vector3f& v2) -> float {
-    return std::min(v1.normalized().z(), v2.normalized().z());
+  auto get_top_slope = [&sensor_height](const Eigen::Vector3f& v1,
+                                        const Eigen::Vector3f& v2) -> float {
+    const Eigen::Vector3f v1_moved = v1 - Eigen::Vector3f(0, 0, sensor_height);
+    const Eigen::Vector3f v2_moved = v2 - Eigen::Vector3f(0, 0, sensor_height);
+    return std::min(v1_moved.normalized().z(), v2_moved.normalized().z());
   };
 
   const Eigen::Vector2f left_side =
@@ -224,8 +240,9 @@ ClosestPositions ObjectClosestPositions(
       1.0 / std::sin(side_bisecting_angle) * object_description.radius;
   const float top_slope =
       get_top_slope(corners.upper_left, corners.upper_right);
+  NP_CHECK_MSG(top_slope >= 0, "TODO add support for negative slopes");
   const float distance_along_bisecting_top_constraint =
-      object_description.height / top_slope;
+      (object_description.height - sensor_height) / top_slope;
 
   if (distance_along_bisecting_sides_constraint >
       distance_along_bisecting_top_constraint) {
@@ -248,6 +265,9 @@ ClosestPositions ObjectClosestPositions(
 bool PathSegmentCollides(const ClosestPositions& closest_positions,
                          const ObjectDescription& object_description,
                          const PathSegment& path_segment) {
+  if (!closest_positions.initialized) {
+    return false;
+  }
   const Eigen::Vector2f& path_start = path_segment.first;
   const Eigen::Vector2f& path_end = path_segment.second;
 

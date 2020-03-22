@@ -37,6 +37,7 @@
 namespace util {
 
 struct Plane {
+  bool initialized;
   Eigen::Vector3f center;
   Eigen::Vector3f v1;
   Eigen::Vector3f v1_normed;
@@ -44,7 +45,8 @@ struct Plane {
   Eigen::Vector3f v2_normed;
 
   Plane()
-      : center(Eigen::Vector3f::Zero()),
+      : initialized(false),
+        center(Eigen::Vector3f::Zero()),
         v1(Eigen::Vector3f::Zero()),
         v1_normed(Eigen::Vector3f::Zero()),
         v2(Eigen::Vector3f::Zero()),
@@ -55,7 +57,8 @@ struct Plane {
         const float v1_magnitude,
         const Eigen::Vector3f& v2_normed,
         const float v2_magnitude)
-      : center(center),
+      : initialized(true),
+        center(center),
         v1(v1_normed * v1_magnitude),
         v1_normed(v1_normed),
         v2(v2_normed * v2_magnitude),

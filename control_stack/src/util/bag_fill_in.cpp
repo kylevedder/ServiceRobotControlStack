@@ -39,6 +39,7 @@
 #include <utility>
 #include <vector>
 
+#include "config_reader/config_reader.h"
 #include "cs/danger_estimation/object_fill_in.h"
 #include "cs/danger_estimation/object_library.h"
 #include "cs/util/plane_fit.h"
@@ -46,6 +47,10 @@
 #include "cs/util/visualization.h"
 #include "shared/math/geometry.h"
 #include "shared/math/math_util.h"
+
+namespace params {
+CONFIG_FLOAT(kSensorHeight, "sensor.height");
+}
 
 using PC16 = util::pc::PointCloud<util::pc::Point16>;
 
@@ -138,6 +143,9 @@ visualization_msgs::Marker MakePathMarker(
 }
 
 int main(int argc, char** argv) {
+  config_reader::ConfigReader reader(
+      {"src/ServiceRobotControlStack/control_stack/config/"
+       "danger_estimation.lua"});
   ros::init(argc, argv, "bag_fill_in");
   auto res = GetArgs(argc, argv);
   rosbag::Bag bag(std::get<0>(res));
@@ -173,8 +181,12 @@ int main(int argc, char** argv) {
 
   visualization_msgs::MarkerArray center_arr;
   for (const auto& object_desc : cs::danger_estimation::GetObjectLibrary()) {
+    if (!plane.initialized) {
+      continue;
+    }
     const auto closest_positions =
-        cs::danger_estimation::ObjectClosestPositions(plane, object_desc);
+        cs::danger_estimation::ObjectClosestPositions(
+            plane, object_desc, params::CONFIG_kSensorHeight);
 
     for (const auto& path_segment : path_segments) {
       if (cs::danger_estimation::PathSegmentCollides(
