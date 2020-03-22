@@ -445,7 +445,8 @@ inline visualization_msgs::Marker MakeCylinder(const Eigen::Vector2f& position,
                                                const float r,
                                                const float g,
                                                const float b,
-                                               const float alpha) {
+                                               const float alpha,
+                                               const float z = 0) {
   visualization_msgs::Marker marker;
   marker.header.frame_id = frame_id;
   marker.header.stamp = ros::Time();
@@ -458,6 +459,7 @@ inline visualization_msgs::Marker MakeCylinder(const Eigen::Vector2f& position,
   marker.scale.z = height;
   marker.pose.position.x = position.x();
   marker.pose.position.y = position.y();
+  marker.pose.position.z = z;
   marker.color.a = alpha;
   marker.color.r = r;
   marker.color.g = g;

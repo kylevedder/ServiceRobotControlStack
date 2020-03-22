@@ -31,6 +31,7 @@
 
 #include "cs/danger_estimation/object_library.h"
 #include "cs/util/constants.h"
+#include "cs/util/plane_fit.h"
 #include "cs/util/point_cloud.h"
 #include "shared/math/geometry.h"
 #include "shared/math/math_util.h"
@@ -41,7 +42,6 @@ namespace danger_estimation {
 using PathSegment = std::pair<Eigen::Vector2f, Eigen::Vector2f>;
 using PathSegments = std::vector<PathSegment>;
 
-static constexpr std::uint32_t kPadObjectRing = 2;
 static constexpr std::uint32_t kPadObject = 1;
 static constexpr std::uint32_t kPadNoObject = 0;
 
@@ -65,8 +65,8 @@ bool IsInFrontSegment(const Eigen::Vector2f& point, const PathSegment& line) {
 }
 
 template <typename P>
-PC<P> LabelObject(PC<P> pc,
-                  const cs::danger_estimation::PathSegments& path_segments) {
+PC<P> LabelPCWithObject(
+    PC<P> pc, const cs::danger_estimation::PathSegments& path_segments) {
   for (auto& p : pc) {
     const Eigen::Vector2f v(p.x, p.y);
     bool in_front = false;
@@ -76,7 +76,6 @@ PC<P> LabelObject(PC<P> pc,
         break;
       }
     }
-
     p.pad = in_front ? kPadObject : kPadNoObject;
   }
 
@@ -106,7 +105,6 @@ PC<P> LabelObject(PC<P> pc,
     static constexpr int kHorizontalMaxMissing = 10;
 
     static constexpr bool kGrowCluster = true;
-
     if (kGrowCluster) {
       // Sweep right
       const auto& last_point = *(row_iter.begin() + last_idx_found);
@@ -156,14 +154,175 @@ PC<P> LabelObject(PC<P> pc,
       }
     }
   }
-
   return pc;
 }
 
+struct ClosestPositions {
+  Eigen::Vector2f bisecting_line;
+  float travel_bisecting;
+  float travel_perp;
+  Eigen::Vector2f left_side;
+  Eigen::Vector2f right_side;
+
+  ClosestPositions() = delete;
+  ClosestPositions(const Eigen::Vector2f& bisecting_line,
+                   const float travel_bisecting,
+                   const float travel_perp,
+                   const Eigen::Vector2f& left_side,
+                   const Eigen::Vector2f& right_side)
+      : bisecting_line(bisecting_line),
+        travel_bisecting(travel_bisecting),
+        travel_perp(travel_perp),
+        left_side(left_side),
+        right_side(right_side) {}
+};
+
+ClosestPositions ObjectClosestPositions(
+    const util::Plane& plane, const ObjectDescription& object_description) {
+  static constexpr auto v3tov2 =
+      [](const Eigen::Vector3f& v3) -> Eigen::Vector2f {
+    return {v3.x(), v3.y()};
+  };
+  const auto corners = plane.ToCorners();
+  const auto upper_left = v3tov2(corners.upper_left);
+  const auto upper_right = v3tov2(corners.upper_right);
+  const auto lower_left = v3tov2(corners.lower_left);
+  const auto lower_right = v3tov2(corners.lower_right);
+
+  static constexpr auto pick_left =
+      [](const Eigen::Vector2f& v1,
+         const Eigen::Vector2f& v2) -> Eigen::Vector2f {
+    if (v1.y() < v2.y()) {
+      return v1;
+    }
+    return v2;
+  };
+  static constexpr auto pick_right =
+      [](const Eigen::Vector2f& v1,
+         const Eigen::Vector2f& v2) -> Eigen::Vector2f {
+    if (v1.y() < v2.y()) {
+      return v2;
+    }
+    return v1;
+  };
+
+  static constexpr auto get_top_slope = [](const Eigen::Vector3f& v1,
+                                           const Eigen::Vector3f& v2) -> float {
+    return std::min(v1.normalized().z(), v2.normalized().z());
+  };
+
+  const Eigen::Vector2f left_side =
+      pick_left(upper_left.normalized(), lower_left.normalized());
+  const Eigen::Vector2f right_side =
+      pick_right(upper_right.normalized(), lower_right.normalized());
+  const Eigen::Vector2f bisecting_line =
+      (left_side / 2 + right_side / 2).normalized();
+
+  const float side_bisecting_angle = std::acos(bisecting_line.dot(left_side));
+
+  const float distance_along_bisecting_sides_constraint =
+      1.0 / std::sin(side_bisecting_angle) * object_description.radius;
+  const float top_slope =
+      get_top_slope(corners.upper_left, corners.upper_right);
+  const float distance_along_bisecting_top_constraint =
+      object_description.height / top_slope;
+
+  if (distance_along_bisecting_sides_constraint >
+      distance_along_bisecting_top_constraint) {
+    return {bisecting_line,
+            distance_along_bisecting_sides_constraint,
+            0,
+            left_side,
+            right_side};
+  }
+
+  const float travel_perp_distance =
+      std::sin(side_bisecting_angle) * distance_along_bisecting_top_constraint;
+  return {bisecting_line,
+          distance_along_bisecting_top_constraint,
+          travel_perp_distance,
+          left_side,
+          right_side};
+}
+
+bool PathSegmentCollides(const ClosestPositions& closest_positions,
+                         const ObjectDescription& object_description,
+                         const PathSegment& path_segment) {
+  const Eigen::Vector2f& path_start = path_segment.first;
+  const Eigen::Vector2f& path_end = path_segment.second;
+
+  const Eigen::Vector2f bisecting_line_perp_left =
+      Eigen::Rotation2Df(kPi / 2) * closest_positions.bisecting_line;
+  const Eigen::Vector2f center =
+      closest_positions.bisecting_line * closest_positions.travel_bisecting;
+  const Eigen::Vector2f left_start =
+      center + bisecting_line_perp_left * closest_positions.travel_perp;
+  const Eigen::Vector2f right_start =
+      center - bisecting_line_perp_left * closest_positions.travel_perp;
+
+  if (closest_positions.travel_perp > 0) {
+    const float min_distance = geometry::MinDistanceLineLine(
+        left_start, right_start, path_start, path_end);
+    if (min_distance < object_description.radius) {
+      std::cout << "Perp collide" << std::endl;
+      return true;
+    }
+  }
+
+  static constexpr float kSideScale = 100;
+  const Eigen::Vector2f left_delta = closest_positions.left_side * kSideScale;
+  const Eigen::Vector2f left_end = left_start + left_delta;
+
+  const Eigen::Vector2f right_delta = closest_positions.right_side * kSideScale;
+  const Eigen::Vector2f right_end = right_start + right_delta;
+
+  const float min_distance_left =
+      geometry::MinDistanceLineLine(left_start, left_end, path_start, path_end);
+  if (min_distance_left <= object_description.radius) {
+    std::cout << "Left wall collide" << std::endl;
+    return true;
+  }
+  const float min_distance_right = geometry::MinDistanceLineLine(
+      right_start, right_end, path_start, path_end);
+  if (min_distance_right <= object_description.radius) {
+    std::cout << "Right wall collide" << std::endl;
+    return true;
+  }
+
+  const auto point_inside_trapazoid =
+      [&closest_positions,
+       &center,
+       &left_start,
+       &right_start,
+       &left_delta,
+       &right_delta](const Eigen::Vector2f& point) -> bool {
+    const Eigen::Vector2f center_point = point - center;
+
+    if (closest_positions.bisecting_line.dot(center_point) < 0) {
+      return false;
+    }
+
+    const Eigen::Vector2f left_point = point - left_start;
+    const Eigen::Vector2f right_point = point - right_start;
+
+    return math_util::Sign(geometry::Cross(left_point, left_delta)) ==
+           math_util::Sign(geometry::Cross(right_delta, right_point));
+  };
+
+  if (point_inside_trapazoid(path_start)) {
+    std::cout << "Inside start" << std::endl;
+    return true;
+  }
+  if (point_inside_trapazoid(path_end)) {
+    std::cout << "Inside end" << std::endl;
+    return true;
+  }
+  return false;
+}
+
 template <typename P>
-void FilterNotInFrontOfPath(
-    PC<P>* pc, const cs::danger_estimation::PathSegments& path_segments) {
-  auto labeled_pc = LabelObject(*pc, path_segments);
+void FilterNotInFrontOfPath(PC<P>* pc, const PathSegments& path_segments) {
+  auto labeled_pc = LabelPCWithObject(*pc, path_segments);
   //  labeled_pc = LabelObjectRing(labeled_pc);
   *pc = labeled_pc;
   for (auto& p : *pc) {

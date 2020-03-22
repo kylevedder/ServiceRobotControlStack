@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <array>
 #include <limits>
+#include <string>
 #include <vector>
 
 #include "cs/util/constants.h"
@@ -35,12 +36,15 @@ namespace cs {
 namespace danger_estimation {
 
 struct ObjectDescription {
+  std::string name;
   float radius;
   float height;
 
   ObjectDescription() = delete;
-  ObjectDescription(const float& radius, const float& height)
-      : radius(radius), height(height) {}
+  ObjectDescription(const std::string& name,
+                    const float& radius,
+                    const float& height)
+      : name(name), radius(radius), height(height) {}
 };
 
 struct Object {
@@ -53,7 +57,9 @@ struct Object {
 
 using ObjectLibrary = std::vector<ObjectDescription>;
 
-ObjectLibrary GetObjectLibrary() { return {{0.1, 0.5}, {0.2, 1.95}}; }
+ObjectLibrary GetObjectLibrary() {
+  return {{"backpack", 0.1, 0.2}, {"person", 0.2, 1.95}, {"fatcan", 0.3, 0.5}};
+}
 
 }  // namespace danger_estimation
 }  // namespace cs

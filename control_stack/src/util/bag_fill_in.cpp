@@ -40,6 +40,7 @@
 #include <vector>
 
 #include "cs/danger_estimation/object_fill_in.h"
+#include "cs/danger_estimation/object_library.h"
 #include "cs/util/plane_fit.h"
 #include "cs/util/point_cloud.h"
 #include "cs/util/visualization.h"
@@ -156,6 +157,9 @@ int main(int argc, char** argv) {
   FilterFloorPlane(&pc);
   PC16 filtered_pc = pc;
   cs::danger_estimation::FilterNotInFrontOfPath(&filtered_pc, path_segments);
+  const auto plane = util::pca::FitPlane(filtered_pc);
+  const auto plane_msg = visualization::DrawPlane(
+      plane, "base_link", "pca_plane", plane.ToQuaternion());
 
   ros::NodeHandle n;
 
@@ -164,17 +168,80 @@ int main(int argc, char** argv) {
       n.advertise<sensor_msgs::PointCloud2>("/filtered_pc", 10);
   auto path_pub = n.advertise<visualization_msgs::Marker>("/path", 10);
   auto plane_pub = n.advertise<visualization_msgs::Marker>("/plane", 10);
+  auto closest_center_pub =
+      n.advertise<visualization_msgs::MarkerArray>("/closest_centers", 10);
+
+  visualization_msgs::MarkerArray center_arr;
+  for (const auto& object_desc : cs::danger_estimation::GetObjectLibrary()) {
+    const auto closest_positions =
+        cs::danger_estimation::ObjectClosestPositions(plane, object_desc);
+
+    for (const auto& path_segment : path_segments) {
+      if (cs::danger_estimation::PathSegmentCollides(
+              closest_positions, object_desc, path_segment)) {
+        std::cout << "Path segment " << vtos(path_segment.first) << " \t->\t"
+                  << vtos(path_segment.second) << " collides with \t"
+                  << object_desc.name << std::endl;
+      }
+    }
+
+    const Eigen::Vector2f center =
+        closest_positions.bisecting_line * closest_positions.travel_bisecting;
+    auto cylinder = visualization::MakeCylinder(center,
+                                                object_desc.radius,
+                                                object_desc.height,
+                                                "base_link",
+                                                object_desc.name + "_side0",
+                                                0,
+                                                0,
+                                                1,
+                                                1,
+                                                object_desc.height / 2);
+    center_arr.markers.push_back(cylinder);
+
+    if (closest_positions.travel_perp <= 0) {
+      continue;
+    }
+
+    const Eigen::Vector2f center_side1 =
+        center + geometry::Perp(closest_positions.bisecting_line) *
+                     closest_positions.travel_perp;
+    const Eigen::Vector2f center_side2 =
+        center + -geometry::Perp(closest_positions.bisecting_line) *
+                     closest_positions.travel_perp;
+    auto cylinder_side1 =
+        visualization::MakeCylinder(center_side1,
+                                    object_desc.radius,
+                                    object_desc.height,
+                                    "base_link",
+                                    object_desc.name + "_side1",
+                                    0,
+                                    0,
+                                    1,
+                                    1,
+                                    object_desc.height / 2);
+    auto cylinder_side2 =
+        visualization::MakeCylinder(center_side2,
+                                    object_desc.radius,
+                                    object_desc.height,
+                                    "base_link",
+                                    object_desc.name + "_side2",
+                                    0,
+                                    0,
+                                    1,
+                                    1,
+                                    object_desc.height / 2);
+    center_arr.markers.push_back(cylinder_side1);
+    center_arr.markers.push_back(cylinder_side2);
+  }
 
   ros::Rate r(10);
   while (ros::ok()) {
     pc_pub.publish(*pc.GetRosPC());
     filtered_pc_pub.publish(*filtered_pc.GetRosPC());
     path_pub.publish(path_msg);
-
-    const auto plane = util::pca::FitPlane(filtered_pc);
-    const auto plane_msg = visualization::DrawPlane(
-        plane, "base_link", "ransac_plane", plane.ToQuaternion());
     plane_pub.publish(plane_msg);
+    closest_center_pub.publish(center_arr);
     ros::spinOnce();
     r.sleep();
   }
