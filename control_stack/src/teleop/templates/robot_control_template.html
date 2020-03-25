@@ -1,0 +1,97 @@
+<html>
+  <script>
+    kAKey = 65;
+    kWKey = 87;
+    kDKey = 68;
+    kSKey = 83;
+    
+    function forward(arg) {
+      console.log(arg + "forward")
+    }
+
+    function backward(arg) {
+      console.log(arg + " backward")
+    }
+
+    function left(arg) {
+      console.log(arg + "left")
+    }
+
+    function right(arg) {
+      console.log(arg + " right")
+    }
+
+    function key_down(e) {
+      if (e.repeat) {
+        return;
+      }
+      switch (e.keyCode) {
+        case kWKey: {
+          forward("start");
+          break;
+        }
+        case kSKey: {
+          backward("start");
+          break;
+        }
+        case kAKey: {
+          left("start");
+          break;
+        }
+        case kDKey: {
+          right("start");
+          break;
+        }
+      }
+    }
+
+    function key_up(e) {
+      switch (e.keyCode) {
+        case kWKey: {
+          forward("stop");
+          break;
+        }
+        case kSKey: {
+          backward("stop");
+          break;
+        }
+        case kAKey: {
+          left("stop");
+          break;
+        }
+        case kDKey: {
+          right("stop");
+          break;
+        }
+      }
+    }
+
+    document.onkeydown = key_down;
+    document.onkeyup = key_up;
+
+    function clicked(direction) {
+      console.log("CLICKED " + direction)
+    }
+  </script>
+  <body>
+    <h1>{{ robot_name }} control page</h1>
+
+    <table>
+      <tr>
+        <td></td>
+        <td><button onclick="clicked('forward')">Forward</button></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><button onclick="clicked('left')">Left</button></td>
+        <td></td>
+        <td><button onclick="clicked('right')">Right</button></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td><button onclick="clicked('backward')">Backward</button></td>
+        <td></td>
+      </tr>
+    </table>
+  </body>
+</html>
