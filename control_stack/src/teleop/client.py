@@ -16,7 +16,7 @@ pub = rospy.Publisher('/teleop_topic', Twist, queue_size=10)
 # create a socket object
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-url = "127.0.0.1"
+url = "192.168.0.102"
 port = 9001
 
 # connection to hostname on the port.

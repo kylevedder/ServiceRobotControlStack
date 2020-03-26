@@ -18,8 +18,7 @@ serversocket = socket.socket(
 	        socket.AF_INET, socket.SOCK_STREAM)
 serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-# get local machine name
-host = "127.0.0.1" #socket.gethostname()                           
+host = "192.168.0.102"
 
 port = 9001
 

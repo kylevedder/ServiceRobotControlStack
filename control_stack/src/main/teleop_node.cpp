@@ -179,14 +179,14 @@ struct CallbackWrapper {
       return;
     }
     odom_times_buffer_.push_back(current_time);
-    const util::Twist velocity =
-        TransformTwistUsingSign(util::Twist(msg.twist.twist));
-    const double mean_time_delta =
-        (odom_times_buffer_.back() - odom_times_buffer_.front()).toSec() /
-        static_cast<double>(odom_times_buffer_.size() - 1);
-    NP_CHECK(mean_time_delta > 0);
-    const util::Twist delta = velocity * static_cast<float>(mean_time_delta);
-    std::cout << delta << std::endl;
+    //    const util::Twist velocity =
+    //        TransformTwistUsingSign(util::Twist(msg.twist.twist));
+    //    const double mean_time_delta =
+    //        (odom_times_buffer_.back() - odom_times_buffer_.front()).toSec() /
+    //        static_cast<double>(odom_times_buffer_.size() - 1);
+    //    NP_CHECK(mean_time_delta > 0);
+    //    const util::Twist delta = velocity *
+    //    static_cast<float>(mean_time_delta); std::cout << delta << std::endl;
     //    particle_filter_.UpdateOdom(delta.tra.x(), delta.rot);
     if (kDebug) {
       map_pub_.publish(map_.ToMarker());
