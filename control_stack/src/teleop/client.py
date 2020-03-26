@@ -58,7 +58,7 @@ while True:
     break
   try:
     msg_json = json.loads(msg_str)
-  except json.decoder.JSONDecodeError:
+  except:
     print("Failed to parse >>{}<<".format(msg_str))
     continue
   print(msg_json)
