@@ -1,9 +1,7 @@
-#!/usr/bin/env xdg-open
-
 [Desktop Entry]
-Version=1.0
-Type=Application
-Terminal=false
-Exec=~/code/catkin_ws/src/ServiceRobotControlStack/robot_status_gui/lashifa
+Encoding=UTF-8
 Name=LASHIFA
-Comment=Run LASHIFA
+Comment=LASHIFA
+Exec=bash ~/code/catkin_ws/src/ServiceRobotControlStack/robot_status_gui/lashifa.desktop
+Terminal=false
+Type=Application
