@@ -26,8 +26,15 @@
     kKeyRepeatCount = 5;
 
     function status_update_callback(response_text) {
-      // response = JSON.parse(response_text);
-      document.getElementById("status").innerText = response_text;
+      response = JSON.parse(response_text);
+    // <td>Connection Status:</td><td id="connection_status">LOADING</td>
+    //   <td>Battery Level:</td><td id="battery_level">LOADING</td>
+    //   <td>Charging Status:</td><td id="charging_status">LOADING</td>
+      let is_connected = (response["delta_time"] < 2);
+      document.getElementById("connection_status").innerText = is_connected ? "Connected" : "Disconnected!";
+      document.getElementById("connection_status").style.color = is_connected ? "green" : "red";
+      document.getElementById("battery_level").innerText = is_connected ? response["battery"] : "Not connected";
+      document.getElementById("charging_status").innerText = is_connected ? ((response["is_charging"]) ? "Charging" : "Draining") : "Not connected";
     }
 
     function http_get_async(url, callback) {
@@ -132,8 +139,17 @@
 
     <p>WASD keys to move. W/D move forward and backwards; A/D rotate left and right.</p>
 
-    <p>Robot status: <div id="status">Connecting...</div></p>
-
+    <table>
+      <tr>
+        <td>Connection Status:</td><td id="connection_status">LOADING</td>
+      </tr>
+      <tr>
+        <td>Battery Level:</td><td id="battery_level">LOADING</td>
+      </tr>
+      <tr>
+        <td>Charging Status:</td><td id="charging_status">LOADING</td>
+      </tr>
+    </table>
 <!--    <table>-->
 <!--      <tr>-->
 <!--        <td></td>-->

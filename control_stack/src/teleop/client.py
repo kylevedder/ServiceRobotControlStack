@@ -42,12 +42,13 @@ def init_socket():
   s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   # connection to hostname on the port.
   is_connected = False
-  while not is_connected:
+  while not is_connected and not rospy.is_shutdown():
     try:
       s.connect((url, port))
       is_connected = True
     except socket.error:
       print("Failed to connect socket to command server at {}".format(url))
+      time.sleep(0.2)
 
   s.send(opt.robot_name.encode('ascii'))
   return s
