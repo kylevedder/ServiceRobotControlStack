@@ -10,7 +10,7 @@ roscore &
 pushd ~/code/catkin_ws/
 source devel/setup.bash
 sleep 1.5
-~/code/catkin_ws/src/ServiceRobotControlStack/robot_status_gui/robot_status_gui/bin/gui_monitor --config=src/ServiceRobotControlStack/robot_status_gui/gui_config/gui_config.txt
+~/code/catkin_ws/src/ServiceRobotControlStack/robot_status_gui/robot_status_gui/bin/gui_monitor --config=src/ServiceRobotControlStack/robot_status_gui/gui_config/gui_config.txt --runall
 killall rviz
 killall roscore
 sleep 1
