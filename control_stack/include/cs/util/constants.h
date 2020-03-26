@@ -34,6 +34,7 @@ static constexpr auto kCommandVelocityTopic = "/mobile_base/commands/velocity";
 static constexpr auto kOdomTopic = "/odom";
 static constexpr auto kLaserTopic = "/scan";
 static constexpr auto kGoalTopic = "/nav_goal";
+static constexpr auto kTeleopTopic = "/teleop_topic";
 }  // namespace constants
 
 static constexpr int kAssertFailReturnCode = 1;

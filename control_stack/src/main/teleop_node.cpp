@@ -103,7 +103,7 @@ struct CallbackWrapper {
     odom_sub_ = n->subscribe(
         constants::kOdomTopic, 10, &CallbackWrapper::OdomCallback, this);
     teleop_sub_ = n->subscribe(
-        constants::kGoalTopic, 10, &CallbackWrapper::GoalCallback, this);
+        constants::kTeleopTopic, 10, &CallbackWrapper::TeleopCallback, this);
 
     if (kDebug) {
       modified_laser_pub_ =
@@ -123,8 +123,10 @@ struct CallbackWrapper {
     }
   }
 
-  void GoalCallback(const geometry_msgs::Twist& msg) {
-    current_command_ = util::Twist({msg.linear.x, 0}, msg.angular.z);
+  void TeleopCallback(const geometry_msgs::Twist& msg) {
+    auto t = util::Twist({msg.linear.x, 0}, msg.angular.z);
+    std::cout << "Current command: " << t << std::endl;
+    current_command_ = t;
   }
 
   void LaserCallback(const sensor_msgs::LaserScan& msg) {
@@ -212,13 +214,14 @@ struct CallbackWrapper {
 
 int main(int argc, char** argv) {
   config_reader::ConfigReader reader(
-      {"src/ServiceRobotControlStack/control_stack/config/nav_config.lua"});
+      {"src/ServiceRobotControlStack/control_stack/config/teleop_config.lua"});
   ros::init(argc, argv, "teleop_node");
 
   ros::NodeHandle n;
 
   CallbackWrapper cw(&n);
 
+  std::cout << "Teleop node started!\n";
   ros::spin();
 
   return 0;

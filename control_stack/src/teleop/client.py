@@ -11,7 +11,7 @@ opt = parser.parse_args()
 
 
 rospy.init_node('teleop')
-pub = rospy.Publisher('/teleop_twist', Twist, queue_size=10)
+pub = rospy.Publisher('/teleop_topic', Twist, queue_size=10)
 
 # create a socket object
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
