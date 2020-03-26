@@ -5,94 +5,86 @@ import socket
 import threading
 import time
 import signal
+import json
 
-socket.setdefaulttimeout(0.5)
+kTimeout = 0.1
+socket.setdefaulttimeout(kTimeout)
 robot_connection_map = dict()
 
 is_running = True
 
 # create a socket object
 serversocket = socket.socket(
-	        socket.AF_INET, socket.SOCK_STREAM) 
+	        socket.AF_INET, socket.SOCK_STREAM)
+serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 # get local machine name
 host = "127.0.0.1" #socket.gethostname()                           
 
 port = 9001
 
-# # bind to the port
-# serversocket.bind((host, port))                                  
+def thread_function():
+    while is_running:
+      try:
+        clientsocket, addr = serversocket.accept()
+      except:
+        continue
+      msg = clientsocket.recv(1024)
+      decoded_msg = msg.decode('ascii')
+      print("Got a connection from {} for {}".format(str(addr), decoded_msg))
+      robot_connection_map[decoded_msg] = (clientsocket, addr)
 
-# # queue up to 5 requests
-# serversocket.listen(5)          
+x = threading.Thread(target=thread_function)
 
-# def thread_function():
-#     while is_running:
-#       try:
-#         clientsocket, addr = serversocket.accept()
-#       except:
-#         continue
-#       msg = clientsocket.recv(1024)
-#       decoded_msg = msg.decode('ascii')
-#       print("Got a connection from {} for {}".format(str(addr), decoded_msg))
-#       robot_connection_map[decoded_msg] = (clientsocket, addr)
+def cleanup():
+    global is_running
+    is_running = False
+    time.sleep(kTimeout)
+    x.join()
+    for k in robot_connection_map:
+        clientsocket, addr = robot_connection_map[k]
+        clientsocket.close()
+    serversocket.close()
 
+def setup_sockets():
+    # bind to the port
+    serversocket.bind((host, port))
 
-# x = threading.Thread(target=thread_function)
-# x.start()
+    # queue up to 5 requests
+    serversocket.listen(5)
 
-# def cleanup():
-#     global is_running
-#     is_running = False
-#     for k in robot_connection_map:
-#         clientsocket, addr = robot_connection_map[k]
-#         clientsocket.close()
-#     x.join()
-#     serversocket.close()
+    x.start()
 
+if __name__ == "__main__":
+    setup_sockets()
 
-# def handler(signum, frame):
-#     cleanup()
+    app = Flask(__name__, static_url_path='')
 
-# # signal.signal(signal.SIGINT, handler)
+    kCommandEndpoint = "/send_command"
 
+    @app.route(kCommandEndpoint, methods=['POST'])
+    def result():
+        data = request.json
+        print(data)
+        robot_name = data['robot']
+        print(robot_name)
+        res = robot_connection_map.get(robot_name, None)
+        if not res:
+            return "Failure!"
+        clientsocket, addr = res
+        clientsocket.send(json.dumps(data).encode('ascii'))
+        return "Success!"
 
+    @app.route('/')
+    def root():
+        return app.send_static_file('index.html')
 
-# while True:
-#     if not is_running:
-#       break
-#     time.sleep(0.2)
-#     print(i)
-#     to_be_deleted = []
-#     for k in robot_connection_map:
-#         clientsocket, addr = robot_connection_map[k]
-#         msg = 'Iter '+ str(i) + "\n"
-#         if not is_running:
-#             break
-#         try:
-#           clientsocket.send(msg.encode('ascii'))
-#         except BrokenPipeError:
-#           to_be_deleted.append(k)
-#     for k in to_be_deleted:
-#       clientsocket, addr = robot_connection_map[k]
-#       print("Lost a connection from {} for {}".format(str(addr), k))
-#       del robot_connection_map[k]
-
-# cleanup()
-
-app = Flask(__name__, static_url_path='')
-
-@app.route('/send_command', methods=['POST'])
-def result():
-    return "Success!"
-
-@app.route('/')
-def root():
-    return app.send_static_file('index.html')
-
-@app.route('/robots/<string:robot_name>')
-def robot_page(robot_name):
-    return render_template('robot_control_template.html', robot_name=robot_name)
+    @app.route('/robots/<string:robot_name>')
+    def robot_page(robot_name):
+        return render_template('robot_control_template.html',
+                               robot_name=robot_name,
+                               server_url=kCommandEndpoint)
 
 
-app.run(host, debug=True, port=5000)
+    app.run(host, debug=False, port=5000)
+    cleanup()

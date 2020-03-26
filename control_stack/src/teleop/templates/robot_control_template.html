@@ -4,21 +4,34 @@
     kWKey = 87;
     kDKey = 68;
     kSKey = 83;
-    
-    function forward(arg) {
-      console.log(arg + "forward")
+    kRobotName = "{{ robot_name }}";
+    kForward = "forward";
+    kBackward = "backward";
+    kLeft = "left";
+    kRight = "right";
+
+    kCommandStatus = {};
+    kCommandStatus[kForward] = false;
+    kCommandStatus[kBackward] = false;
+    kCommandStatus[kLeft] = false;
+    kCommandStatus[kRight] = false;
+    kCommandStatus.robot = kRobotName;
+
+    function send_command() {
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", "{{ server_url }}", true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.send(JSON.stringify(kCommandStatus));
     }
 
-    function backward(arg) {
-      console.log(arg + " backward")
+    function start(direction) {
+      kCommandStatus[direction] = true;
+      send_command();
     }
 
-    function left(arg) {
-      console.log(arg + "left")
-    }
-
-    function right(arg) {
-      console.log(arg + " right")
+    function stop(direction) {
+      kCommandStatus[direction] = false;
+      send_command();
     }
 
     function key_down(e) {
@@ -27,19 +40,19 @@
       }
       switch (e.keyCode) {
         case kWKey: {
-          forward("start");
+          start(kForward);
           break;
         }
         case kSKey: {
-          backward("start");
+          start(kBackward);
           break;
         }
         case kAKey: {
-          left("start");
+          start(kLeft);
           break;
         }
         case kDKey: {
-          right("start");
+          start(kRight);
           break;
         }
       }
@@ -48,19 +61,19 @@
     function key_up(e) {
       switch (e.keyCode) {
         case kWKey: {
-          forward("stop");
+          stop(kForward);
           break;
         }
         case kSKey: {
-          backward("stop");
+          stop(kBackward);
           break;
         }
         case kAKey: {
-          left("stop");
+          stop(kLeft);
           break;
         }
         case kDKey: {
-          right("stop");
+          stop(kRight);
           break;
         }
       }
@@ -76,22 +89,26 @@
   <body>
     <h1>{{ robot_name }} control page</h1>
 
-    <table>
-      <tr>
-        <td></td>
-        <td><button onclick="clicked('forward')">Forward</button></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td><button onclick="clicked('left')">Left</button></td>
-        <td></td>
-        <td><button onclick="clicked('right')">Right</button></td>
-      </tr>
-      <tr>
-        <td></td>
-        <td><button onclick="clicked('backward')">Backward</button></td>
-        <td></td>
-      </tr>
-    </table>
+    <p>Controls:</p>
+
+    <p>WASD keys to move. W/D move forward and backwards; A/D rotate left and right.</p>
+
+<!--    <table>-->
+<!--      <tr>-->
+<!--        <td></td>-->
+<!--        <td><button onclick="clicked('forward')">Forward</button></td>-->
+<!--        <td></td>-->
+<!--      </tr>-->
+<!--      <tr>-->
+<!--        <td><button onclick="clicked('left')">Left</button></td>-->
+<!--        <td></td>-->
+<!--        <td><button onclick="clicked('right')">Right</button></td>-->
+<!--      </tr>-->
+<!--      <tr>-->
+<!--        <td></td>-->
+<!--        <td><button onclick="clicked('backward')">Backward</button></td>-->
+<!--        <td></td>-->
+<!--      </tr>-->
+<!--    </table>-->
   </body>
 </html>
