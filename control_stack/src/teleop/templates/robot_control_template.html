@@ -4,7 +4,7 @@
 
     <p>Controls:</p>
 
-    <p>WASD keys to move. W/D move forward and backwards; A/D rotate left and right.</p>
+    <p>WASD keys or Arrow keys to move. W/D or ↑/↓ move forward and backwards; A/D or ←/→ rotate left and right.</p>
 
     <table>
       <tr>
@@ -20,9 +20,13 @@
   </body>
   <script>
     kAKey = 65;
+    kLeftArrow = 37;
     kWKey = 87;
+    kUpArrow = 38;
     kDKey = 68;
+    kRightArrow = 39;
     kSKey = 83;
+    kDownArrow = 40;
     kRobotName = "{{ robot_name }}";
     kForward = "forward";
     kBackward = "backward";
@@ -105,6 +109,7 @@
 
     function key_down(e) {
       switch (e.keyCode) {
+        case kUpArrow:
         case kWKey: {
           ++kKeyCount[kForward];
           if (!e.repeat || (kKeyCount[kForward] % kKeyRepeatCount === 0)) {
@@ -112,6 +117,7 @@
           }
           break;
         }
+        case kDownArrow:
         case kSKey: {
           ++kKeyCount[kBackward];
           if (!e.repeat || (kKeyCount[kBackward] % kKeyRepeatCount === 0)) {
@@ -119,6 +125,7 @@
           }
           break;
         }
+        case kLeftArrow:
         case kAKey: {
           ++kKeyCount[kLeft];
           if (!e.repeat || (kKeyCount[kLeft] % kKeyRepeatCount === 0)) {
@@ -126,6 +133,7 @@
           }
           break;
         }
+        case kRightArrow:
         case kDKey: {
           ++kKeyCount[kRight];
           if (!e.repeat || (kKeyCount[kRight] % kKeyRepeatCount === 0)) {
@@ -138,21 +146,25 @@
 
     function key_up(e) {
       switch (e.keyCode) {
+        case kUpArrow:
         case kWKey: {
           stop(kForward);
           kKeyCount[kForward] = 0;
           break;
         }
+        case kDownArrow:
         case kSKey: {
           stop(kBackward);
           kKeyCount[kBackward] = 0;
           break;
         }
+        case kLeftArrow:
         case kAKey: {
           stop(kLeft);
           kKeyCount[kLeft] = 0;
           break;
         }
+        case kRightArrow:
         case kDKey: {
           stop(kRight);
           kKeyCount[kRight] = 0;
