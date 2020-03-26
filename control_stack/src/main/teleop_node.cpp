@@ -87,8 +87,6 @@ struct CallbackWrapper {
   ros::Publisher modified_laser_pub_;
   ros::Publisher detected_walls_pub_;
   ros::Publisher robot_size_pub_;
-  ros::Publisher robot_path_pub_;
-  ros::Publisher base_link_robot_path_pub_;
 
   CallbackWrapper() = delete;
 
@@ -113,10 +111,6 @@ struct CallbackWrapper {
           "detected_obstacles", 10);
       robot_size_pub_ =
           n->advertise<visualization_msgs::Marker>("robot_size", 10);
-      robot_path_pub_ =
-          n->advertise<visualization_msgs::Marker>("robot_path", 10);
-      base_link_robot_path_pub_ =
-          n->advertise<visualization_msgs::Marker>("base_link_robot_path", 10);
     }
   }
 
@@ -145,6 +139,7 @@ struct CallbackWrapper {
                       .toSec() /
                   static_cast<double>(laser_times_buffer_.size() - 1);
     NP_CHECK_VAL(mean_time_delta > 0, mean_time_delta);
+    obstacle_detector_.UpdateObservation({0, 0, 0}, laser);
     const util::Twist commanded_velocity = CommandVelocity(
         GetDesiredCommand(), static_cast<float>(mean_time_delta));
     obstacle_detector_.UpdateCommand(commanded_velocity);
