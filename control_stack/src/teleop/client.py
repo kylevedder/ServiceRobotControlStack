@@ -69,8 +69,11 @@ def make_twist(msg_json):
 
 def socket_reading_thread():
   while is_running:
-    # Receive no more than 1024 bytes
-    msg = s.recv(1024)
+    try:
+      # Receive no more than 1024 bytes
+      msg = s.recv(1024)
+    except:
+      continue
     msg_str = msg.decode('ascii').strip()
     if len(msg_str) == 0:
       # Socket connection ended.
@@ -86,7 +89,7 @@ def socket_reading_thread():
 
 x = threading.Thread(target=socket_reading_thread)
 
-def handler():
+def handler(num, frame):
   global  is_running
   is_running = False
   x.join()
