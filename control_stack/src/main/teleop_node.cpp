@@ -74,6 +74,7 @@ struct CallbackWrapper {
   cs::datastructures::CircularBuffer<ros::Time, kTimeBufferSize>
       laser_times_buffer_;
   tf::TransformBroadcaster br_;
+  ros::Time current_command_time_;
   util::Twist current_command_;
 
   // Functionality pub/sub
@@ -84,18 +85,19 @@ struct CallbackWrapper {
 
   // Debug pub/sub
   ros::Publisher modified_laser_pub_;
-  ros::Publisher particle_pub_;
   ros::Publisher map_pub_;
   ros::Publisher detected_walls_pub_;
   ros::Publisher robot_size_pub_;
   ros::Publisher robot_path_pub_;
   ros::Publisher base_link_robot_path_pub_;
-  ros::Publisher rrt_tree_pub_;
 
   CallbackWrapper() = delete;
 
   explicit CallbackWrapper(ros::NodeHandle* n)
-      : map_(), obstacle_detector_(map_), current_command_() {
+      : map_(),
+        obstacle_detector_(map_),
+        current_command_time_(ros::Time::now()),
+        current_command_() {
     velocity_pub_ = n->advertise<geometry_msgs::Twist>(
         constants::kCommandVelocityTopic, 10);
     laser_sub_ = n->subscribe(
@@ -108,9 +110,6 @@ struct CallbackWrapper {
     if (kDebug) {
       modified_laser_pub_ =
           n->advertise<sensor_msgs::LaserScan>("scan_modified", 10);
-      particle_pub_ =
-          n->advertise<visualization_msgs::MarkerArray>("particles", 10);
-      map_pub_ = n->advertise<visualization_msgs::Marker>("map", 10);
       detected_walls_pub_ = n->advertise<visualization_msgs::MarkerArray>(
           "detected_obstacles", 10);
       robot_size_pub_ =
@@ -119,7 +118,6 @@ struct CallbackWrapper {
           n->advertise<visualization_msgs::Marker>("robot_path", 10);
       base_link_robot_path_pub_ =
           n->advertise<visualization_msgs::Marker>("base_link_robot_path", 10);
-      rrt_tree_pub_ = n->advertise<visualization_msgs::Marker>("rrt_tree", 10);
     }
   }
 
@@ -127,6 +125,7 @@ struct CallbackWrapper {
     auto t = util::Twist({msg.linear.x, 0}, msg.angular.z);
     std::cout << "Current command: " << t << std::endl;
     current_command_ = t;
+    current_command_time_ = ros::Time::now();
   }
 
   void LaserCallback(const sensor_msgs::LaserScan& msg) {
@@ -147,8 +146,8 @@ struct CallbackWrapper {
                       .toSec() /
                   static_cast<double>(laser_times_buffer_.size() - 1);
     NP_CHECK_VAL(mean_time_delta > 0, mean_time_delta);
-    const util::Twist commanded_velocity =
-        CommandVelocity(current_command_, static_cast<float>(mean_time_delta));
+    const util::Twist commanded_velocity = CommandVelocity(
+        GetDesiredCommand(), static_cast<float>(mean_time_delta));
     obstacle_detector_.UpdateCommand(commanded_velocity);
     PublishTransforms();
     if (kDebug) {
@@ -191,6 +190,13 @@ struct CallbackWrapper {
     if (kDebug) {
       map_pub_.publish(map_.ToMarker());
     }
+  }
+
+  util::Twist GetDesiredCommand() const {
+    if ((ros::Time::now() - current_command_time_).toSec() > 1.5) {
+      return util::Twist(0, 0, 0);
+    }
+    return current_command_;
   }
 
   util::Twist CommandVelocity(const util::Twist& desired_command,

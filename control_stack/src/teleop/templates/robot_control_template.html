@@ -17,6 +17,14 @@
     kCommandStatus[kRight] = false;
     kCommandStatus.robot = kRobotName;
 
+    kKeyCount = {};
+    kKeyCount[kForward] = 0;
+    kKeyCount[kBackward] = 0;
+    kKeyCount[kLeft] = 0;
+    kKeyCount[kRight] = 0;
+
+    kKeyRepeatCount = 5;
+
     function send_command() {
       var xhr = new XMLHttpRequest();
       xhr.open("POST", "{{ server_url }}", true);
@@ -35,24 +43,35 @@
     }
 
     function key_down(e) {
-      if (e.repeat) {
-        return;
-      }
+      console.log("Hello");
+      console.log(kKeyCount);
       switch (e.keyCode) {
         case kWKey: {
-          start(kForward);
+          ++kKeyCount[kForward];
+          if (!e.repeat || (kKeyCount[kForward] % kKeyRepeatCount === 0)) {
+            start(kForward);
+          }
           break;
         }
         case kSKey: {
-          start(kBackward);
+          ++kKeyCount[kBackward];
+          if (!e.repeat || (kKeyCount[kBackward] % kKeyRepeatCount === 0)) {
+            start(kBackward);
+          }
           break;
         }
         case kAKey: {
-          start(kLeft);
+          ++kKeyCount[kLeft];
+          if (!e.repeat || (kKeyCount[kLeft] % kKeyRepeatCount === 0)) {
+            start(kLeft);
+          }
           break;
         }
         case kDKey: {
-          start(kRight);
+          ++kKeyCount[kRight];
+          if (!e.repeat || (kKeyCount[kRight] % kKeyRepeatCount === 0)) {
+            start(kRight);
+          }
           break;
         }
       }
@@ -62,18 +81,22 @@
       switch (e.keyCode) {
         case kWKey: {
           stop(kForward);
+          kKeyCount[kForward] = 0;
           break;
         }
         case kSKey: {
           stop(kBackward);
+          kKeyCount[kBackward] = 0;
           break;
         }
         case kAKey: {
           stop(kLeft);
+          kKeyCount[kLeft] = 0;
           break;
         }
         case kDKey: {
           stop(kRight);
+          kKeyCount[kRight] = 0;
           break;
         }
       }
