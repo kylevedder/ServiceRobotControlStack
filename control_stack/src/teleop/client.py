@@ -22,7 +22,7 @@ url = opt.server_url
 port = 9001
 
 def get_laptop_state():
-  out = subprocess.Popen(['upower', '-i', '/org/freedesktop/UPower/devices/battery_BAT0'],
+  out = subprocess.Popen(['upower', '-i', '/org/freedesktop/UPower/devices/battery_BAT0', '|', 'grep', '-E', '"percentage|state"'],
                          stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT)
   stdout, stderr = out.communicate()
