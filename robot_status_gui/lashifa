@@ -1,4 +1,5 @@
 #!/bin/bash
+source /opt/ros/melodic/setup.bash
 clear
 cat << "EOF"
  _      _   ___ _  _ ___ ___ _
