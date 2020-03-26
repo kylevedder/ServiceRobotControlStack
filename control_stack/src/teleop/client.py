@@ -1,23 +1,39 @@
 #!/usr/bin/env python2
 import rospy
 from geometry_msgs.msg import Twist
+from kobuki_msgs.msg import SensorState
+import requests
 import socket
 import json
 import argparse
 
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument("robot_name", help="Robot name [robot0|robot1|robot2]")
+parser.add_argument("server_url", help="Robot url without protocol")
 opt = parser.parse_args()
+
+url = opt.server_url
+port = 9001
+
+def sensor_state_callback(sensor_state):
+  if sensor_state.header.seq % 20 != 0:
+    return
+  is_charging = (sensor_state.charger != 0)
+  battery = sensor_state.battery
+  data = {'robot' : opt.robot_name, 'is_charging' : is_charging, 'battery' : battery}
+  requests.post(url= "http://" + url + '/update_status', data = data)
+
 
 
 rospy.init_node('teleop')
-pub = rospy.Publisher('/teleop_topic', Twist, queue_size=10)
+teleop_pub = rospy.Publisher('/teleop_topic', Twist, queue_size=10)
+status_sub = rospy.Subscriber('/mobile_base/sensors/core', SensorState)
+
 
 # create a socket object
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-url = "192.168.0.102"
-port = 9001
 
 # connection to hostname on the port.
 try:
@@ -62,6 +78,6 @@ while True:
     print("Failed to parse >>{}<<".format(msg_str))
     continue
   print(msg_json)
-  pub.publish(make_twist(msg_json))
+  teleop_pub.publish(make_twist(msg_json))
 
 s.close()

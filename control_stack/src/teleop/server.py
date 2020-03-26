@@ -10,6 +10,7 @@ import json
 kTimeout = 0.1
 socket.setdefaulttimeout(kTimeout)
 robot_connection_map = dict()
+robot_status_map = dict()
 
 is_running = True
 
@@ -19,7 +20,6 @@ serversocket = socket.socket(
 serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 host = "192.168.0.102"
-
 port = 9001
 
 def thread_function():
@@ -60,9 +60,11 @@ if __name__ == "__main__":
     app = Flask(__name__, static_url_path='')
 
     kCommandEndpoint = "/send_command"
+    kStatusUpdateEndpoint = "/update_status"
+    kStatusReadEndpoint = "/read_status"
 
     @app.route(kCommandEndpoint, methods=['POST'])
-    def result():
+    def command_endpoint():
         data = request.json
         robot_name = data['robot']
         res = robot_connection_map.get(robot_name, None)
@@ -72,6 +74,16 @@ if __name__ == "__main__":
         clientsocket.send(json.dumps(data).encode('ascii'))
         return "Success!"
 
+    @app.route(kStatusUpdateEndpoint, methods=['POST'])
+    def status_update_endpoint():
+        data = request.json
+        robot_status_map[data['robot']] = data
+        return "Success!"
+
+    @app.route(kStatusReadEndpoint + '/<string:robot_name>', methods=['GET'])
+    def status_read_endpoint(robot_name):
+        return robot_status_map.get(robot_name, {})
+
     @app.route('/')
     def root():
         return app.send_static_file('index.html')
@@ -80,7 +92,8 @@ if __name__ == "__main__":
     def robot_page(robot_name):
         return render_template('robot_control_template.html',
                                robot_name=robot_name,
-                               server_url=kCommandEndpoint)
+                               server_url=kCommandEndpoint,
+                               status_update_path=kStatusReadEndpoint + '/' + robot_name)
 
 
     app.run(host, debug=False, port=5000)

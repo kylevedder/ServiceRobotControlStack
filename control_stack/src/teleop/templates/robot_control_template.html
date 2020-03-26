@@ -25,6 +25,27 @@
 
     kKeyRepeatCount = 5;
 
+    function status_update_callback(response_text) {
+      // response = JSON.parse(response_text);
+      document.getElementById("status").innerText = response_text;
+    }
+
+    function http_get_async(url, callback) {
+      var xmlHttp = new XMLHttpRequest();
+      xmlHttp.onreadystatechange = function() {
+        if (xmlHttp.readyState === 4 && xmlHttp.status === 200)
+          callback(xmlHttp.responseText);
+      };
+      xmlHttp.open("GET", url, true);
+      xmlHttp.send(null);
+    }
+
+    function update_robot_status() {
+      http_get_async("{{ status_update_path }}", status_update_callback);
+      setTimeout(update_robot_status, 1000);
+    }
+    update_robot_status();
+
     function send_command() {
       var xhr = new XMLHttpRequest();
       xhr.open("POST", "{{ server_url }}", true);
@@ -43,8 +64,6 @@
     }
 
     function key_down(e) {
-      console.log("Hello");
-      console.log(kKeyCount);
       switch (e.keyCode) {
         case kWKey: {
           ++kKeyCount[kForward];
@@ -105,9 +124,6 @@
     document.onkeydown = key_down;
     document.onkeyup = key_up;
 
-    function clicked(direction) {
-      console.log("CLICKED " + direction)
-    }
   </script>
   <body>
     <h1>{{ robot_name }} control page</h1>
@@ -115,6 +131,8 @@
     <p>Controls:</p>
 
     <p>WASD keys to move. W/D move forward and backwards; A/D rotate left and right.</p>
+
+    <p>Robot status: <div id="status">Connecting...</div></p>
 
 <!--    <table>-->
 <!--      <tr>-->
