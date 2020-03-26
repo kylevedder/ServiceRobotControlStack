@@ -139,7 +139,8 @@ struct CallbackWrapper {
                       .toSec() /
                   static_cast<double>(laser_times_buffer_.size() - 1);
     NP_CHECK_VAL(mean_time_delta > 0, mean_time_delta);
-    obstacle_detector_.UpdateObservation({0, 0, 0}, laser);
+    obstacle_detector_.UpdateObservation(
+        {0, 0, 0}, laser, &detected_walls_pub_);
     const util::Twist commanded_velocity = CommandVelocity(
         GetDesiredCommand(), static_cast<float>(mean_time_delta));
     obstacle_detector_.UpdateCommand(commanded_velocity);
@@ -192,6 +193,10 @@ struct CallbackWrapper {
 
   util::Twist CommandVelocity(const util::Twist& desired_command,
                               const float& time_delta) {
+    static const util::Twist kZeroTwist(0, 0, 0);
+    if (desired_command == kZeroTwist) {
+      return desired_command;
+    }
     const util::Twist safe_cmd =
         obstacle_detector_.MakeCommandSafe(desired_command,
                                            time_delta,
