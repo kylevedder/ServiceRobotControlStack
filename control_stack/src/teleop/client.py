@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 import rospy
-from geometry_msgs.msg import Pose2D
+from geometry_msgs.msg import Twist
 import socket
 import json
 import argparse
@@ -11,7 +11,7 @@ opt = parser.parse_args()
 
 
 rospy.init_node('teleop')
-pub = rospy.Publisher('/teleop_twist', Pose2D, queue_size=10)
+pub = rospy.Publisher('/teleop_twist', Twist, queue_size=10)
 
 # create a socket object
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -27,7 +27,7 @@ except socket.error:
 
 s.send(opt.robot_name.encode('ascii'))
 
-def make_pose(msg_json):
+def make_twist(msg_json):
   delta_x = 0
   delta_theta = 0
 
@@ -43,7 +43,10 @@ def make_pose(msg_json):
   if msg_json[u'right']:
     delta_theta -= kThetaDelta
 
-  return (delta_x, 0, delta_theta)
+  twist = Twist()
+  twist.linear.x = delta_x
+  twist.angular.z = delta_theta
+  return twist
 
 while True:
   # Receive no more than 1024 bytes
@@ -59,6 +62,6 @@ while True:
     print("Failed to parse >>{}<<".format(msg_str))
     continue
   print(msg_json)
-  pub.publish(*make_pose(msg_json))
+  pub.publish(make_twist(msg_json))
 
 s.close()

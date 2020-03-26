@@ -212,6 +212,9 @@ target_link_libraries(simulator_node util_lib lua5.1 ${catkin_LIBRARIES})
 add_executable(nav_node src/main/nav_node.cpp)
 target_link_libraries(nav_node util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
 
+add_executable(teleop_node src/main/teleop_node.cpp)
+target_link_libraries(teleop_node util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
+
 add_executable(bag_fill_in src/util/bag_fill_in.cpp)
 target_link_libraries(bag_fill_in util_lib lua5.1 ${catkin_LIBRARIES})
 #add_dependencies(nav_node util_lib particle_filter_lib obstacle_avoidance_lib)

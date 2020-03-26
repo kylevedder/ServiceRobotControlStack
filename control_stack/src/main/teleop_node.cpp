@@ -1,4 +1,4 @@
-// Copyright 2019 - 2020 kvedder@seas.upenn.edu
+// Copyright 2020 kvedder@seas.upenn.edu
 // School of Engineering and Applied Sciences,
 // University of Pennsylvania
 //
@@ -49,12 +49,6 @@
 static constexpr bool kDebug = true;
 
 namespace params {
-CONFIG_STRING(kMap, "pf.kMap");
-CONFIG_FLOAT(kInitX, "pf.kInitX");
-CONFIG_FLOAT(kInitY, "pf.kInitY");
-CONFIG_FLOAT(kInitTheta, "pf.kInitTheta");
-CONFIG_FLOAT(kGoalX, "pf.kGoalX");
-CONFIG_FLOAT(kGoalY, "pf.kGoalY");
 CONFIG_FLOAT(kRobotRadius, "pf.kRobotRadius");
 CONFIG_FLOAT(kSafetyMargin, "pf.kSafetyMargin");
 CONFIG_FLOAT(kCollisionRollout, "pf.kCollisionRollout");
@@ -74,18 +68,15 @@ static constexpr size_t kTimeBufferSize = 5;
 
 struct CallbackWrapper {
   util::Map map_;
-  cs::localization::ParticleFilter particle_filter_;
   cs::obstacle_avoidance::ObstacleDetector obstacle_detector_;
-  cs::path_finding::RRT path_finder_;
   cs::datastructures::CircularBuffer<ros::Time, kTimeBufferSize>
       odom_times_buffer_;
   cs::datastructures::CircularBuffer<ros::Time, kTimeBufferSize>
       laser_times_buffer_;
   tf::TransformBroadcaster br_;
-  Eigen::Vector2f current_goal_;
+  util::Twist current_command_;
 
   // Functionality pub/sub
-  ros::Publisher position_pub_;
   ros::Publisher velocity_pub_;
   ros::Subscriber odom_sub_;
   ros::Subscriber laser_sub_;
@@ -103,18 +94,8 @@ struct CallbackWrapper {
 
   CallbackWrapper() = delete;
 
-  CallbackWrapper(const std::string& map_file, ros::NodeHandle* n)
-      : map_(map_file),
-        particle_filter_(map_,
-                         {params::CONFIG_kInitX,
-                          params::CONFIG_kInitY,
-                          params::CONFIG_kInitTheta}),
-        obstacle_detector_(map_),
-        path_finder_(
-            map_, params::CONFIG_kRobotRadius, params::CONFIG_kSafetyMargin),
-        current_goal_(params::CONFIG_kGoalX, params::CONFIG_kGoalY) {
-    position_pub_ =
-        n->advertise<geometry_msgs::Twist>(constants::kPositionTopic, 10);
+  explicit CallbackWrapper(ros::NodeHandle* n)
+      : map_(), obstacle_detector_(map_), current_command_() {
     velocity_pub_ = n->advertise<geometry_msgs::Twist>(
         constants::kCommandVelocityTopic, 10);
     laser_sub_ = n->subscribe(
@@ -142,36 +123,8 @@ struct CallbackWrapper {
     }
   }
 
-  static util::Twist DriveToWaypoint(const util::Pose& pose,
-                                     const Eigen::Vector2f& waypoint) {
-    const auto robot_heading = geometry::Heading(pose.rot);
-    const Eigen::Vector2f waypoint_delta = (waypoint - pose.tra);
-    const float distance_to_goal_sq = waypoint_delta.squaredNorm();
-    NP_FINITE(distance_to_goal_sq);
-    if (distance_to_goal_sq < Sq(params::CONFIG_goal_deadzone_tra)) {
-      return {0, 0, 0};
-    }
-
-    const auto waypoint_heading = geometry::GetNormalizedOrZero(waypoint_delta);
-    NP_FINITE_2F(waypoint_heading);
-    const int angle_direction =
-        math_util::Sign(geometry::Cross(robot_heading, waypoint_heading));
-    NP_FINITE(angle_direction);
-    const float angle = std::acos(robot_heading.dot(waypoint_heading));
-    NP_FINITE(angle);
-    NP_CHECK_VAL(angle >= 0 && angle <= kPi + kEpsilon, angle);
-    float x = 0;
-    if (angle < params::CONFIG_rotation_drive_threshold) {
-      x = std::sqrt(distance_to_goal_sq);
-      x *= math_util::Sign(waypoint_heading.dot(robot_heading));
-    }
-    return {x * params::CONFIG_translation_p,
-            0,
-            angle * angle_direction * params::CONFIG_rotation_p};
-  }
-
-  void GoalCallback(const geometry_msgs::Pose2D& msg) {
-    current_goal_ = {msg.x, msg.y};
+  void GoalCallback(const geometry_msgs::Twist& msg) {
+    current_command_ = util::Twist({msg.linear.x, 0}, msg.angular.z);
   }
 
   void LaserCallback(const sensor_msgs::LaserScan& msg) {
@@ -192,31 +145,13 @@ struct CallbackWrapper {
                       .toSec() /
                   static_cast<double>(laser_times_buffer_.size() - 1);
     NP_CHECK_VAL(mean_time_delta > 0, mean_time_delta);
-    particle_filter_.UpdateObservation(laser);
-    const auto est_pose = particle_filter_.WeightedCentroid();
-    position_pub_.publish(est_pose.ToTwist());
-    obstacle_detector_.UpdateObservation(est_pose, laser, &detected_walls_pub_);
-    const auto& dynamic_map = obstacle_detector_.GetDynamicMap();
-    const auto path = path_finder_.FindPath(
-        dynamic_map, est_pose.tra, current_goal_, &rrt_tree_pub_);
-    const auto base_link_path =
-        path.TransformPath((-particle_filter_.WeightedCentroid()).ToAffine());
-    robot_path_pub_.publish(visualization::DrawPath(path, "map", "path"));
-    base_link_robot_path_pub_.publish(
-        visualization::DrawPath(base_link_path, "base_link", "path"));
-    util::Twist desired_command(0, 0, 0);
-    if (path.IsValid()) {
-      desired_command = DriveToWaypoint(est_pose, path.waypoints[1]);
-    }
     const util::Twist commanded_velocity =
-        CommandVelocity(desired_command, static_cast<float>(mean_time_delta));
+        CommandVelocity(current_command_, static_cast<float>(mean_time_delta));
     obstacle_detector_.UpdateCommand(commanded_velocity);
     PublishTransforms();
     if (kDebug) {
-      particle_filter_.DrawParticles(&particle_pub_);
-      map_pub_.publish(map_.ToMarker());
       robot_size_pub_.publish(
-          visualization::MakeCylinder(est_pose.tra,
+          visualization::MakeCylinder({0, 0},
                                       params::CONFIG_kRobotRadius,
                                       3.0,
                                       "map",
@@ -249,13 +184,11 @@ struct CallbackWrapper {
         static_cast<double>(odom_times_buffer_.size() - 1);
     NP_CHECK(mean_time_delta > 0);
     const util::Twist delta = velocity * static_cast<float>(mean_time_delta);
-    particle_filter_.UpdateOdom(delta.tra.x(), delta.rot);
+    std::cout << delta << std::endl;
+    //    particle_filter_.UpdateOdom(delta.tra.x(), delta.rot);
     if (kDebug) {
-      particle_filter_.DrawParticles(&particle_pub_);
       map_pub_.publish(map_.ToMarker());
     }
-    obstacle_detector_.UpdateOdom(particle_filter_.WeightedCentroid(),
-                                  velocity);
   }
 
   util::Twist CommandVelocity(const util::Twist& desired_command,
@@ -274,29 +207,17 @@ struct CallbackWrapper {
   void PublishTransforms() {
     br_.sendTransform(tf::StampedTransform(
         tf::Transform::getIdentity(), ros::Time::now(), "laser", "base_link"));
-
-    const util::Pose current_pose = particle_filter_.WeightedCentroid();
-    NP_FINITE_2F(current_pose.tra);
-    NP_FINITE(current_pose.rot);
-    tf::Transform transform;
-    transform.setOrigin(
-        tf::Vector3(current_pose.tra.x(), current_pose.tra.y(), 0.0));
-    tf::Quaternion q;
-    q.setRPY(0, 0, current_pose.rot);
-    transform.setRotation(q);
-    br_.sendTransform(tf::StampedTransform(
-        transform.inverse(), ros::Time::now(), "base_link", "map"));
   }
 };
 
 int main(int argc, char** argv) {
   config_reader::ConfigReader reader(
       {"src/ServiceRobotControlStack/control_stack/config/nav_config.lua"});
-  ros::init(argc, argv, "nav_node");
+  ros::init(argc, argv, "teleop_node");
 
   ros::NodeHandle n;
 
-  CallbackWrapper cw(params::CONFIG_kMap, &n);
+  CallbackWrapper cw(&n);
 
   ros::spin();
 
