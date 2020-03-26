@@ -88,6 +88,7 @@ def socket_reading_thread():
     teleop_pub.publish(make_twist(msg_json))
 
 x = threading.Thread(target=socket_reading_thread)
+x.start()
 
 def handler(num, frame):
   global  is_running
