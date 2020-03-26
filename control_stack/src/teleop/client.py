@@ -20,6 +20,7 @@ url = opt.server_url
 port = 9001
 
 def sensor_state_callback(sensor_state):
+  print("Sensor state callback")
   if sensor_state.header.seq % 20 != 0:
     return
   is_charging = (sensor_state.charger != 0)
@@ -44,14 +45,13 @@ except socket.error:
   exit("Failed to connect socket to command server at {}".format(url))
 
 s.send(opt.robot_name.encode('ascii'))
-is_running = True
 
 def make_twist(msg_json):
   delta_x = 0
   delta_theta = 0
 
-  kForwardDelta = 0.1
-  kThetaDelta = 0.5
+  kForwardDelta = 0.2
+  kThetaDelta = 1
 
   if msg_json[u'forward']:
     delta_x += kForwardDelta
@@ -68,7 +68,7 @@ def make_twist(msg_json):
   return twist
 
 def socket_reading_thread():
-  while is_running:
+  while not rospy.is_shutdown():
     try:
       # Receive no more than 1024 bytes
       msg = s.recv(1024)
@@ -90,12 +90,6 @@ def socket_reading_thread():
 x = threading.Thread(target=socket_reading_thread)
 x.start()
 
-def handler(num, frame):
-  global  is_running
-  is_running = False
-  x.join()
-  s.close()
-
-signal.signal(signal.SIGINT, handler)
-
 rospy.spin()
+x.join()
+s.close()
