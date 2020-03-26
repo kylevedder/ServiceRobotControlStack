@@ -7,7 +7,7 @@ import socket
 import json
 import argparse
 import threading
-import signal
+import time
 
 kTimeout = 0.1
 socket.setdefaulttimeout(kTimeout)
