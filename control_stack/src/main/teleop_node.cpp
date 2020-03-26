@@ -195,6 +195,8 @@ struct CallbackWrapper {
                               const float& time_delta) {
     static const util::Twist kZeroTwist(0, 0, 0);
     if (desired_command.tra.x() <= 0) {
+      const util::Twist sent_cmd = TransformTwistUsingSign(desired_command);
+      velocity_pub_.publish(sent_cmd.ToTwist());
       return desired_command;
     }
     const util::Twist safe_cmd =
