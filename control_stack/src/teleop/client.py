@@ -28,7 +28,7 @@ def get_laptop_state():
                          stderr=subprocess.STDOUT)
   stdout, stderr = out.communicate()
   lines = stdout.splitlines()
-  state, percentage = [e.strip().split(' ')[1].strip() for e in lines]
+  state, percentage = [e.strip().split(':')[1].strip() for e in lines]
   return state, percentage
 
 def sensor_state_callback(sensor_state):
