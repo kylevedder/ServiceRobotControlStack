@@ -194,7 +194,7 @@ struct CallbackWrapper {
   util::Twist CommandVelocity(const util::Twist& desired_command,
                               const float& time_delta) {
     static const util::Twist kZeroTwist(0, 0, 0);
-    if (desired_command == kZeroTwist) {
+    if (desired_command.tra.x() <= 0) {
       return desired_command;
     }
     const util::Twist safe_cmd =
