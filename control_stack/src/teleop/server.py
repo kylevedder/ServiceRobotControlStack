@@ -4,7 +4,6 @@ from flask import Flask, request, send_from_directory, render_template
 import socket                                         
 import threading
 import time
-import signal
 import json
 
 kTimeout = 0.1

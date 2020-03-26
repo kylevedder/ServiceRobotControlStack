@@ -6,9 +6,11 @@ import requests
 import socket
 import json
 import argparse
+import threading
+import signal
 
-
-
+kTimeout = 0.1
+socket.setdefaulttimeout(kTimeout)
 parser = argparse.ArgumentParser()
 parser.add_argument("robot_name", help="Robot name [robot0|robot1|robot2]")
 parser.add_argument("server_url", help="Robot url without protocol")
@@ -42,6 +44,7 @@ except socket.error:
   exit("Failed to connect socket to command server at {}".format(url))
 
 s.send(opt.robot_name.encode('ascii'))
+is_running = True
 
 def make_twist(msg_json):
   delta_x = 0
@@ -64,20 +67,31 @@ def make_twist(msg_json):
   twist.angular.z = delta_theta
   return twist
 
-while True:
-  # Receive no more than 1024 bytes
-  msg = s.recv(1024)
-  msg_str = msg.decode('ascii').strip()
-  if len(msg_str) == 0:
-    # Socket connection ended.
-    print("Socket connect to command server terminated!")
-    break
-  try:
-    msg_json = json.loads(msg_str)
-  except:
-    print("Failed to parse >>{}<<".format(msg_str))
-    continue
-  print(msg_json)
-  teleop_pub.publish(make_twist(msg_json))
+def socket_reading_thread():
+  while is_running:
+    # Receive no more than 1024 bytes
+    msg = s.recv(1024)
+    msg_str = msg.decode('ascii').strip()
+    if len(msg_str) == 0:
+      # Socket connection ended.
+      print("Socket connect to command server terminated!")
+      break
+    try:
+      msg_json = json.loads(msg_str)
+    except:
+      print("Failed to parse >>{}<<".format(msg_str))
+      continue
+    print(msg_json)
+    teleop_pub.publish(make_twist(msg_json))
 
-s.close()
+x = threading.Thread(target=socket_reading_thread)
+
+def handler():
+  global  is_running
+  is_running = False
+  x.join()
+  s.close()
+
+signal.signal(signal.SIGINT, handler)
+
+rospy.spin()
