@@ -14,6 +14,7 @@ socket.setdefaulttimeout(kTimeout)
 parser = argparse.ArgumentParser()
 parser.add_argument("robot_name", help="Robot name [robot0|robot1|robot2]")
 parser.add_argument("server_url", help="Robot url without protocol")
+parser.add_argument("server_http_port", default=80, help="Robot server HTTP port")
 opt = parser.parse_args()
 
 url = opt.server_url
@@ -26,13 +27,11 @@ def sensor_state_callback(sensor_state):
   is_charging = (sensor_state.charger != 0)
   battery = sensor_state.battery
   data = {'robot' : opt.robot_name, 'is_charging' : is_charging, 'battery' : battery}
-  requests.post(url= "http://" + url + '/update_status', data = data)
-
-
+  requests.post(url= "http://" + url + '/update_status', port=opt.server_http_port, data = data)
 
 rospy.init_node('teleop')
 teleop_pub = rospy.Publisher('/teleop_topic', Twist, queue_size=10)
-status_sub = rospy.Subscriber('/mobile_base/sensors/core', SensorState)
+status_sub = rospy.Subscriber('/mobile_base/sensors/core', SensorState, sensor_state_callback)
 
 
 # create a socket object
