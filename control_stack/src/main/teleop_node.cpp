@@ -211,6 +211,8 @@ struct CallbackWrapper {
   void PublishTransforms() {
     br_.sendTransform(tf::StampedTransform(
         tf::Transform::getIdentity(), ros::Time::now(), "laser", "base_link"));
+    br_.sendTransform(tf::StampedTransform(
+        tf::Transform::getIdentity(), ros::Time::now(), "base_link", "map"));
   }
 };
 
