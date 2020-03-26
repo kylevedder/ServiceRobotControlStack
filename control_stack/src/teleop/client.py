@@ -46,6 +46,7 @@ def init_socket():
     try:
       s.connect((url, port))
       is_connected = True
+      print("Connected socket to command server at {}".format(url))
     except socket.error:
       print("Failed to connect socket to command server at {}".format(url))
       time.sleep(0.2)
