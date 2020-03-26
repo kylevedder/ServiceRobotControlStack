@@ -54,14 +54,18 @@
       }
 
       response = JSON.parse(response_text);
-      // <td>Connection Status:</td><td id="connection_status">LOADING</td>
-      //   <td>Battery Level:</td><td id="battery_level">LOADING</td>
-      //   <td>Charging Status:</td><td id="charging_status">LOADING</td>
-      let is_connected = (response["delta_time"] < 2);
-      document.getElementById("connection_status").innerText = is_connected ? "Connected" : "Cannot connect to robot!";
-      document.getElementById("connection_status").style.color = is_connected ? "green" : "red";
-      document.getElementById("battery_level").innerText = is_connected ? response["battery"] : "Not connected";
-      document.getElementById("charging_status").innerText = is_connected ? ((response["is_charging"]) ? "Charging" : "Draining") : "Not connected";
+      let is_robot_connected = (response["delta_time"] < 2);
+      if (is_robot_connected) {
+        document.getElementById("connection_status").innerText = "Connected";
+        document.getElementById("connection_status").style.color = "green";
+        document.getElementById("battery_level").innerText = response["battery"];
+        document.getElementById("charging_status").innerText = (response["is_charging"]) ? "Charging" : "Draining";
+        return;
+      }
+      document.getElementById("connection_status").innerText = "Cannot connect to robot!";
+      document.getElementById("connection_status").style.color = "red";
+      document.getElementById("battery_level").innerText = "Not connected";
+      document.getElementById("charging_status").innerText = "Not connected";
     }
 
     function get_status(url, callback) {
