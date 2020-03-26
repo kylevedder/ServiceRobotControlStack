@@ -85,7 +85,6 @@ struct CallbackWrapper {
 
   // Debug pub/sub
   ros::Publisher modified_laser_pub_;
-  ros::Publisher map_pub_;
   ros::Publisher detected_walls_pub_;
   ros::Publisher robot_size_pub_;
   ros::Publisher robot_path_pub_;
@@ -187,9 +186,6 @@ struct CallbackWrapper {
     //    const util::Twist delta = velocity *
     //    static_cast<float>(mean_time_delta); std::cout << delta << std::endl;
     //    particle_filter_.UpdateOdom(delta.tra.x(), delta.rot);
-    if (kDebug) {
-      map_pub_.publish(map_.ToMarker());
-    }
   }
 
   util::Twist GetDesiredCommand() const {
