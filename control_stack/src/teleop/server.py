@@ -65,9 +65,7 @@ if __name__ == "__main__":
     @app.route(kCommandEndpoint, methods=['POST'])
     def result():
         data = request.json
-        print(data)
         robot_name = data['robot']
-        print(robot_name)
         res = robot_connection_map.get(robot_name, None)
         if not res:
             return "Failure!"
