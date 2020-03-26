@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
     @app.route(kStatusReadEndpoint + '/<string:robot_name>', methods=['GET'])
     def status_read_endpoint(robot_name):
-        data = robot_status_map.get(robot_name, {})
+        data = robot_status_map.get(robot_name, {"timestamp" : 0})
         data["delta_time"] = time.time() - data["timestamp"]
         return data
 
