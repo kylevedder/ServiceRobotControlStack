@@ -21,7 +21,7 @@ url = opt.server_url
 port = 9001
 
 def sensor_state_callback(sensor_state):
-  print("Sensor state callback")
+  # Runs at 20 Hz
   if sensor_state.header.seq % 20 != 0:
     return
   is_charging = (sensor_state.charger != 0)
@@ -37,17 +37,22 @@ rospy.init_node('teleop')
 teleop_pub = rospy.Publisher('/teleop_topic', Twist, queue_size=10)
 status_sub = rospy.Subscriber('/mobile_base/sensors/core', SensorState, sensor_state_callback)
 
+def init_socket():
+  # create a socket object
+  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  # connection to hostname on the port.
+  is_connected = False
+  while not is_connected:
+    try:
+      s.connect((url, port))
+      is_connected = True
+    except socket.error:
+      print("Failed to connect socket to command server at {}".format(url))
 
-# create a socket object
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  s.send(opt.robot_name.encode('ascii'))
+  return s
 
-# connection to hostname on the port.
-try:
-  s.connect((url, port))
-except socket.error:
-  exit("Failed to connect socket to command server at {}".format(url))
-
-s.send(opt.robot_name.encode('ascii'))
+s = init_socket()
 
 def make_twist(msg_json):
   delta_x = 0
@@ -71,6 +76,7 @@ def make_twist(msg_json):
   return twist
 
 def socket_reading_thread():
+  global s
   while not rospy.is_shutdown():
     try:
       # Receive no more than 1024 bytes
@@ -81,7 +87,8 @@ def socket_reading_thread():
     if len(msg_str) == 0:
       # Socket connection ended.
       print("Socket connect to command server terminated!")
-      break
+      s = init_socket()
+      continue
     try:
       msg_json = json.loads(msg_str)
     except:

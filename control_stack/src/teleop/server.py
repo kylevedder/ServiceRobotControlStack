@@ -75,13 +75,16 @@ if __name__ == "__main__":
 
     @app.route(kStatusUpdateEndpoint, methods=['POST'])
     def status_update_endpoint():
-        data = request.json
+        data = request.json.copy()
+        data["timestamp"] = time.time()
         robot_status_map[data['robot']] = data
         return "Success!"
 
     @app.route(kStatusReadEndpoint + '/<string:robot_name>', methods=['GET'])
     def status_read_endpoint(robot_name):
-        return robot_status_map.get(robot_name, {})
+        data = robot_status_map.get(robot_name, {})
+        data["delta_time"] = time.time() - data["timestamp"]
+        return data
 
     @app.route('/')
     def root():
