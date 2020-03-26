@@ -50,6 +50,7 @@ teleop_pub = rospy.Publisher('/teleop_topic', Twist, queue_size=10)
 status_sub = rospy.Subscriber('/mobile_base/sensors/core', SensorState, sensor_state_callback)
 
 def init_socket():
+  socket.setdefaulttimeout(kTimeout)
   # create a socket object
   s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   # connection to hostname on the port.
