@@ -8,6 +8,7 @@ import json
 import argparse
 import threading
 import time
+import subprocess
 
 kTimeout = 0.1
 socket.setdefaulttimeout(kTimeout)
@@ -20,13 +21,23 @@ opt = parser.parse_args()
 url = opt.server_url
 port = 9001
 
+def get_laptop_state():
+  out = subprocess.Popen(['upower', '-i', '/org/freedesktop/UPower/devices/battery_BAT0'],
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT)
+  stdout, stderr = out.communicate()
+  lines = stdout.splitlines()
+  state, percentage = [e.strip().split(' ')[1].strip() for e in lines]
+  return state, percentage
+
 def sensor_state_callback(sensor_state):
   # Runs at 20 Hz
   if sensor_state.header.seq % 20 != 0:
     return
   is_charging = (sensor_state.charger != 0)
   battery = sensor_state.battery
-  payload = {'robot' : opt.robot_name, 'is_charging' : is_charging, 'battery' : battery}
+  laptop_state, laptop_percentage = get_laptop_state()
+  payload = {'robot' : opt.robot_name, 'is_charging' : is_charging, 'battery' : battery, 'laptop_state': laptop_state, 'laptop_percentage': laptop_percentage}
   status_url = "http://" + url + ":" + str(opt.http_port) + '/update_status'
   try:
     requests.post(url=status_url, json=payload)
