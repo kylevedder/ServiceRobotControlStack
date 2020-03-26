@@ -26,8 +26,12 @@ def sensor_state_callback(sensor_state):
     return
   is_charging = (sensor_state.charger != 0)
   battery = sensor_state.battery
-  data = {'robot' : opt.robot_name, 'is_charging' : is_charging, 'battery' : battery}
-  requests.post(url= "http://" + url + ":" + str(opt.http_port) + '/update_status', data = data)
+  payload = {'robot' : opt.robot_name, 'is_charging' : is_charging, 'battery' : battery}
+  status_url = "http://" + url + ":" + str(opt.http_port) + '/update_status'
+  try:
+    requests.post(url=status_url, json=payload)
+  except:
+    print("Failed to update robot server at " + status_url)
 
 rospy.init_node('teleop')
 teleop_pub = rospy.Publisher('/teleop_topic', Twist, queue_size=10)
