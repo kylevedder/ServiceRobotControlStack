@@ -2,6 +2,6 @@
 Encoding=UTF-8
 Name=LASHIFA
 Comment=LASHIFA
-Exec=bash ~/code/catkin_ws/src/ServiceRobotControlStack/robot_status_gui/lashifa.desktop
+Exec=bash ~/code/catkin_ws/src/ServiceRobotControlStack/robot_status_gui/lashifa
 Terminal=false
 Type=Application
