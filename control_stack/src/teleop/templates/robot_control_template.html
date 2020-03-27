@@ -5,7 +5,7 @@
 
     <p>
     <h2>Controls:</h2>
-    <div>WASD keys or Arrow keys to move. W/D or ↑/↓ move forward and backwards; A/D or ←/→ rotate left and right.</div>
+    <div>WASD keys or Arrow keys to move. W/D or ↑/↓ move forward and backwards; A/D or ←/→ rotate left and right. This window must have focus to capture key presses.</div>
     </p>
 
     <p>
@@ -90,7 +90,7 @@
         document.getElementById("connection_status").innerText = "Connected";
         document.getElementById("connection_status").style.color = "green";
         document.getElementById("battery_level").innerText = response["battery"];
-        document.getElementById("charging_status").innerText = (response["is_charging"]) ? "Charging" : "Draining";
+        document.getElementById("charging_status").innerText = (response["is_charging"]) ? "Charging" : "Discharging";
         document.getElementById("laptop_battery_level").innerText = response["laptop_percentage"];
         document.getElementById("laptop_charging_status").innerText = response["laptop_state"];
         return;
