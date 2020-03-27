@@ -64,7 +64,7 @@ CONFIG_INT(laser_deadzone_left_max, "laser.laser_deadzone_left_max");
 CONFIG_INT(laser_deadzone_right_min, "laser.laser_deadzone_right_min");
 CONFIG_INT(laser_deadzone_right_max, "laser.laser_deadzone_right_max");
 
-CONFIG_INT(max_tra_acc, "limits.kMaxTraAcc");
+CONFIG_FLOAT(max_tra_acc, "limits.kMaxTraAcc");
 }  // namespace params
 
 static constexpr size_t kTimeBufferSize = 5;
