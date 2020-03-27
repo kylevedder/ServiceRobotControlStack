@@ -86,7 +86,7 @@ def make_twist(msg_json):
     delta_theta += kThetaDelta
   if msg_json[u'right']:
     delta_theta -= kThetaDelta
-  speed = msg_json[u'speed']
+  speed = float(msg_json[u'speed'])
 
   twist = Twist()
   twist.linear.x = delta_x * speed
