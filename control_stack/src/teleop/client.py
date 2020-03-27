@@ -86,10 +86,11 @@ def make_twist(msg_json):
     delta_theta += kThetaDelta
   if msg_json[u'right']:
     delta_theta -= kThetaDelta
+  speed = msg_json[u'speed']
 
   twist = Twist()
-  twist.linear.x = delta_x
-  twist.angular.z = delta_theta
+  twist.linear.x = delta_x * speed
+  twist.angular.z = delta_theta * speed
   return twist
 
 def use_safety_system(msg_json):

@@ -4,22 +4,33 @@
     <h1>{{ robot_name }} Control Page</h1>
 
     <p>
-    <h2>Controls:</h2>
+    <h2 style="margin-bottom: 5px;">Controls:</h2>
     <div>WASD keys or Arrow keys to move. W/D or ↑/↓ move forward and backwards; A/D or ←/→ rotate left and right. This window must have focus to capture key presses.</div>
     </p>
 
+
+    <h2 style="margin-bottom: 5px;">Configuration:</h2>
     <p>
-    <h2>Configuration:</h2>
-    <div>
-      <input type="checkbox" id="scales" name="scales" onclick='safety_system_click(this);' checked>
-      <label for="scales">Use Navigation Safety System:</label>
-    </div>
-    <div style="color:gray;">
-    Prevents driving into obstacles the robot detects near its base; may cause jittering/jerking/difficulty navigating in tight spaces. Can be disabled and re-enabled on the fly.
-    </div>
+      <div>
+        <input type="checkbox" id="scales" name="scales" onclick='safety_system_click(this);' checked>
+        <label for="scales">Use Navigation Safety System</label>
+      </div>
+      <div style="color:gray;">
+      Prevents driving into obstacles the robot detects near its base; may cause jittering/jerking/difficulty navigating in tight spaces. We recommend disabling and re-enabling on the fly at your discretion.
+      </div>
     </p>
 
-    <h2>Status:</h2>
+    <p>
+      <div>Movement Speed (<span id="speed">1.0</span>x)</div>
+      <div>
+        <input type="range" min="0.5" max="1.5" value="1" step="0.1" class="slider" onchange="speed_change(this.value)">
+      </div>
+      <div style="color:gray;">
+        Sets drive and rotation speed. Allows for 0.5x to 1.5x normal drive speed. Higher speeds increase potential for tipping over.
+      </div>
+    </p>
+
+    <h2 style="margin-bottom: 5px;">Status:</h2>
     <table style="border:1px dotted #000000;">
       <tr>
         <td>Connection Status:</td><td id="connection_status">LOADING</td>
@@ -37,6 +48,9 @@
         <td>Laptop Charging Status:</td><td id="laptop_charging_status">LOADING</td>
       </tr>
     </table>
+    <div style="color:gray;">
+      Refreshes at ~1Hz.
+    </div>
   </body>
   <script>
     kAKey = 65;
@@ -60,6 +74,7 @@
     kCommandStatus[kRight] = false;
     kCommandStatus.robot = kRobotName;
     kCommandStatus.use_safety_system = true;
+    kCommandStatus.speed = 1.0;
 
     kKeyCount = {};
     kKeyCount[kForward] = 0;
@@ -68,6 +83,11 @@
     kKeyCount[kRight] = 0;
 
     kKeyRepeatCount = 5;
+
+    function speed_change(new_speed) {
+      kCommandStatus.speed = new_speed;
+      document.getElementById("speed").innerText = new_speed;
+    }
 
     function safety_system_click(cb) {
       kCommandStatus.use_safety_system = cb.checked;
