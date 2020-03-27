@@ -4,8 +4,13 @@
     <h1>{{ robot_name }} Control Page</h1>
 
     <p>
+    <h2 style="margin-bottom: 5px;">Video:</h2>
+    <div>Before driving the robot, make certain that you have an active video conference session with the robot and can see through its camera.  Do not operate the robot if you cannot see where it is driving.</div>
+    </p>
+
+    <p>
     <h2 style="margin-bottom: 5px;">Controls:</h2>
-    <div>WASD keys or Arrow keys to move. W/D or ↑/↓ move forward and backwards; A/D or ←/→ rotate left and right. This window must have focus to capture key presses.</div>
+    <div>Use W,A,S,D keys or Arrow keys to move. W/S or ↑/↓ moves forwards or backwards; A/D or ←/→ rotates left or right. This window must have focus to capture key presses.</div>
     </p>
 
 
@@ -16,7 +21,7 @@
         <label for="scales">Use Navigation Safety System</label>
       </div>
       <div style="color:gray;">
-      Prevents driving into obstacles the robot detects near its base; may cause jittering/jerking/difficulty navigating in tight spaces. We recommend disabling and re-enabling on the fly at your discretion.
+      Prevents driving into obstacles the robot detects near its base; may cause jittering/jerking/difficulty navigating in tight spaces. We recommend keeping the safety system enabled as much as possible and only disabling it when needed.
       </div>
     </p>
 
@@ -49,7 +54,7 @@
       </tr>
     </table>
     <div style="color:gray;">
-      Refreshes at ~1Hz.
+      Refreshes approximately once per second.
     </div>
   </body>
   <script>
