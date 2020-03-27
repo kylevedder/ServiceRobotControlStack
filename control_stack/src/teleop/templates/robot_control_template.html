@@ -1,12 +1,26 @@
 <html>
+  <head><title>{{ robot_name }} Control Page</title></head>
   <body>
-    <h1>{{ robot_name }} control page</h1>
+    <h1>{{ robot_name }} Control Page</h1>
 
-    <p>Controls:</p>
+    <p>
+    <h2>Controls:</h2>
+    <div>WASD keys or Arrow keys to move. W/D or ↑/↓ move forward and backwards; A/D or ←/→ rotate left and right.</div>
+    </p>
 
-    <p>WASD keys or Arrow keys to move. W/D or ↑/↓ move forward and backwards; A/D or ←/→ rotate left and right.</p>
+    <p>
+    <h2>Configuration:</h2>
+    <div>
+      <input type="checkbox" id="scales" name="scales" onclick='safety_system_click(this);' checked>
+      <label for="scales">Use Navigation Safety System:</label>
+    </div>
+    <div style="color:gray;">
+    Prevents driving into obstacles the robot detects near its base; may cause jittering/jerking/difficulty navigating in tight spaces. Can be disabled and re-enabled on the fly.
+    </div>
+    </p>
 
-    <table>
+    <h2>Status:</h2>
+    <table style="border:1px dotted #000000;">
       <tr>
         <td>Connection Status:</td><td id="connection_status">LOADING</td>
       </tr>
@@ -45,6 +59,7 @@
     kCommandStatus[kLeft] = false;
     kCommandStatus[kRight] = false;
     kCommandStatus.robot = kRobotName;
+    kCommandStatus.use_safety_system = true;
 
     kKeyCount = {};
     kKeyCount[kForward] = 0;
@@ -53,6 +68,10 @@
     kKeyCount[kRight] = 0;
 
     kKeyRepeatCount = 5;
+
+    function safety_system_click(cb) {
+      kCommandStatus.use_safety_system = cb.checked;
+    }
 
     function status_update_callback(response_text, ok_status) {
       if (!ok_status) {

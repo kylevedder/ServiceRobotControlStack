@@ -35,6 +35,7 @@ static constexpr auto kOdomTopic = "/odom";
 static constexpr auto kLaserTopic = "/scan";
 static constexpr auto kGoalTopic = "/nav_goal";
 static constexpr auto kTeleopTopic = "/teleop_topic";
+static constexpr auto kUseSafetyTopic = "/use_safety";
 }  // namespace constants
 
 static constexpr int kAssertFailReturnCode = 1;

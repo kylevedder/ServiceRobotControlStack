@@ -27,6 +27,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/LaserScan.h>
 #include <signal.h>
+#include <std_msgs/Bool.h>
 #include <tf/transform_broadcaster.h>
 #include <visualization_msgs/MarkerArray.h>
 
@@ -76,12 +77,13 @@ struct CallbackWrapper {
   tf::TransformBroadcaster br_;
   ros::Time current_command_time_;
   util::Twist current_command_;
+  bool use_safety_;
 
   // Functionality pub/sub
   ros::Publisher velocity_pub_;
-  ros::Subscriber odom_sub_;
   ros::Subscriber laser_sub_;
   ros::Subscriber teleop_sub_;
+  ros::Subscriber use_safety_sub_;
 
   // Debug pub/sub
   ros::Publisher modified_laser_pub_;
@@ -94,15 +96,18 @@ struct CallbackWrapper {
       : map_(),
         obstacle_detector_(map_),
         current_command_time_(ros::Time::now()),
-        current_command_() {
+        current_command_(),
+        use_safety_(true) {
     velocity_pub_ = n->advertise<geometry_msgs::Twist>(
         constants::kCommandVelocityTopic, 10);
     laser_sub_ = n->subscribe(
         constants::kLaserTopic, 10, &CallbackWrapper::LaserCallback, this);
-    odom_sub_ = n->subscribe(
-        constants::kOdomTopic, 10, &CallbackWrapper::OdomCallback, this);
     teleop_sub_ = n->subscribe(
         constants::kTeleopTopic, 10, &CallbackWrapper::TeleopCallback, this);
+    use_safety_sub_ = n->subscribe(constants::kUseSafetyTopic,
+                                   10,
+                                   &CallbackWrapper::UseSafetyCallback,
+                                   this);
 
     if (kDebug) {
       modified_laser_pub_ =
@@ -113,6 +118,8 @@ struct CallbackWrapper {
           n->advertise<visualization_msgs::Marker>("robot_size", 10);
     }
   }
+
+  void UseSafetyCallback(const std_msgs::Bool& msg) { use_safety_ = msg.data; }
 
   void TeleopCallback(const geometry_msgs::Twist& msg) {
     auto t = util::Twist({msg.linear.x, 0}, msg.angular.z);
@@ -164,26 +171,6 @@ struct CallbackWrapper {
     return twist;
   }
 
-  void OdomCallback(const nav_msgs::Odometry& msg) {
-    const ros::Time& current_time = msg.header.stamp;
-    //    ROS_INFO("Odom update");
-    if (odom_times_buffer_.empty() ||
-        odom_times_buffer_.back().toSec() >= current_time.toSec()) {
-      odom_times_buffer_.push_back(current_time);
-      return;
-    }
-    odom_times_buffer_.push_back(current_time);
-    //    const util::Twist velocity =
-    //        TransformTwistUsingSign(util::Twist(msg.twist.twist));
-    //    const double mean_time_delta =
-    //        (odom_times_buffer_.back() - odom_times_buffer_.front()).toSec() /
-    //        static_cast<double>(odom_times_buffer_.size() - 1);
-    //    NP_CHECK(mean_time_delta > 0);
-    //    const util::Twist delta = velocity *
-    //    static_cast<float>(mean_time_delta); std::cout << delta << std::endl;
-    //    particle_filter_.UpdateOdom(delta.tra.x(), delta.rot);
-  }
-
   util::Twist GetDesiredCommand() const {
     if ((ros::Time::now() - current_command_time_).toSec() > 1.5) {
       return util::Twist(0, 0, 0);
@@ -194,7 +181,7 @@ struct CallbackWrapper {
   util::Twist CommandVelocity(const util::Twist& desired_command,
                               const float& time_delta) {
     static const util::Twist kZeroTwist(0, 0, 0);
-    if (desired_command.tra.x() <= 0) {
+    if (desired_command.tra.x() <= 0 || !use_safety_) {
       const util::Twist sent_cmd = TransformTwistUsingSign(desired_command);
       velocity_pub_.publish(sent_cmd.ToTwist());
       return desired_command;

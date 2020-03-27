@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 import rospy
+from std_msgs.msg import Bool
 from geometry_msgs.msg import Twist
 from kobuki_msgs.msg import SensorState
 import requests
@@ -29,7 +30,7 @@ def get_laptop_state():
   stdout, stderr = out.communicate()
   lines = stdout.splitlines()
   state, percentage = [e.strip().split(':')[1].strip() for e in lines]
-  return state, percentage
+  return state.capitalize(), percentage
 
 def sensor_state_callback(sensor_state):
   # Runs at 20 Hz
@@ -47,6 +48,7 @@ def sensor_state_callback(sensor_state):
 
 rospy.init_node('teleop')
 teleop_pub = rospy.Publisher('/teleop_topic', Twist, queue_size=10)
+use_safety_pub = rospy.Publisher('/use_safety', Bool, queue_size=10)
 status_sub = rospy.Subscriber('/mobile_base/sensors/core', SensorState, sensor_state_callback)
 
 def init_socket():
@@ -90,6 +92,9 @@ def make_twist(msg_json):
   twist.angular.z = delta_theta
   return twist
 
+def use_safety_system(msg_json):
+  return msg_json.get('use_safety_system', True)
+
 def socket_reading_thread():
   global s
   while not rospy.is_shutdown():
@@ -111,6 +116,8 @@ def socket_reading_thread():
       continue
     print(msg_json)
     teleop_pub.publish(make_twist(msg_json))
+    use_safety_pub.publish(use_safety_system(msg_json))
+
 
 x = threading.Thread(target=socket_reading_thread)
 x.start()
