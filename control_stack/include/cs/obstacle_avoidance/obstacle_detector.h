@@ -66,12 +66,12 @@ class ObstacleDetector {
 
   util::Twist ApplyCommandLimits(util::Twist c, const float& time_delta) const;
 
+  util::Twist EstimateCurrentVelocity() const;
+
  private:
   std::vector<Eigen::Vector2f> GetNonMapPoints(
       const util::Pose& observation_pose,
       const util::LaserScan& observation) const;
-
-  util::Twist EstimateCurrentVelocity() const;
 
   bool StartedInCollision(const float robot_radius) const;
 

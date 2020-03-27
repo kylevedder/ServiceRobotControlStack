@@ -63,6 +63,8 @@ CONFIG_INT(laser_deadzone_left_min, "laser.laser_deadzone_left_min");
 CONFIG_INT(laser_deadzone_left_max, "laser.laser_deadzone_left_max");
 CONFIG_INT(laser_deadzone_right_min, "laser.laser_deadzone_right_min");
 CONFIG_INT(laser_deadzone_right_max, "laser.laser_deadzone_right_max");
+
+CONFIG_INT(max_tra_acc, "limits.kMaxTraAcc");
 }  // namespace params
 
 static constexpr size_t kTimeBufferSize = 5;
@@ -178,22 +180,38 @@ struct CallbackWrapper {
     return current_command_;
   }
 
-  util::Twist CommandVelocity(const util::Twist& desired_command,
+  util::Twist CapTranslationalAcceleration(util::Twist desired_command,
+                                           const float time_delta) {
+    NP_CHECK(time_delta > 0);
+    const util::Twist current_velocity =
+        obstacle_detector_.EstimateCurrentVelocity();
+    const float translational_delta =
+        desired_command.tra.x() - current_velocity.tra.x();
+    const auto sign = math_util::Sign(translational_delta);
+    if (std::abs(translational_delta) / time_delta >
+        params::CONFIG_max_tra_acc) {
+      desired_command.tra.x() =
+          current_velocity.tra.x() + sign * params::CONFIG_max_tra_acc;
+    }
+    return desired_command;
+  }
+
+  util::Twist CommandVelocity(util::Twist desired_command,
                               const float& time_delta) {
+    desired_command = CapTranslationalAcceleration(desired_command, time_delta);
     static const util::Twist kZeroTwist(0, 0, 0);
     if (desired_command.tra.x() <= 0 || !use_safety_) {
-      const util::Twist sent_cmd = TransformTwistUsingSign(desired_command);
-      velocity_pub_.publish(sent_cmd.ToTwist());
+      velocity_pub_.publish(TransformTwistUsingSign(desired_command).ToTwist());
       return desired_command;
     }
-    const util::Twist safe_cmd =
+    util::Twist safe_cmd =
         obstacle_detector_.MakeCommandSafe(desired_command,
                                            time_delta,
                                            params::CONFIG_kCollisionRollout,
                                            params::CONFIG_kRobotRadius,
                                            params::CONFIG_kSafetyMargin);
-    const util::Twist sent_cmd = TransformTwistUsingSign(safe_cmd);
-    velocity_pub_.publish(sent_cmd.ToTwist());
+    safe_cmd = CapTranslationalAcceleration(safe_cmd, time_delta);
+    velocity_pub_.publish(TransformTwistUsingSign(safe_cmd).ToTwist());
     return safe_cmd;
   }
 
