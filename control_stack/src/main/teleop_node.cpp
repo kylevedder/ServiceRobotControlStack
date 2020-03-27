@@ -190,8 +190,8 @@ struct CallbackWrapper {
     const auto sign = math_util::Sign(translational_delta);
     if (std::abs(translational_delta) / time_delta >
         params::CONFIG_max_tra_acc) {
-      desired_command.tra.x() =
-          current_velocity.tra.x() + sign * params::CONFIG_max_tra_acc;
+      desired_command.tra.x() = current_velocity.tra.x() +
+                                sign * params::CONFIG_max_tra_acc * time_delta;
     }
     return desired_command;
   }
