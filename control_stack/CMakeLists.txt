@@ -239,9 +239,7 @@ target_link_libraries(bag_outputs_nav_control util_lib nav_lib lua5.1 ${catkin_L
 include ( ${QT_USE_FILE} )
 qt4_wrap_cpp(GUIMONITOR_MOC_SRCS
         ../submodules/robot_status_gui/src/gui_topic.h
-        ../submodules/robot_status_gui/src/gui_monitor.h
-        )
-
+        ../submodules/robot_status_gui/src/gui_monitor.h)
 
 add_executable(robot_status_gui
         ../submodules/robot_status_gui/src/main.cpp

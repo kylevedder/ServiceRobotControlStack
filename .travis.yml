@@ -23,7 +23,7 @@ before_install:
 - sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
 - sudo apt-get update -qq
 - sudo apt-get install dpkg
-- sudo apt-get install -y python-catkin-pkg python-rosdep python-wstool ros-$ROS_DISTRO-desktop libglfw3-dev libpopt-dev libglfw3 freeglut3-dev libqt4-dev
+- sudo apt-get install -y python-catkin-pkg python-rosdep python-wstool ros-$ROS_DISTRO-desktop
 - "$CI_SOURCE_PATH/submodules/config-reader/InstallPackages"
 - "$CI_SOURCE_PATH/InstallPackages"
 - sudo pip uninstall -y enum34
