@@ -43,9 +43,5 @@ script:
 - source /opt/ros/$ROS_DISTRO/setup.bash
 - cd ~/catkin_ws
 - catkin_make -j
-- pushd $CI_SOURCE_PATH/robot_status_gui/robot_status_gui
-- export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:`pwd`
-- make
-- popd
 - source devel/setup.bash
 - src/ServiceRobotControlStack/ci/ci_tasks.py
