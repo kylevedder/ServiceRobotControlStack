@@ -1,9 +1,9 @@
 [submodule "config_reader"]
-	path = submodules/config_reader
+	path = config_reader
 	url = ../../ut-amrl/config-reader.git
 [submodule "shared"]
-	path = submodules/shared_lib/shared
+	path = shared_lib/shared
 	url = ../../ut-amrl/amrl_shared_lib.git
 [submodule "robot_status_gui/robot_status_gui"]
-	path = submodules/robot_status_gui/robot_status_gui
+	path = robot_status_gui/robot_status_gui
 	url = ../../ut-amrl/robot_status_gui.git
