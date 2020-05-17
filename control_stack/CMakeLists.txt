@@ -152,9 +152,9 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
-  ../config_reader/include
-  ../shared_lib/
-  ../shared_lib/shared/
+  ../submodules/config_reader/include
+  ../submodules/shared_lib/
+  ../submodules/shared_lib/shared/
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${CERES_INCLUDE_DIRS}
