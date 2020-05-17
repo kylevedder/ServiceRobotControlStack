@@ -1,7 +1,0 @@
-[Desktop Entry]
-Encoding=UTF-8
-Name=Start Teleop
-Comment=LASHIFA
-Exec=lashifa
-Terminal=false
-Type=Application
