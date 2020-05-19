@@ -51,9 +51,9 @@ find_package(catkin REQUIRED COMPONENTS
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package(Eigen3 REQUIRED)
 find_package(Ceres REQUIRED)
-find_package(Qt4 REQUIRED)
-find_package(OpenGL REQUIRED)
-find_package(GLUT REQUIRED)
+#find_package(Qt4 REQUIRED)
+#find_package(OpenGL REQUIRED)
+#find_package(GLUT REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -143,8 +143,8 @@ find_package(GLUT REQUIRED)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES control_stack
-#  CATKIN_DEPENDS roscpp rospy std_msgs
-#  DEPENDS Eigen3
+  CATKIN_DEPENDS roscpp rospy std_msgs robot_status_gui
+#  DEPENDS robot_status_gui
 )
 
 ###########
@@ -158,7 +158,6 @@ include_directories(
   ../submodules/config-reader/include
   ../submodules
   ../submodules/shared
-  ../submodules/robot_status_gui
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${CERES_INCLUDE_DIRS}
@@ -236,19 +235,19 @@ target_link_libraries(bag_outputs_nav_classification util_lib nav_lib lua5.1 ${c
 add_executable(bag_outputs_nav_control src/util/bag_outputs_nav_control.cpp)
 target_link_libraries(bag_outputs_nav_control util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
 
-include ( ${QT_USE_FILE} )
-qt4_wrap_cpp(GUIMONITOR_MOC_SRCS
-        ../submodules/robot_status_gui/src/gui_topic.h
-        ../submodules/robot_status_gui/src/gui_monitor.h)
-
-add_executable(robot_status_gui
-        ../submodules/robot_status_gui/src/main.cpp
-        ../submodules/robot_status_gui/src/topic_config.cpp
-        ../submodules/robot_status_gui/src/gui_monitor.cpp
-        ../submodules/robot_status_gui/src/gui_topic.cpp
-        ${GUIMONITOR_MOC_SRCS})
-add_dependencies(robot_status_gui ${GUIMONITOR_MOC_SRCS})
-target_link_libraries(robot_status_gui popt pthread rt ${QT_LIBRARIES} ${catkin_LIBRARIES})
+#include ( ${QT_USE_FILE} )
+#qt4_wrap_cpp(GUIMONITOR_MOC_SRCS
+#        ../submodules/robot_status_gui/src/gui_topic.h
+#        ../submodules/robot_status_gui/src/gui_monitor.h)
+#
+#add_executable(robot_status_gui
+#        ../submodules/robot_status_gui/src/main.cpp
+#        ../submodules/robot_status_gui/src/topic_config.cpp
+#        ../submodules/robot_status_gui/src/gui_monitor.cpp
+#        ../submodules/robot_status_gui/src/gui_topic.cpp
+#        ${GUIMONITOR_MOC_SRCS})
+#add_dependencies(robot_status_gui ${GUIMONITOR_MOC_SRCS})
+#target_link_libraries(robot_status_gui popt pthread rt ${QT_LIBRARIES} ${catkin_LIBRARIES})
 
 #particle_filter_generate_messages_cpp
 
