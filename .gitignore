@@ -3,3 +3,6 @@
 cmake-build-debug/
 build/
 **/__pycache__/
+catkin_ws/devel/
+catkin_ws/build/
+catkin_ws/.catkin_workspace

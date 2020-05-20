@@ -1,6 +1,6 @@
-[submodule "submodules/config-reader"]
-	path = submodules/config-reader
+[submodule "catkin_ws/src/control_stack/lib/config_reader"]
+	path = catkin_ws/src/control_stack/lib/config_reader
 	url = ../../ut-amrl/config-reader.git
-[submodule "submodules/shared"]
-	path = submodules/shared
+[submodule "catkin_ws/src/control_stack/lib/shared"]
+	path = catkin_ws/src/control_stack/lib/shared
 	url = ../../ut-amrl/amrl_shared_lib.git
