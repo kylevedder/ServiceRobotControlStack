@@ -152,9 +152,9 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
-  ../submodules/config-reader/include
-  ../submodules
-  ../submodules/shared
+  lib/
+  lib/config_reader/include
+  lib/shared
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${CERES_INCLUDE_DIRS}
@@ -205,8 +205,8 @@ target_link_libraries(nav_lib
         ${catkin_LIBRARIES}
         )
 
-add_executable(simulator_node src/sim/simulator_node.cpp)
-target_link_libraries(simulator_node util_lib lua5.1 ${catkin_LIBRARIES})
+#add_executable(simulator_node src/sim/simulator_node.cpp)
+#target_link_libraries(simulator_node util_lib lua5.1 ${catkin_LIBRARIES})
 #add_dependencies(simulator_node util_lib)
 
 add_executable(nav_node src/main/nav_node.cpp)
@@ -215,22 +215,22 @@ target_link_libraries(nav_node util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
 add_executable(teleop_node src/main/teleop_node.cpp)
 target_link_libraries(teleop_node util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
 
-add_executable(bag_fill_in src/util/bag_fill_in.cpp)
-target_link_libraries(bag_fill_in util_lib lua5.1 ${catkin_LIBRARIES})
+#add_executable(bag_fill_in src/util/bag_fill_in.cpp)
+#target_link_libraries(bag_fill_in util_lib lua5.1 ${catkin_LIBRARIES})
 #add_dependencies(nav_node util_lib particle_filter_lib obstacle_avoidance_lib)
 
-add_executable(bag_slam src/util/bag_slam.cpp)
-target_link_libraries(bag_slam util_lib nav_lib lua5.1 ${catkin_LIBRARIES} ${CERES_LIBRARIES} )
+#add_executable(bag_slam src/util/bag_slam.cpp)
+#target_link_libraries(bag_slam util_lib nav_lib lua5.1 ${catkin_LIBRARIES} ${CERES_LIBRARIES} )
 
 add_executable(bag_nav src/util/bag_nav.cpp)
 target_link_libraries(bag_nav util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
 #add_dependencies(nav_node util_lib particle_filter_lib obstacle_avoidance_lib)
 
-add_executable(bag_outputs_nav_classification src/util/bag_outputs_nav_classification.cpp)
-target_link_libraries(bag_outputs_nav_classification util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
+#add_executable(bag_outputs_nav_classification src/util/bag_outputs_nav_classification.cpp)
+#target_link_libraries(bag_outputs_nav_classification util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
 
-add_executable(bag_outputs_nav_control src/util/bag_outputs_nav_control.cpp)
-target_link_libraries(bag_outputs_nav_control util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
+#add_executable(bag_outputs_nav_control src/util/bag_outputs_nav_control.cpp)
+#target_link_libraries(bag_outputs_nav_control util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
 
 #############
 ## Install ##

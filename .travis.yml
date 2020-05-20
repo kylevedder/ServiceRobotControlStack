@@ -22,26 +22,12 @@ before_install:
   > /etc/apt/sources.list.d/ros-latest.list"
 - sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
 - sudo apt-get update -qq
-- sudo apt-get install dpkg
 - sudo apt-get install -y python-catkin-pkg python-rosdep python-wstool ros-$ROS_DISTRO-desktop
-- "$CI_SOURCE_PATH/submodules/config-reader/InstallPackages"
 - "$CI_SOURCE_PATH/InstallPackages"
 - sudo pip uninstall -y enum34
 - source /opt/ros/$ROS_DISTRO/setup.bash
 - sudo rosdep init
 - rosdep update
-install:
-- mkdir -p ~/catkin_ws/src
-- cd ~/catkin_ws/src
-- catkin_init_workspace
-- cd ~/catkin_ws
-- catkin_make
-- source devel/setup.bash
-- cd ~/catkin_ws/src
-- ln -s $CI_SOURCE_PATH .
 script:
-- source /opt/ros/$ROS_DISTRO/setup.bash
-- cd ~/catkin_ws
-- catkin_make -j
-- source devel/setup.bash
-- src/ServiceRobotControlStack/ci/ci_tasks.py
+- cd "$CI_SOURCE_PATH/"
+- ./build.sh
