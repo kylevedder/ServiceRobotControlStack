@@ -9,5 +9,10 @@ pushd rosbuild_ws
 pushd robot_status_gui/robot_status_gui
 rm -rf build/ bin/ lib/
 popd
+
+pushd simulator/f1tenth_simulator
+rm -rf build/ bin/ lib/
+popd
+
 popd
 

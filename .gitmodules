@@ -7,3 +7,6 @@
 [submodule "rosbuild_ws/robot_status_gui/robot_status_gui"]
 	path = rosbuild_ws/robot_status_gui/robot_status_gui
 	url = ../../ut-amrl/robot_status_gui.git
+[submodule "rosbuild_ws/simulator/f1tenth_simulator"]
+	path = rosbuild_ws/simulator/f1tenth_simulator
+	url = ../../ut-amrl/f1tenth_simulator.git
