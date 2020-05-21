@@ -291,7 +291,7 @@ struct CallbackWrapper {
 
 int main(int argc, char** argv) {
   config_reader::ConfigReader reader(
-      {"src/ServiceRobotControlStack/control_stack/config/nav_config.lua"});
+      {"src/control_stack/config/nav_config.lua"});
   ros::init(argc, argv, "nav_node");
 
   ros::NodeHandle n;

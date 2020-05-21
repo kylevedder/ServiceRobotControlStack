@@ -34,12 +34,12 @@ pf = {
   kRotateStdDev = 0.04;
   kTemporalConsistencyWeight = 0;
 
-  kMap = "./src/ServiceRobotControlStack/control_stack/maps/outside_grasp.map";
-  kInitX = -1;
-  kInitY = -1.95;
+  kMap = "../rosbuild_ws/simulator/f1tenth_simulator/maps/GDC3.txt";
+  kInitX = 33.016267;
+  kInitY = 21.534157;
   kInitTheta = 0;
-  kGoalX = -1;
-  kGoalY = -7.95;
+  kGoalX = 20;
+  kGoalY = 21.534157;
   kRobotRadius = 0.1;
   kSafetyMargin = 0.2;
   kCollisionRollout = 2;
