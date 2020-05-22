@@ -174,6 +174,17 @@ struct CallbackWrapper {
     current_goal_ = {msg.x, msg.y};
   }
 
+  template <size_t N>
+  double GetTimeDelta(
+      const cs::datastructures::CircularBuffer<ros::Time, N>& b) {
+    if (b.size() <= 1) {
+      return 0;
+    }
+    const double total_time_delta = (b.back() - b.front()).toSec();
+    const double iterations = static_cast<double>(b.size() - 1);
+    return total_time_delta / iterations;
+  }
+
   void LaserCallback(const sensor_msgs::LaserScan& msg) {
     util::LaserScan laser(msg);
     laser.ClearDataInIndexRange(params::CONFIG_laser_deadzone_right_min,
@@ -185,12 +196,7 @@ struct CallbackWrapper {
     }
     const ros::Time& current_time = msg.header.stamp;
     laser_times_buffer_.push_back(current_time);
-    const double mean_time_delta =
-        (laser_times_buffer_.size() <= 1)
-            ? kEpsilon
-            : (laser_times_buffer_.back() - laser_times_buffer_.front())
-                      .toSec() /
-                  static_cast<double>(laser_times_buffer_.size() - 1);
+    const double mean_time_delta = GetTimeDelta(laser_times_buffer_);
     NP_CHECK_VAL(mean_time_delta > 0, mean_time_delta);
     particle_filter_.UpdateObservation(laser);
     const auto est_pose = particle_filter_.WeightedCentroid();
@@ -244,9 +250,7 @@ struct CallbackWrapper {
     odom_times_buffer_.push_back(current_time);
     const util::Twist velocity =
         TransformTwistUsingSign(util::Twist(msg.twist.twist));
-    const double mean_time_delta =
-        (odom_times_buffer_.back() - odom_times_buffer_.front()).toSec() /
-        static_cast<double>(odom_times_buffer_.size() - 1);
+    const double mean_time_delta = GetTimeDelta(odom_times_buffer_);
     NP_CHECK(mean_time_delta > 0);
     const util::Twist delta = velocity * static_cast<float>(mean_time_delta);
     particle_filter_.UpdateOdom(delta.tra.x(), delta.rot);
