@@ -1,5 +1,5 @@
 #pragma once
-// Copyright 2019 - 2020 kvedder@seas.upenn.edu
+// Copyright 2020 kvedder@seas.upenn.edu
 // School of Engineering and Applied Sciences,
 // University of Pennsylvania
 //
@@ -22,47 +22,52 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 // ========================================================================
-#include <ros/ros.h>
+
+#include <algorithm>
+#include <limits>
 #include <random>
+#include <string>
 #include <vector>
 
-#include "cs/util/laser_scan.h"
-#include "cs/util/map.h"
-#include "cs/util/pose.h"
-#include "cs/util/twist.h"
+#include "cs/path_finding/path_finder.h"
+#include "cs/state_estimation/state_estimation.h"
+#include "cs/util/constants.h"
+#include "cs/util/visualization.h"
+#include "shared/math/geometry.h"
+#include "shared/math/math_util.h"
 
 namespace cs {
-namespace obstacle_avoidance {
+namespace motion_planning {
 
-class ObstacleDetector {
- public:
-  ObstacleDetector() = delete;
-  explicit ObstacleDetector(const util::Map& map);
-
-  void UpdateObservation(const util::Pose& observation_pose,
-                         const util::LaserScan& observation);
-  void UpdateObservation(const util::Pose& observation_pose,
-                         const util::LaserScan& observation,
-                         ros::Publisher* pub);
-
-  void DrawDynamic(ros::Publisher* pub) const;
-
-  const util::Map& GetDynamicMap() const;
-
+class PIDController {
  private:
-  std::vector<Eigen::Vector2f> GetNonMapPoints(
-      const util::Pose& observation_pose,
-      const util::LaserScan& observation) const;
-
-  //  bool StartedInCollision(const float robot_radius) const;
-
   const util::Map& map_;
-  util::Map dynamic_map_;
-  //  util::Pose estimated_pose_;
-  //  util::Twist odom_velocity_;
-  //  util::Twist prior_commanded_velocity_;
-  std::mt19937 random_gen_;
+  const cs::state_estimation::StateEstimator& state_estimator_;
+  util::Map complete_map_;
+  util::Pose est_world_pose_;
+  util::Twist est_velocity_;
+
+  util::Twist ProposeCommand(const Eigen::Vector2f& waypoint) const;
+
+  util::Twist ApplyCommandLimits(util::Twist c) const;
+
+  float AlternateCommandCost(const util::Twist& desired,
+                             const util::Twist& alternate) const;
+
+  bool IsCommandColliding(const util::Twist& commanded_velocity) const;
+
+ public:
+  PIDController(const util::Map& map,
+                const cs::state_estimation::StateEstimator& state_estimator)
+      : map_(map),
+        state_estimator_(state_estimator),
+        complete_map_(map),
+        est_world_pose_(),
+        est_velocity_() {}
+
+  util::Twist DriveToPoint(const util::Map& dynamic_map,
+                           const Eigen::Vector2f& waypoint);
 };
 
-}  // namespace obstacle_avoidance
+}  // namespace motion_planning
 }  // namespace cs

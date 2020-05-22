@@ -36,9 +36,10 @@
 
 #include "config_reader/config_reader.h"
 #include "cs/localization/particle_filter.h"
+#include "cs/motion_planning/pid.h"
 #include "cs/obstacle_avoidance/obstacle_detector.h"
 #include "cs/path_finding/rrt.h"
-#include "cs/util/datastructures/circular_buffer.h"
+#include "cs/state_estimation/state_estimation.h"
 #include "cs/util/pose.h"
 #include "cs/util/twist.h"
 #include "cs/util/util.h"
@@ -58,35 +59,25 @@ CONFIG_FLOAT(kGoalY, "pf.kGoalY");
 CONFIG_FLOAT(kRobotRadius, "pf.kRobotRadius");
 CONFIG_FLOAT(kSafetyMargin, "pf.kSafetyMargin");
 CONFIG_FLOAT(kCollisionRollout, "pf.kCollisionRollout");
-CONFIG_INT(kTranslateCommandSign, "od.kTranslateCommandSign");
 
-CONFIG_FLOAT(rotation_drive_threshold, "control.rotation_drive_threshold");
-CONFIG_FLOAT(rotation_p, "control.rotation_p");
-CONFIG_FLOAT(translation_p, "control.translation_p");
-CONFIG_FLOAT(goal_deadzone_tra, "control.goal_deadzone_tra");
 CONFIG_INT(laser_deadzone_left_min, "laser.laser_deadzone_left_min");
 CONFIG_INT(laser_deadzone_left_max, "laser.laser_deadzone_left_max");
 CONFIG_INT(laser_deadzone_right_min, "laser.laser_deadzone_right_min");
 CONFIG_INT(laser_deadzone_right_max, "laser.laser_deadzone_right_max");
 }  // namespace params
 
-static constexpr size_t kTimeBufferSize = 5;
-
 struct CallbackWrapper {
   util::Map map_;
-  cs::localization::ParticleFilter particle_filter_;
+  cs::state_estimation::StateEstimator state_estimator_;
   cs::obstacle_avoidance::ObstacleDetector obstacle_detector_;
+  cs::motion_planning::PIDController motion_planner_;
   cs::path_finding::RRT path_finder_;
-  cs::datastructures::CircularBuffer<ros::Time, kTimeBufferSize>
-      odom_times_buffer_;
-  cs::datastructures::CircularBuffer<ros::Time, kTimeBufferSize>
-      laser_times_buffer_;
   tf::TransformBroadcaster br_;
   Eigen::Vector2f current_goal_;
 
   // Functionality pub/sub
   ros::Publisher position_pub_;
-  ros::Publisher velocity_pub_;
+  ros::Publisher command_pub_;
   ros::Subscriber odom_sub_;
   ros::Subscriber laser_sub_;
   ros::Subscriber teleop_sub_;
@@ -105,17 +96,18 @@ struct CallbackWrapper {
 
   CallbackWrapper(const std::string& map_file, ros::NodeHandle* n)
       : map_(map_file),
-        particle_filter_(map_,
+        state_estimator_(map_,
                          {params::CONFIG_kInitX,
                           params::CONFIG_kInitY,
                           params::CONFIG_kInitTheta}),
         obstacle_detector_(map_),
+        motion_planner_(map_, state_estimator_),
         path_finder_(
             map_, params::CONFIG_kRobotRadius, params::CONFIG_kSafetyMargin),
         current_goal_(params::CONFIG_kGoalX, params::CONFIG_kGoalY) {
     position_pub_ =
         n->advertise<geometry_msgs::Twist>(constants::kPositionTopic, 10);
-    velocity_pub_ = n->advertise<geometry_msgs::Twist>(
+    command_pub_ = n->advertise<geometry_msgs::Twist>(
         constants::kCommandVelocityTopic, 10);
     laser_sub_ = n->subscribe(
         constants::kLaserTopic, 10, &CallbackWrapper::LaserCallback, this);
@@ -142,84 +134,45 @@ struct CallbackWrapper {
     }
   }
 
-  static util::Twist DriveToWaypoint(const util::Pose& pose,
-                                     const Eigen::Vector2f& waypoint) {
-    const auto robot_heading = geometry::Heading(pose.rot);
-    const Eigen::Vector2f waypoint_delta = (waypoint - pose.tra);
-    const float distance_to_goal_sq = waypoint_delta.squaredNorm();
-    NP_FINITE(distance_to_goal_sq);
-    if (distance_to_goal_sq < Sq(params::CONFIG_goal_deadzone_tra)) {
-      return {0, 0, 0};
-    }
-
-    const auto waypoint_heading = geometry::GetNormalizedOrZero(waypoint_delta);
-    NP_FINITE_2F(waypoint_heading);
-    const int angle_direction =
-        math_util::Sign(geometry::Cross(robot_heading, waypoint_heading));
-    NP_FINITE(angle_direction);
-    const float angle = std::acos(robot_heading.dot(waypoint_heading));
-    NP_FINITE(angle);
-    NP_CHECK_VAL(angle >= 0 && angle <= kPi + kEpsilon, angle);
-    float x = 0;
-    if (angle < params::CONFIG_rotation_drive_threshold) {
-      x = std::sqrt(distance_to_goal_sq);
-      x *= math_util::Sign(waypoint_heading.dot(robot_heading));
-    }
-    return {x * params::CONFIG_translation_p,
-            0,
-            angle * angle_direction * params::CONFIG_rotation_p};
-  }
-
   void GoalCallback(const geometry_msgs::Pose2D& msg) {
     current_goal_ = {msg.x, msg.y};
   }
 
-  template <size_t N>
-  double GetTimeDelta(
-      const cs::datastructures::CircularBuffer<ros::Time, N>& b) {
-    if (b.size() <= 1) {
-      return 0;
+  void CleanLaserScan(util::LaserScan* laser) {
+    laser->ClearDataInIndexRange(params::CONFIG_laser_deadzone_right_min,
+                                 params::CONFIG_laser_deadzone_right_max);
+    laser->ClearDataInIndexRange(params::CONFIG_laser_deadzone_left_min,
+                                 params::CONFIG_laser_deadzone_left_max);
+    if (kDebug) {
+      modified_laser_pub_.publish(laser->ros_laser_scan_);
     }
-    const double total_time_delta = (b.back() - b.front()).toSec();
-    const double iterations = static_cast<double>(b.size() - 1);
-    return total_time_delta / iterations;
   }
 
   void LaserCallback(const sensor_msgs::LaserScan& msg) {
     util::LaserScan laser(msg);
-    laser.ClearDataInIndexRange(params::CONFIG_laser_deadzone_right_min,
-                                params::CONFIG_laser_deadzone_right_max);
-    laser.ClearDataInIndexRange(params::CONFIG_laser_deadzone_left_min,
-                                params::CONFIG_laser_deadzone_left_max);
-    if (kDebug) {
-      modified_laser_pub_.publish(laser.ros_laser_scan_);
-    }
-    const ros::Time& current_time = msg.header.stamp;
-    laser_times_buffer_.push_back(current_time);
-    const double mean_time_delta = GetTimeDelta(laser_times_buffer_);
-    NP_CHECK_VAL(mean_time_delta > 0, mean_time_delta);
-    particle_filter_.UpdateObservation(laser);
-    const auto est_pose = particle_filter_.WeightedCentroid();
+    state_estimator_.UpdateLaser(laser, msg.header.stamp);
+    const auto est_pose = state_estimator_.GetEstimatedPose();
     position_pub_.publish(est_pose.ToTwist());
     obstacle_detector_.UpdateObservation(est_pose, laser, &detected_walls_pub_);
-    const auto& dynamic_map = obstacle_detector_.GetDynamicMap();
-    const auto path = path_finder_.FindPath(
-        dynamic_map, est_pose.tra, current_goal_, &rrt_tree_pub_);
-    const auto base_link_path =
-        path.TransformPath((-particle_filter_.WeightedCentroid()).ToAffine());
+    const auto path = path_finder_.FindPath(obstacle_detector_.GetDynamicMap(),
+                                            est_pose.tra,
+                                            current_goal_,
+                                            &rrt_tree_pub_);
+    const auto base_link_path = path.TransformPath((-est_pose).ToAffine());
     robot_path_pub_.publish(visualization::DrawPath(path, "map", "path"));
     base_link_robot_path_pub_.publish(
         visualization::DrawPath(base_link_path, "base_link", "path"));
-    util::Twist desired_command(0, 0, 0);
-    if (path.IsValid()) {
-      desired_command = DriveToWaypoint(est_pose, path.waypoints[1]);
-    }
-    const util::Twist commanded_velocity =
-        CommandVelocity(desired_command, static_cast<float>(mean_time_delta));
-    obstacle_detector_.UpdateCommand(commanded_velocity);
+    const auto waypoint =
+        (path.IsValid() ? path.waypoints[1]
+                        : state_estimator_.GetEstimatedPose().tra);
+    const auto desired_command = motion_planner_.DriveToPoint(
+        obstacle_detector_.GetDynamicMap(), waypoint);
+
+    command_pub_.publish(desired_command.ToTwist());
+    state_estimator_.UpdateLastCommand(desired_command);
     PublishTransforms();
     if (kDebug) {
-      particle_filter_.DrawParticles(&particle_pub_);
+      //      particle_filter_.DrawParticles(&particle_pub_);
       map_pub_.publish(map_.ToMarker());
       robot_size_pub_.publish(
           visualization::MakeCylinder(est_pose.tra,
@@ -231,55 +184,20 @@ struct CallbackWrapper {
                                       1,
                                       0,
                                       1));
+      map_pub_.publish(map_.ToMarker());
     }
-  }
-
-  util::Twist TransformTwistUsingSign(util::Twist twist) {
-    twist.tra *= params::CONFIG_kTranslateCommandSign;
-    return twist;
   }
 
   void OdomCallback(const nav_msgs::Odometry& msg) {
-    const ros::Time& current_time = msg.header.stamp;
-    //    ROS_INFO("Odom update");
-    if (odom_times_buffer_.empty() ||
-        odom_times_buffer_.back().toSec() >= current_time.toSec()) {
-      odom_times_buffer_.push_back(current_time);
-      return;
-    }
-    odom_times_buffer_.push_back(current_time);
-    const util::Twist velocity =
-        TransformTwistUsingSign(util::Twist(msg.twist.twist));
-    const double mean_time_delta = GetTimeDelta(odom_times_buffer_);
-    NP_CHECK(mean_time_delta > 0);
-    const util::Twist delta = velocity * static_cast<float>(mean_time_delta);
-    particle_filter_.UpdateOdom(delta.tra.x(), delta.rot);
-    if (kDebug) {
-      particle_filter_.DrawParticles(&particle_pub_);
-      map_pub_.publish(map_.ToMarker());
-    }
-    obstacle_detector_.UpdateOdom(particle_filter_.WeightedCentroid(),
-                                  velocity);
-  }
-
-  util::Twist CommandVelocity(const util::Twist& desired_command,
-                              const float& time_delta) {
-    const util::Twist safe_cmd =
-        obstacle_detector_.MakeCommandSafe(desired_command,
-                                           time_delta,
-                                           params::CONFIG_kCollisionRollout,
-                                           params::CONFIG_kRobotRadius,
-                                           params::CONFIG_kSafetyMargin);
-    const util::Twist sent_cmd = TransformTwistUsingSign(safe_cmd);
-    velocity_pub_.publish(sent_cmd.ToTwist());
-    return safe_cmd;
+    const util::Twist velocity(msg.twist.twist);
+    state_estimator_.UpdateOdom(velocity, msg.header.stamp);
   }
 
   void PublishTransforms() {
     br_.sendTransform(tf::StampedTransform(
         tf::Transform::getIdentity(), ros::Time::now(), "laser", "base_link"));
 
-    const util::Pose current_pose = particle_filter_.WeightedCentroid();
+    const auto current_pose = state_estimator_.GetEstimatedPose();
     NP_FINITE_2F(current_pose.tra);
     NP_FINITE(current_pose.rot);
     tf::Transform transform;
@@ -297,12 +215,8 @@ int main(int argc, char** argv) {
   config_reader::ConfigReader reader(
       {"src/control_stack/config/nav_config.lua"});
   ros::init(argc, argv, "nav_node");
-
   ros::NodeHandle n;
-
   CallbackWrapper cw(params::CONFIG_kMap, &n);
-
   ros::spin();
-
   return 0;
 }

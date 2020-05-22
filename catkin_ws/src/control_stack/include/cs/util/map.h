@@ -44,6 +44,7 @@ struct Map {
 
   Map() = default;
   explicit Map(const std::string& filepath);
+  explicit Map(std::vector<Wall> walls);
 
   float MinDistanceAlongRay(const util::Pose& ray,
                             const float& min_depth,
@@ -52,6 +53,8 @@ struct Map {
   float MinDistanceToWall(const Eigen::Vector2f& observation) const;
 
   visualization_msgs::Marker ToMarker() const;
+
+  Map Merge(const Map& other) const;
 };
 
 }  // namespace util

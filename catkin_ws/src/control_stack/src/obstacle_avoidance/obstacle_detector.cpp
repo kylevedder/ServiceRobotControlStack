@@ -21,14 +21,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 // ========================================================================
+#include "cs/obstacle_avoidance/obstacle_detector.h"
+
 #include <visualization_msgs/MarkerArray.h>
+
 #include <limits>
 #include <utility>
 #include <vector>
 
 #include "config_reader/macros.h"
-#include "cs/obstacle_avoidance/obstacle_detector.h"
-#include "cs/obstacle_avoidance/trajectory_rollout.h"
+#include "cs/motion_planning/trajectory_rollout.h"
 #include "cs/util/laser_scan.h"
 #include "cs/util/visualization.h"
 #include "shared/math/geometry.h"
@@ -42,15 +44,6 @@ CONFIG_FLOAT(kDistanceFromMax, "od.kDistanceFromMax");
 CONFIG_FLOAT(kProposedTranslationStdDev, "od.kProposedTranslationStdDev");
 CONFIG_FLOAT(kProposedRotationStdDev, "od.kProposedRotationStdDev");
 
-CONFIG_FLOAT(kMaxTraAcc, "limits.kMaxTraAcc");
-CONFIG_FLOAT(kMaxTraVel, "limits.kMaxTraVel");
-CONFIG_FLOAT(kMaxRotAcc, "limits.kMaxRotAcc");
-CONFIG_FLOAT(kMaxRotVel, "limits.kMaxRotVel");
-
-CONFIG_FLOAT(kOdomFilteringPriorBias, "od.kOdomFilteringPriorBias");
-CONFIG_FLOAT(kThresholdRotateInPlace, "od.kThresholdRotateInPlace");
-CONFIG_FLOAT(kTranslationCostScaleFactor, "od.kTranslationCostScaleFactor");
-
 CONFIG_FLOAT(max_dist_between_readings,
              "od.clustering.max_dist_between_readings");
 CONFIG_FLOAT(min_distance_btw_readings_to_reason_angle,
@@ -59,11 +52,7 @@ CONFIG_FLOAT(line_similarity, "od.clustering.line_similarity");
 }  // namespace od_params
 
 ObstacleDetector::ObstacleDetector(const util::Map& map)
-    : map_(map),
-      estimated_pose_(0, 0, 0),
-      odom_velocity_(0, 0, 0),
-      prior_commanded_velocity_(0, 0, 0),
-      random_gen_(0) {}
+    : map_(map), random_gen_(0) {}
 
 bool IsMapObservation(const float& distance_to_wall) {
   static constexpr float kWallThreshold = 0.1;
@@ -155,26 +144,63 @@ util::Wall FitWallToCluster(const std::vector<Eigen::Vector2f>& points,
   return {v1, v2};
 }
 
-util::Twist ObstacleDetector::EstimateCurrentVelocity() const {
-  return odom_velocity_ * (1 - od_params::CONFIG_kOdomFilteringPriorBias) +
-         prior_commanded_velocity_ *
-             (od_params::CONFIG_kOdomFilteringPriorBias);
-}
-
-void ObstacleDetector::UpdateOdom(const util::Pose& pose,
-                                  const util::Twist& velocity) {
-  estimated_pose_ = pose;
-  odom_velocity_ = velocity;
-}
-
-void ObstacleDetector::UpdateCommand(
-    const util::Twist& prior_commanded_velocity) {
-  prior_commanded_velocity_ = prior_commanded_velocity;
-}
-
 void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
                                          const util::LaserScan& observation) {
   UpdateObservation(observation_pose, observation, nullptr);
+}
+
+void AddCluster(const std::vector<Eigen::Vector2f>& cluster_points,
+                const Eigen::Vector2f& p1,
+                const Eigen::Vector2f& p2,
+                const size_t num_clusters,
+                visualization_msgs::MarkerArray* new_markers) {
+  const auto color = visualization::IndexToDistinctRBG(num_clusters);
+  visualization::PointsToSpheres(cluster_points,
+                                 "map",
+                                 "non_points_ns",
+                                 new_markers,
+                                 std::get<0>(color),
+                                 std::get<1>(color),
+                                 std::get<2>(color),
+                                 0,
+                                 0.01);
+  new_markers->markers.push_back(visualization::ToLine(p1,
+                                                       p2,
+                                                       "map",
+                                                       "colored_wall_ns",
+                                                       num_clusters,
+                                                       std::get<0>(color),
+                                                       std::get<1>(color),
+                                                       std::get<2>(color),
+                                                       0.01));
+}
+
+std::vector<std::pair<size_t, size_t>> FormClusters(
+    const std::vector<Eigen::Vector2f>& non_map_points) {
+  if (non_map_points.empty()) {
+    return {};
+  }
+  std::vector<std::pair<size_t, size_t>> cluster_idxs;
+  size_t num_clusters = 0;
+  size_t cluster_start = 0;
+  while (cluster_start < non_map_points.size()) {
+    const size_t cluster_end = GetClusterEndIdx(non_map_points, cluster_start);
+    cluster_idxs.push_back({cluster_start, cluster_end});
+    cluster_start = cluster_end + 1;
+    ++num_clusters;
+  }
+  return cluster_idxs;
+}
+
+std::vector<Eigen::Vector2f> GetPointsInCluster(
+    const std::vector<Eigen::Vector2f>& non_map_points,
+    const size_t cluster_start,
+    const size_t cluster_end) {
+  std::vector<Eigen::Vector2f> cluster_points;
+  for (size_t i = cluster_start; i <= cluster_end; ++i) {
+    cluster_points.push_back(non_map_points[i]);
+  }
+  return cluster_points;
 }
 
 void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
@@ -182,77 +208,53 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
                                          ros::Publisher* pub) {
   static constexpr bool kDebug = false;
   dynamic_map_.walls.clear();
+  const bool should_publish = (pub != nullptr);
 
   static visualization_msgs::MarkerArray old_markers;
   for (visualization_msgs::Marker& marker : old_markers.markers) {
     marker.action = marker.DELETE;
   }
 
-  const auto non_map_points = GetNonMapPoints(observation_pose, observation);
+  if (should_publish) {
+    pub->publish(old_markers);
+  }
 
+  const auto non_map_points = GetNonMapPoints(observation_pose, observation);
   if (non_map_points.empty()) {
-    if (pub != nullptr) {
-      pub->publish(old_markers);
-      if (kDebug) {
-        ROS_INFO("Published %zu non-map points", non_map_points.size());
-      }
+    if (kDebug) {
+      ROS_INFO("Published %zu non-map points and 0 clusters",
+               non_map_points.size());
     }
     return;
   }
 
   visualization_msgs::MarkerArray new_markers;
 
+  const auto clusters = FormClusters(non_map_points);
+
   size_t num_clusters = 0;
-  size_t cluster_start = 0;
-  while (cluster_start < non_map_points.size()) {
-    const size_t cluster_end = GetClusterEndIdx(non_map_points, cluster_start);
-    dynamic_map_.walls.push_back(
-        FitWallToCluster(non_map_points, cluster_start, cluster_end));
-
-    std::vector<Eigen::Vector2f> cluster_points;
-    for (size_t i = cluster_start; i <= cluster_end; ++i) {
-      cluster_points.push_back(non_map_points[i]);
+  for (const auto& idx_pair : clusters) {
+    const auto wall =
+        FitWallToCluster(non_map_points, idx_pair.first, idx_pair.second);
+    dynamic_map_.walls.push_back(wall);
+    if (should_publish) {
+      const auto cluster_points =
+          GetPointsInCluster(non_map_points, idx_pair.first, idx_pair.second);
+      AddCluster(cluster_points,
+                 dynamic_map_.walls.back().p1,
+                 dynamic_map_.walls.back().p2,
+                 num_clusters++,
+                 &new_markers);
     }
-
-    if (kDebug) {
-      ROS_INFO("Cluster size: %zu", (cluster_end - cluster_start + 1));
-    }
-
-    const auto color = visualization::IndexToDistinctRBG(num_clusters);
-    visualization::PointsToSpheres(cluster_points,
-                                   "map",
-                                   "non_points_ns",
-                                   &new_markers,
-                                   std::get<0>(color),
-                                   std::get<1>(color),
-                                   std::get<2>(color),
-                                   0,
-                                   0.01);
-    new_markers.markers.push_back(
-        visualization::ToLine(dynamic_map_.walls.back().p1,
-                              dynamic_map_.walls.back().p2,
-                              "map",
-                              "colored_wall_ns",
-                              num_clusters,
-                              std::get<0>(color),
-                              std::get<1>(color),
-                              std::get<2>(color),
-                              0.01));
-
-    cluster_start = cluster_end + 1;
-    ++num_clusters;
   }
 
-  if (pub != nullptr) {
-    pub->publish(old_markers);
-    pub->publish(new_markers);
-  }
-  old_markers = new_markers;
   if (kDebug) {
-    ROS_INFO("Published %zu non-map points", non_map_points.size());
-    ROS_INFO("Found %zu clusters", num_clusters);
+    ROS_INFO("Published %zu non-map points and %zu clusters",
+             non_map_points.size(),
+             clusters.size());
   }
-  estimated_pose_ = observation_pose;
+
+  old_markers = new_markers;
 }
 
 void ObstacleDetector::DrawDynamic(ros::Publisher* pub) const {
@@ -264,6 +266,8 @@ void ObstacleDetector::DrawDynamic(ros::Publisher* pub) const {
 const util::Map& ObstacleDetector::GetDynamicMap() const {
   return dynamic_map_;
 }
+
+/*
 
 bool ObstacleDetector::IsCommandColliding(const util::Twist& commanded_velocity,
                                           const float rollout_duration,
@@ -564,6 +568,8 @@ util::Twist ObstacleDetector::MakeCommandSafe(util::Twist commanded_velocity,
   }
   return {0, 0, 0};
 }
+
+ */
 
 }  // namespace obstacle_avoidance
 }  // namespace cs

@@ -24,11 +24,12 @@
 // ========================================================================
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+
 #include <string>
 #include <tuple>
 #include <vector>
 
-#include "cs/obstacle_avoidance/trajectory_rollout.h"
+#include "cs/motion_planning/trajectory_rollout.h"
 #include "cs/path_finding/path_finder.h"
 #include "cs/util/laser_scan.h"
 #include "cs/util/map.h"
@@ -235,7 +236,7 @@ inline void DrawPose(const util::Pose& pose,
 }
 
 inline void DrawTrajectoryRollout(
-    const cs::obstacle_avoidance::TrajectoryRollout& tr,
+    const cs::motion_planning::TrajectoryRollout& tr,
     const std::string& frame_id,
     const std::string& ns,
     visualization_msgs::MarkerArray* arr,

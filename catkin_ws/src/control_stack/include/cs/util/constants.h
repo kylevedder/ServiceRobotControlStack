@@ -25,7 +25,7 @@
 #include <iostream>
 
 static constexpr bool kProduction = false;
-static constexpr float kEpsilon = 0.001f;
+static constexpr float kEpsilon = 0.00001f;
 static constexpr float kPi = M_PI;
 
 namespace constants {

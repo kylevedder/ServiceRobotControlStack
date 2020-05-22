@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 // ========================================================================
-#include "cs/obstacle_avoidance/trajectory_rollout.h"
+#include "cs/motion_planning/trajectory_rollout.h"
 
 #include <algorithm>
 
@@ -31,21 +31,14 @@
 #include "shared/math/geometry.h"
 
 namespace cs {
-namespace obstacle_avoidance {
+namespace motion_planning {
 
 namespace tr_params {
-CONFIG_FLOAT(kMinDistanceThreshold, "od.kMinDistanceThreshold");
-CONFIG_FLOAT(kProposedTranslationStdDev, "od.kProposedTranslationStdDev");
-CONFIG_FLOAT(kProposedRotationStdDev, "od.kProposedRotationStdDev");
-
 CONFIG_FLOAT(kMaxTraAcc, "limits.kMaxTraAcc");
 CONFIG_FLOAT(kMaxTraVel, "limits.kMaxTraVel");
 CONFIG_FLOAT(kMaxRotAcc, "limits.kMaxRotAcc");
 CONFIG_FLOAT(kMaxRotVel, "limits.kMaxRotVel");
 
-CONFIG_FLOAT(kOdomFilteringPriorBias, "od.kOdomFilteringPriorBias");
-CONFIG_FLOAT(kThresholdRotateInPlace, "od.kThresholdRotateInPlace");
-CONFIG_FLOAT(kTranslationCostScaleFactor, "od.kTranslationCostScaleFactor");
 CONFIG_FLOAT(min_trajectory_rotation, "od.min_trajectory_rotation");
 }  // namespace tr_params
 
@@ -219,5 +212,5 @@ bool TrajectoryRollout::IsColliding(const util::Wall& wall,
   NP_CHECK_VAL(dist >= 0.0f, dist);
   return dist <= min_dist_threshold;
 }
-}  // namespace obstacle_avoidance
+}  // namespace motion_planning
 }  // namespace cs

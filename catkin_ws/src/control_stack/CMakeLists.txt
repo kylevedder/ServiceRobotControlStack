@@ -198,39 +198,20 @@ add_library(nav_lib
         src/path_finding/rrt.cpp
         src/path_finding/path_finder.cpp
         src/obstacle_avoidance/obstacle_detector.cpp
-        src/obstacle_avoidance/trajectory_rollout.cpp
+        src/motion_planning/trajectory_rollout.cpp
+        src/motion_planning/pid.cpp
         src/localization/particle_filter.cpp)
 target_link_libraries(nav_lib
         util_lib
         ${catkin_LIBRARIES}
         )
 
-#add_executable(simulator_node src/sim/simulator_node.cpp)
-#target_link_libraries(simulator_node util_lib lua5.1 ${catkin_LIBRARIES})
-#add_dependencies(simulator_node util_lib)
-
 add_executable(nav_node src/main/nav_node.cpp)
 target_link_libraries(nav_node util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
-
-add_executable(teleop_node src/main/teleop_node.cpp)
-target_link_libraries(teleop_node util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
-
-#add_executable(bag_fill_in src/util/bag_fill_in.cpp)
-#target_link_libraries(bag_fill_in util_lib lua5.1 ${catkin_LIBRARIES})
-#add_dependencies(nav_node util_lib particle_filter_lib obstacle_avoidance_lib)
 
 #add_executable(bag_slam src/util/bag_slam.cpp)
 #target_link_libraries(bag_slam util_lib nav_lib lua5.1 ${catkin_LIBRARIES} ${CERES_LIBRARIES} )
 
-add_executable(bag_nav src/util/bag_nav.cpp)
-target_link_libraries(bag_nav util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
-#add_dependencies(nav_node util_lib particle_filter_lib obstacle_avoidance_lib)
-
-#add_executable(bag_outputs_nav_classification src/util/bag_outputs_nav_classification.cpp)
-#target_link_libraries(bag_outputs_nav_classification util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
-
-#add_executable(bag_outputs_nav_control src/util/bag_outputs_nav_control.cpp)
-#target_link_libraries(bag_outputs_nav_control util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
 
 #############
 ## Install ##

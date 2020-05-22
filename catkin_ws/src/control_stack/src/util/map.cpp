@@ -54,6 +54,8 @@ Map::Map(const std::string& filepath) {
   }
 }
 
+Map::Map(std::vector<Wall> walls) : walls(std::move(walls)) {}
+
 float Map::MinDistanceAlongRay(const util::Pose& ray,
                                const float& min_depth,
                                const float& max_depth) const {
@@ -104,6 +106,13 @@ float Map::MinDistanceToWall(const Eigen::Vector2f& observation) const {
     min_distance = std::min({min_distance, dist_p1_sq, dist_p2_sq});
   }
   return std::sqrt(min_distance);
+}
+
+Map Map::Merge(const Map& other) const {
+  auto joined_walls = walls;
+  joined_walls.insert(
+      joined_walls.end(), other.walls.begin(), other.walls.end());
+  return Map(joined_walls);
 }
 
 }  // namespace util

@@ -27,7 +27,7 @@
 #include "cs/util/twist.h"
 
 namespace cs {
-namespace obstacle_avoidance {
+namespace motion_planning {
 
 struct TrajectoryRollout {
   util::Pose start_pose;
@@ -52,5 +52,5 @@ struct TrajectoryRollout {
                    const float safety_margin) const;
 };
 
-}  // namespace obstacle_avoidance
+}  // namespace motion_planning
 }  // namespace cs
