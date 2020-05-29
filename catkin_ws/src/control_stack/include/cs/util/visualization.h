@@ -366,7 +366,7 @@ inline visualization_msgs::Marker PointsToLineList(
   marker.id = 0;
   marker.type = visualization_msgs::Marker::LINE_LIST;
   marker.action = visualization_msgs::Marker::ADD;
-  marker.scale.x = 1;
+  marker.scale.x = 100;
   marker.color.r = r;
   marker.color.g = g;
   marker.color.b = b;
@@ -461,6 +461,10 @@ inline visualization_msgs::Marker MakeCylinder(const Eigen::Vector2f& position,
   marker.pose.position.x = position.x();
   marker.pose.position.y = position.y();
   marker.pose.position.z = z;
+  marker.pose.orientation.w = 0;
+  marker.pose.orientation.x = 0;
+  marker.pose.orientation.y = 0;
+  marker.pose.orientation.z = 0;
   marker.color.a = alpha;
   marker.color.r = r;
   marker.color.g = g;

@@ -42,14 +42,17 @@ Map::Map(const std::string& filepath) {
 
   std::string line;
   while (std::getline(map_file, line)) {
-    float x1 = 0;
-    float y1 = 0;
-    float x2 = 0;
-    float y2 = 0;
-    std::istringstream iss(line);
-    if (!(iss >> x1 >> y1 >> x2 >> y2)) {
-      break;
+    std::istringstream s(line);
+    std::string field;
+    std::vector<float> fields;
+    while (std::getline(s, field, ',')) {
+      fields.push_back(std::stof(field));
     }
+    NP_CHECK(fields.size() == 4);
+    float x1 = fields[0];
+    float y1 = fields[1];
+    float x2 = fields[2];
+    float y2 = fields[3];
     walls.push_back({{x1, y1}, {x2, y2}});
   }
 }

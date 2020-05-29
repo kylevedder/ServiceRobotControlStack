@@ -22,10 +22,11 @@
 -- ========================================================================
 
 laser = {
-  laser_deadzone_left_min = 640;
-  laser_deadzone_left_max = 725;
-  laser_deadzone_right_min = 0;
-  laser_deadzone_right_max = 85;
+  deadzones = {0, 80, 640, 725};
+};
+
+state_estimation = {
+  use_sim_ground_truth = false;
 };
 
 pf = {
@@ -38,11 +39,17 @@ pf = {
   kInitX = 33.016267;
   kInitY = 21.534157;
   kInitTheta = 0;
-  kGoalX = 30;
+  kGoalX = 32.016267;
   kGoalY = 21.534157;
   kRobotRadius = 0.1;
   kSafetyMargin = 0.2;
   kCollisionRollout = 2;
+};
+
+frames = {
+  laser_tf_frame = "/laser";
+  base_tf_frame = "/base_link";
+  map_tf_frame = "/map";
 };
 
 od = {
@@ -58,6 +65,7 @@ od = {
     min_distance_btw_readings_to_reason_angle = 0.01;
     line_similarity = math.cos(math.rad(20));
   };
+  is_wall_threshold = 0.1;
   min_trajectory_rotation = 0.005;
 };
 

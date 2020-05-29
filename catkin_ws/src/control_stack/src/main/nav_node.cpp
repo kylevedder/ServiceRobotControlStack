@@ -39,7 +39,9 @@
 #include "cs/motion_planning/pid.h"
 #include "cs/obstacle_avoidance/obstacle_detector.h"
 #include "cs/path_finding/rrt.h"
-#include "cs/state_estimation/state_estimation.h"
+#include "cs/state_estimation/pf_state_estimator.h"
+#include "cs/state_estimation/sim_state_estimator.h"
+#include "cs/state_estimation/state_estimator.h"
 #include "cs/util/pose.h"
 #include "cs/util/twist.h"
 #include "cs/util/util.h"
@@ -60,15 +62,17 @@ CONFIG_FLOAT(kRobotRadius, "pf.kRobotRadius");
 CONFIG_FLOAT(kSafetyMargin, "pf.kSafetyMargin");
 CONFIG_FLOAT(kCollisionRollout, "pf.kCollisionRollout");
 
-CONFIG_INT(laser_deadzone_left_min, "laser.laser_deadzone_left_min");
-CONFIG_INT(laser_deadzone_left_max, "laser.laser_deadzone_left_max");
-CONFIG_INT(laser_deadzone_right_min, "laser.laser_deadzone_right_min");
-CONFIG_INT(laser_deadzone_right_max, "laser.laser_deadzone_right_max");
+CONFIG_STRING(map_tf_frame, "frames.map_tf_frame");
+CONFIG_STRING(base_link_tf_frame, "frames.base_tf_frame");
+CONFIG_STRING(laser_tf_frame, "frames.laser_tf_frame");
+
+CONFIG_INTLIST(deadzones, "laser.deadzones");
+CONFIG_BOOL(use_sim_ground_truth, "state_estimation.use_sim_ground_truth");
 }  // namespace params
 
 struct CallbackWrapper {
   util::Map map_;
-  cs::state_estimation::StateEstimator state_estimator_;
+  std::unique_ptr<cs::state_estimation::StateEstimator> state_estimator_;
   cs::obstacle_avoidance::ObstacleDetector obstacle_detector_;
   cs::motion_planning::PIDController motion_planner_;
   cs::path_finding::RRT path_finder_;
@@ -94,14 +98,24 @@ struct CallbackWrapper {
 
   CallbackWrapper() = delete;
 
+  cs::state_estimation::StateEstimator* MakeStateEstimator(ros::NodeHandle* n) {
+    if (params::CONFIG_use_sim_ground_truth) {
+      ROS_INFO("Using sim ground truth for state estimation");
+      return new cs::state_estimation::SimStateEstimator(n);
+    }
+    ROS_INFO("Using PF for state estimation");
+    return new cs::state_estimation::PFStateEstimator(
+        map_,
+        {params::CONFIG_kInitX,
+         params::CONFIG_kInitY,
+         params::CONFIG_kInitTheta});
+  }
+
   CallbackWrapper(const std::string& map_file, ros::NodeHandle* n)
       : map_(map_file),
-        state_estimator_(map_,
-                         {params::CONFIG_kInitX,
-                          params::CONFIG_kInitY,
-                          params::CONFIG_kInitTheta}),
+        state_estimator_(MakeStateEstimator(n)),
         obstacle_detector_(map_),
-        motion_planner_(map_, state_estimator_),
+        motion_planner_(map_, *state_estimator_),
         path_finder_(
             map_, params::CONFIG_kRobotRadius, params::CONFIG_kSafetyMargin),
         current_goal_(params::CONFIG_kGoalX, params::CONFIG_kGoalY) {
@@ -121,9 +135,9 @@ struct CallbackWrapper {
           n->advertise<sensor_msgs::LaserScan>("scan_modified", 10);
       particle_pub_ =
           n->advertise<visualization_msgs::MarkerArray>("particles", 10);
-      map_pub_ = n->advertise<visualization_msgs::Marker>("map", 10);
-      detected_walls_pub_ = n->advertise<visualization_msgs::MarkerArray>(
-          "detected_obstacles", 10);
+      map_pub_ = n->advertise<visualization_msgs::Marker>("robot_map", 10);
+      detected_walls_pub_ =
+          n->advertise<visualization_msgs::Marker>("detected_obstacles", 10);
       robot_size_pub_ =
           n->advertise<visualization_msgs::Marker>("robot_size", 10);
       robot_path_pub_ =
@@ -139,10 +153,11 @@ struct CallbackWrapper {
   }
 
   void CleanLaserScan(util::LaserScan* laser) {
-    laser->ClearDataInIndexRange(params::CONFIG_laser_deadzone_right_min,
-                                 params::CONFIG_laser_deadzone_right_max);
-    laser->ClearDataInIndexRange(params::CONFIG_laser_deadzone_left_min,
-                                 params::CONFIG_laser_deadzone_left_max);
+    NP_CHECK(params::CONFIG_deadzones.size() % 2 == 0);
+    for (size_t i = 0; i < params::CONFIG_deadzones.size(); i += 2) {
+      laser->ClearDataInIndexRange(params::CONFIG_deadzones[i],
+                                   params::CONFIG_deadzones[i + 1]);
+    }
     if (kDebug) {
       modified_laser_pub_.publish(laser->ros_laser_scan_);
     }
@@ -150,35 +165,39 @@ struct CallbackWrapper {
 
   void LaserCallback(const sensor_msgs::LaserScan& msg) {
     util::LaserScan laser(msg);
-    state_estimator_.UpdateLaser(laser, msg.header.stamp);
-    const auto est_pose = state_estimator_.GetEstimatedPose();
+    state_estimator_->UpdateLaser(laser, msg.header.stamp);
+    const auto est_pose = state_estimator_->GetEstimatedPose();
     position_pub_.publish(est_pose.ToTwist());
     obstacle_detector_.UpdateObservation(est_pose, laser, &detected_walls_pub_);
-    const auto path = path_finder_.FindPath(obstacle_detector_.GetDynamicMap(),
-                                            est_pose.tra,
-                                            current_goal_,
-                                            &rrt_tree_pub_);
-    const auto base_link_path = path.TransformPath((-est_pose).ToAffine());
-    robot_path_pub_.publish(visualization::DrawPath(path, "map", "path"));
-    base_link_robot_path_pub_.publish(
-        visualization::DrawPath(base_link_path, "base_link", "path"));
-    const auto waypoint =
-        (path.IsValid() ? path.waypoints[1]
-                        : state_estimator_.GetEstimatedPose().tra);
+    //    const auto path =
+    //    path_finder_.FindPath(obstacle_detector_.GetDynamicMap(),
+    //                                            est_pose.tra,
+    //                                            current_goal_,
+    //                                            &rrt_tree_pub_);
+    //    const auto base_link_path =
+    //    path.TransformPath((-est_pose).ToAffine());
+    //    robot_path_pub_.publish(visualization::DrawPath(path, "map", "path"));
+    //    base_link_robot_path_pub_.publish(
+    //        visualization::DrawPath(base_link_path, "base_link", "path"));
+    //    ROS_INFO("Dynamic map has %zu points",
+    //             obstacle_detector_.GetDynamicMap().walls.size());
+    const auto waypoint = current_goal_;
+    //        (path.IsValid() ? path.waypoints[1]
+    //                        : state_estimator_.GetEstimatedPose().tra);
     const auto desired_command = motion_planner_.DriveToPoint(
         obstacle_detector_.GetDynamicMap(), waypoint);
 
     command_pub_.publish(desired_command.ToTwist());
-    state_estimator_.UpdateLastCommand(desired_command);
+    state_estimator_->UpdateLastCommand(desired_command);
     PublishTransforms();
     if (kDebug) {
-      //      particle_filter_.DrawParticles(&particle_pub_);
+      state_estimator_->Visualize(&particle_pub_);
       map_pub_.publish(map_.ToMarker());
       robot_size_pub_.publish(
-          visualization::MakeCylinder(est_pose.tra,
+          visualization::MakeCylinder({0, 0},
                                       params::CONFIG_kRobotRadius,
                                       3.0,
-                                      "map",
+                                      "/base_link",
                                       "robot_size",
                                       0,
                                       1,
@@ -190,30 +209,37 @@ struct CallbackWrapper {
 
   void OdomCallback(const nav_msgs::Odometry& msg) {
     const util::Twist velocity(msg.twist.twist);
-    state_estimator_.UpdateOdom(velocity, msg.header.stamp);
+    state_estimator_->UpdateOdom(velocity, msg.header.stamp);
   }
 
   void PublishTransforms() {
-    br_.sendTransform(tf::StampedTransform(
-        tf::Transform::getIdentity(), ros::Time::now(), "laser", "base_link"));
+    br_.sendTransform(tf::StampedTransform(tf::Transform::getIdentity(),
+                                           ros::Time::now(),
+                                           params::CONFIG_laser_tf_frame,
+                                           params::CONFIG_base_link_tf_frame));
 
-    const auto current_pose = state_estimator_.GetEstimatedPose();
-    NP_FINITE_2F(current_pose.tra);
-    NP_FINITE(current_pose.rot);
+    const auto est_pose = state_estimator_->GetEstimatedPose();
+    NP_FINITE_2F(est_pose.tra);
+    NP_FINITE(est_pose.rot);
     tf::Transform transform;
-    transform.setOrigin(
-        tf::Vector3(current_pose.tra.x(), current_pose.tra.y(), 0.0));
+    transform.setOrigin(tf::Vector3(est_pose.tra.x(), est_pose.tra.y(), 0.0));
     tf::Quaternion q;
-    q.setRPY(0, 0, current_pose.rot);
+    q.setRPY(0, 0, est_pose.rot);
     transform.setRotation(q);
-    br_.sendTransform(tf::StampedTransform(
-        transform.inverse(), ros::Time::now(), "base_link", "map"));
+    br_.sendTransform(tf::StampedTransform(transform.inverse(),
+                                           ros::Time::now(),
+                                           params::CONFIG_base_link_tf_frame,
+                                           params::CONFIG_map_tf_frame));
   }
 };
 
 int main(int argc, char** argv) {
-  config_reader::ConfigReader reader(
-      {"src/control_stack/config/nav_config.lua"});
+  std::string config_file = "src/control_stack/config/nav_config.lua";
+  if (argc == 2) {
+    config_file = argv[1];
+  }
+  ROS_INFO("Using config file: %s", config_file.c_str());
+  config_reader::ConfigReader reader({config_file});
   ros::init(argc, argv, "nav_node");
   ros::NodeHandle n;
   CallbackWrapper cw(params::CONFIG_kMap, &n);

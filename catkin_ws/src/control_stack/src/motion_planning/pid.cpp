@@ -56,10 +56,15 @@ CONFIG_FLOAT(translational_cost_scale_factor, "od.kTranslationCostScaleFactor");
 
 util::Twist PIDController::DriveToPoint(const util::Map& dynamic_map,
                                         const Eigen::Vector2f& waypoint) {
+  est_world_pose_ = state_estimator_.GetEstimatedPose();
+  est_velocity_ = state_estimator_.GetEstimatedVelocity();
+  std::cout << "waypoint: " << waypoint.x() << ", " << waypoint.y()
+            << std::endl;
   complete_map_ = map_.Merge(dynamic_map);
-  const auto estimated_velocity = state_estimator_.GetEstimatedVelocity();
 
-  const auto limited_command = ApplyCommandLimits(ProposeCommand(waypoint));
+  const auto proposed_command = ProposeCommand(waypoint);
+  std::cout << "Proposed command: " << proposed_command << std::endl;
+  const auto limited_command = ApplyCommandLimits(proposed_command);
 
   if (!IsCommandColliding(limited_command)) {
     return limited_command;
@@ -70,8 +75,8 @@ util::Twist PIDController::DriveToPoint(const util::Map& dynamic_map,
       {{0, 0, 0},
        {0, 0, params::CONFIG_kMaxRotVel},
        {0, 0, -params::CONFIG_kMaxRotVel},
-       {estimated_velocity.tra, params::CONFIG_kMaxRotVel},
-       {estimated_velocity.tra, -params::CONFIG_kMaxRotVel}}};
+       {est_velocity_.tra, params::CONFIG_kMaxRotVel},
+       {est_velocity_.tra, -params::CONFIG_kMaxRotVel}}};
 
   NP_CHECK(alternate_commands[0] == util::Twist(0, 0, 0));
 
@@ -139,11 +144,8 @@ util::Twist PIDController::ApplyCommandLimits(util::Twist c) const {
     ROS_INFO("Time delta: %f", time_delta);
   }
 
-  const util::Twist estimated_velocity =
-      state_estimator_.GetEstimatedVelocity();
-
   if (time_delta < kEpsilon) {
-    return estimated_velocity;
+    return est_velocity_;
   }
 
   // Cap translational velocity.
@@ -156,21 +158,21 @@ util::Twist PIDController::ApplyCommandLimits(util::Twist c) const {
   }
 
   // m/s - m/s -> m/s / s = m/s^2
-  const util::Twist acceleration = (c - estimated_velocity) / time_delta;
+  const util::Twist acceleration = (c - est_velocity_) / time_delta;
 
   // Cap translational acceleration.
   if (acceleration.tra.squaredNorm() >
       math_util::Sq(params::CONFIG_kMaxTraAcc)) {
     // m/s = m/s + m/s^2 * s
-    c.tra = estimated_velocity.tra + acceleration.tra.normalized() *
-                                         params::CONFIG_kMaxTraAcc * time_delta;
+    c.tra = est_velocity_.tra + acceleration.tra.normalized() *
+                                    params::CONFIG_kMaxTraAcc * time_delta;
   }
 
   // Cap rotational acceleration.
   if (fabs(acceleration.rot) > math_util::Sq(params::CONFIG_kMaxRotAcc)) {
     // rad/s = rad/s + rad/s^2 * s
-    c.rot = estimated_velocity.rot + math_util::Sign(acceleration.rot) *
-                                         params::CONFIG_kMaxRotAcc * time_delta;
+    c.rot = est_velocity_.rot + math_util::Sign(acceleration.rot) *
+                                    params::CONFIG_kMaxRotAcc * time_delta;
   }
 
   return c;
@@ -183,10 +185,8 @@ bool PIDController::IsCommandColliding(
   const float& safety_margin = params::CONFIG_safety_margin;
 
   static constexpr bool kDebug = false;
-  const TrajectoryRollout tr(state_estimator_.GetEstimatedPose(),
-                             state_estimator_.GetEstimatedVelocity(),
-                             commanded_velocity,
-                             rollout_duration);
+  const TrajectoryRollout tr(
+      est_world_pose_, est_velocity_, commanded_velocity, rollout_duration);
   for (const auto& w : complete_map_.walls) {
     if (tr.IsColliding(w, robot_radius, safety_margin)) {
       if (kDebug) {

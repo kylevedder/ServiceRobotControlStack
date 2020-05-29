@@ -27,6 +27,7 @@
 #include <random>
 
 #include "cs/localization/particle_filter.h"
+#include "cs/state_estimation/state_estimator.h"
 #include "cs/util/datastructures/circular_buffer.h"
 #include "cs/util/laser_scan.h"
 #include "cs/util/map.h"
@@ -38,16 +39,15 @@ namespace state_estimation {
 
 namespace params {
 CONFIG_FLOAT(command_bias, "od.command_bias");
-}
+}  // namespace params
 
-class StateEstimator {
+class PFStateEstimator : public StateEstimator {
  private:
-  static constexpr size_t kTimeBufferSize = 5;
-
   cs::localization::ParticleFilter pf_;
   util::Twist last_command_;
   util::Twist last_odom_velocity_;
 
+  static constexpr size_t kTimeBufferSize = 5;
   cs::datastructures::CircularBuffer<ros::Time, kTimeBufferSize> odom_times_;
   cs::datastructures::CircularBuffer<ros::Time, kTimeBufferSize> laser_times_;
 
@@ -63,9 +63,10 @@ class StateEstimator {
   }
 
  public:
-  StateEstimator() = delete;
-  StateEstimator(const util::Map& map, const util::Pose& initial_pose)
-      : pf_(map, initial_pose) {}
+  PFStateEstimator() = delete;
+  PFStateEstimator(const util::Map& map, const util::Pose& initial_pose)
+      : StateEstimator(), pf_(map, initial_pose) {}
+  ~PFStateEstimator(){};
 
   void UpdateLaser(const util::LaserScan& laser, const ros::Time& time) {
     pf_.UpdateObservation(laser);
@@ -94,6 +95,8 @@ class StateEstimator {
   float GetOdomTimeDelta() const { return GetTimeDelta(odom_times_); }
 
   float GetLaserTimeDelta() const { return GetTimeDelta(laser_times_); }
+
+  void Visualize(ros::Publisher* pub) const { pf_.DrawParticles(pub); }
 };
 
 }  // namespace state_estimation

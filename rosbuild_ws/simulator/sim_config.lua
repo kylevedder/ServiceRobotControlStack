@@ -17,10 +17,6 @@ init_config_file = "rosbuild_ws/simulator/init_config.lua"
 -- Time-step for simulation.
 delta_t = 0.025
 
--- Simulator TF publications
-publish_foot_to_base = true;
-publish_map_to_odom = true;
-
 -- Car dimensions.
 car_width = 0.281
 car_length = 0.535
@@ -56,3 +52,4 @@ local RobotType = {
 robot_type = RobotType.BWIBOT
 robot_config = "rosbuild_ws/simulator/turtlebot_config.lua"
 laser_topic = "/Cobot/scan"
+laser_frame = "/laser"

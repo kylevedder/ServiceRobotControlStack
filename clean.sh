@@ -2,6 +2,7 @@
 
 source /opt/ros/$ROS_DISTRO/setup.bash
 pushd catkin_ws
+catkin_make clean
 rm -rf build/ devel/
 popd
 

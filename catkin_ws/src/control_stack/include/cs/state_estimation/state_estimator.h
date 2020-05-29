@@ -22,53 +22,41 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 // ========================================================================
-
-#include <algorithm>
-#include <limits>
+#include <ros/ros.h>
+#include <array>
 #include <random>
-#include <string>
-#include <vector>
 
-#include "cs/path_finding/path_finder.h"
-#include "cs/state_estimation/state_estimator.h"
-#include "cs/util/constants.h"
-#include "cs/util/visualization.h"
-#include "shared/math/geometry.h"
-#include "shared/math/math_util.h"
+#include "cs/util/laser_scan.h"
+#include "cs/util/map.h"
+#include "cs/util/pose.h"
+#include "cs/util/twist.h"
 
 namespace cs {
-namespace motion_planning {
+namespace state_estimation {
 
-class PIDController {
- private:
-  const util::Map& map_;
-  const cs::state_estimation::StateEstimator& state_estimator_;
-  util::Map complete_map_;
-  util::Pose est_world_pose_;
-  util::Twist est_velocity_;
-
-  util::Twist ProposeCommand(const Eigen::Vector2f& waypoint) const;
-
-  util::Twist ApplyCommandLimits(util::Twist c) const;
-
-  float AlternateCommandCost(const util::Twist& desired,
-                             const util::Twist& alternate) const;
-
-  bool IsCommandColliding(const util::Twist& commanded_velocity) const;
-
+class StateEstimator {
  public:
-  PIDController() = delete;
-  PIDController(const util::Map& map,
-                const cs::state_estimation::StateEstimator& state_estimator)
-      : map_(map),
-        state_estimator_(state_estimator),
-        complete_map_(map),
-        est_world_pose_(),
-        est_velocity_() {}
+  StateEstimator() = default;
+  virtual ~StateEstimator() = default;
 
-  util::Twist DriveToPoint(const util::Map& dynamic_map,
-                           const Eigen::Vector2f& waypoint);
+  virtual void UpdateLaser(const util::LaserScan& laser,
+                           const ros::Time& time) = 0;
+
+  virtual void UpdateOdom(const util::Twist& odom_velocity,
+                          const ros::Time& time) = 0;
+
+  virtual void UpdateLastCommand(const util::Twist& cmd) = 0;
+
+  virtual util::Pose GetEstimatedPose() const = 0;
+
+  virtual util::Twist GetEstimatedVelocity() const = 0;
+
+  virtual void Visualize(ros::Publisher* pub) const = 0;
+
+  virtual float GetOdomTimeDelta() const = 0;
+
+  virtual float GetLaserTimeDelta() const = 0;
 };
 
-}  // namespace motion_planning
+}  // namespace state_estimation
 }  // namespace cs

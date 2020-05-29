@@ -20,14 +20,15 @@ angular_odom_scale = 1.0
 -- SIMULATOR PARAMETERS
 
 -- tf
-publish_map_to_odom = true
-publish_foot_to_base = true
+publish_tfs = false;
+publish_map_to_odom = false;
+publish_foot_to_base = false;
 
 -- Kinematic
 rear_axle_offset = 0.0
 min_turn_radius = 0.0
 
-laser_loc = Vector3(0.15, 0, 0.155)
+laser_loc = Vector3(0, 0, 0)
 car_width = 0.34
 car_length = 0.34
 car_height = 1.5;
