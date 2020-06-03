@@ -13,7 +13,7 @@ export ROS_PACKAGE_PATH=`pwd`:$BASE_ROS_PACKAGE_PATH
 make -j `nproc`
 popd
 
-pushd simulator/f1tenth_simulator
+pushd simulator/ut_multirobot_sim
 export ROS_PACKAGE_PATH=`pwd`:$BASE_ROS_PACKAGE_PATH
 make -j `nproc`
 popd
