@@ -11,3 +11,6 @@
 [submodule "rosbuild_ws/simulator/ut_multirobot_sim"]
 	path = rosbuild_ws/simulator/ut_multirobot_sim
 	url = ../../ut-amrl/ut_multirobot_sim.git
+[submodule "catkin_ws/src/control_stack/lib/libMultiRobotPlanning"]
+	path = catkin_ws/src/control_stack/lib/libMultiRobotPlanning
+	url = ../../ut-amrl/libMultiRobotPlanning.git
