@@ -35,6 +35,7 @@ struct Twist {
   Eigen::Vector2f tra;
   float rot;
   Twist() : tra(0, 0), rot(0) {}
+  explicit Twist(const Eigen::Vector3f& v) : tra(v.x(), v.y()), rot(v.z()) {}
   explicit Twist(const geometry_msgs::Twist& twist)
       : tra(twist.linear.x, twist.linear.y), rot(twist.angular.z) {}
 

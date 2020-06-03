@@ -36,6 +36,7 @@ struct Pose {
   Eigen::Vector2f tra;
   float rot;
   Pose() : tra(0, 0), rot(0) {}
+  explicit Pose(const Eigen::Vector3f& v) : tra(v.x(), v.y()), rot(v.z()) {}
   explicit Pose(const geometry_msgs::Twist& twist)
       : tra(twist.linear.x, twist.linear.y), rot(twist.angular.z) {}
   explicit Pose(const geometry_msgs::Pose& pose)
@@ -47,7 +48,7 @@ struct Pose {
   }
   Pose(const Eigen::Vector2f& tra, const float& rot) : tra(tra), rot(rot) {}
 
-  Pose(const float x, const float y, const float& rot) : tra(x, y), rot(rot) {}
+  Pose(const float x, const float y, const float rot) : tra(x, y), rot(rot) {}
 
   bool operator==(const Pose& other) const {
     return (tra == other.tra) && (rot == other.rot);

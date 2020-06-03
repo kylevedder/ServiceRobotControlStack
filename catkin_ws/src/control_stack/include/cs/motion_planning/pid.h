@@ -47,7 +47,7 @@ class PIDController {
   util::Pose est_world_pose_;
   util::Twist est_velocity_;
 
-  util::Twist ProposeCommand(const Eigen::Vector2f& waypoint) const;
+  util::Twist ProposeCommand(const util::Pose& waypoint) const;
 
   util::Twist ApplyCommandLimits(util::Twist c) const;
 
@@ -66,8 +66,10 @@ class PIDController {
         est_world_pose_(),
         est_velocity_() {}
 
-  util::Twist DriveToPoint(const util::Map& dynamic_map,
-                           const Eigen::Vector2f& waypoint);
+  bool AtPose(const util::Pose& pose) const;
+
+  util::Twist DriveToPose(const util::Map& dynamic_map,
+                          const util::Pose& waypoint);
 };
 
 }  // namespace motion_planning

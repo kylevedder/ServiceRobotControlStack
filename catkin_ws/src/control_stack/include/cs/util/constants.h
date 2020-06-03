@@ -49,6 +49,10 @@ static constexpr int kAssertFailReturnCode = 1;
   }
 #endif
 
+#ifndef CHECK_EQ
+#define CHECK_EQ(exp1, exp2) CHECK_PRINT_VALS((exp1) == (exp2), exp1, exp2);
+#endif
+
 #define CHECK_MSG(exp, msg)                                             \
   if (!(exp)) {                                                         \
     std::cerr << __FILE__ << ":" << __LINE__ << " Assertion \"" << #exp \
@@ -71,6 +75,13 @@ static constexpr int kAssertFailReturnCode = 1;
     exit(kAssertFailReturnCode);                                        \
   }
 
+#define FINITE(exp) CHECK_PRINT_VAL(std::isfinite(exp), (exp))
+
+#define FINITE_MSG(exp, msg) CHECK_MSG(std::isfinite(exp), msg)
+
+#define FINITE_VEC2(exp) \
+  CHECK_PRINT_VAL(std::isfinite(exp.x()) && std::isfinite(exp.x()), (exp));
+
 #define NP_CHECK(exp) \
   if (!kProduction) { \
     CHECK(exp);       \
@@ -91,23 +102,24 @@ static constexpr int kAssertFailReturnCode = 1;
     CHECK_PRINT_VAL(exp, val1, val2);  \
   }
 
-#ifndef CHECK_EQ
-#define CHECK_EQ(exp1, exp2) CHECK_PRINT_VALS((exp1) == (exp2), exp1, exp2);
-#endif
-
 #define NP_CHECK_EQ(exp1, exp2) \
   if (!kProduction) {           \
     CHECK_EQ(exp1, exp2);       \
   }
 
-#define NP_FINITE(exp)                          \
-  if (!kProduction) {                           \
-    CHECK_PRINT_VAL(std::isfinite(exp), (exp)); \
+#define NP_FINITE(exp) \
+  if (!kProduction) {  \
+    FINITE(exp);       \
   }
 
-#define NP_FINITE_2F(exp)                                        \
-  if (!kProduction) {                                            \
-    CHECK(std::isfinite((exp).x()) && std::isfinite((exp).y())); \
+#define NP_FINITE_MSG(exp, msg) \
+  if (!kProduction) {           \
+    FINITE_MSG(exp, msg);       \
+  }
+
+#define NP_FINITE_VEC2(exp) \
+  if (!kProduction) {       \
+    FINITE_VEC2(exp);       \
   }
 
 #define NP_NOT_NULL(exp)     \

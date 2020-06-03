@@ -40,6 +40,7 @@ CONFIG_FLOAT(rotation_drive_threshold, "control.rotation_drive_threshold");
 CONFIG_FLOAT(rotation_p, "control.rotation_p");
 CONFIG_FLOAT(translation_p, "control.translation_p");
 CONFIG_FLOAT(goal_deadzone_tra, "control.goal_deadzone_tra");
+CONFIG_FLOAT(goal_deadzone_rot, "control.goal_deadzone_rot");
 
 CONFIG_FLOAT(kMaxTraAcc, "limits.kMaxTraAcc");
 CONFIG_FLOAT(kMaxTraVel, "limits.kMaxTraVel");
@@ -54,12 +55,10 @@ CONFIG_FLOAT(translational_cost_scale_factor, "od.kTranslationCostScaleFactor");
 
 }  // namespace params
 
-util::Twist PIDController::DriveToPoint(const util::Map& dynamic_map,
-                                        const Eigen::Vector2f& waypoint) {
+util::Twist PIDController::DriveToPose(const util::Map& dynamic_map,
+                                       const util::Pose& waypoint) {
   est_world_pose_ = state_estimator_.GetEstimatedPose();
   est_velocity_ = state_estimator_.GetEstimatedVelocity();
-  std::cout << "waypoint: " << waypoint.x() << ", " << waypoint.y()
-            << std::endl;
   complete_map_ = map_.Merge(dynamic_map);
 
   const auto proposed_command = ProposeCommand(waypoint);
@@ -108,32 +107,61 @@ float PIDController::AlternateCommandCost(const util::Twist& desired,
          fabs(delta_pose.rot);
 }
 
-util::Twist PIDController::ProposeCommand(
-    const Eigen::Vector2f& waypoint) const {
-  const auto robot_heading = geometry::Heading(est_world_pose_.rot);
-  const Eigen::Vector2f waypoint_delta = (waypoint - est_world_pose_.tra);
-  const float distance_to_goal_sq = waypoint_delta.squaredNorm();
-  NP_FINITE(distance_to_goal_sq);
-  if (distance_to_goal_sq < Sq(params::CONFIG_goal_deadzone_tra)) {
-    return {0, 0, 0};
+bool PIDController::AtPose(const util::Pose& pose) const {
+  const Eigen::Vector2f tra_delta = est_world_pose_.tra - pose.tra;
+  if (tra_delta.squaredNorm() < Sq(params::CONFIG_goal_deadzone_tra)) {
+    const float waypoint_angle_delta =
+        geometry::AngleDiff(est_world_pose_.rot, pose.rot);
+    NP_FINITE(waypoint_angle_delta);
+    if (std::abs(waypoint_angle_delta) < params::CONFIG_goal_deadzone_rot) {
+      return true;
+    }
+  }
+  return false;
+}
+
+util::Twist PIDController::ProposeCommand(const util::Pose& waypoint) const {
+  const Eigen::Vector2f tra_delta = est_world_pose_.tra - waypoint.tra;
+
+  // Handle final turn to face waypoint's angle.
+  if (tra_delta.squaredNorm() < Sq(params::CONFIG_goal_deadzone_tra)) {
+    const float waypoint_angle_delta =
+        geometry::AngleDiff(est_world_pose_.rot, waypoint.rot);
+    std::cout << "Final pose angle delta: " << waypoint_angle_delta
+              << std::endl;
+    if (std::abs(waypoint_angle_delta) < params::CONFIG_goal_deadzone_rot) {
+      return {0, 0, 0};
+    }
+    // Rotate in place to final pose rotation.
+    return {0, 0, waypoint_angle_delta * params::CONFIG_rotation_p};
   }
 
-  const auto waypoint_heading = geometry::GetNormalizedOrZero(waypoint_delta);
-  NP_FINITE_2F(waypoint_heading);
-  const int angle_direction =
-      math_util::Sign(geometry::Cross(robot_heading, waypoint_heading));
-  NP_FINITE(angle_direction);
-  const float angle = std::acos(robot_heading.dot(waypoint_heading));
-  NP_FINITE(angle);
-  NP_CHECK_VAL(angle >= 0 && angle <= kPi + kEpsilon, angle);
+  const float robot_angle = est_world_pose_.rot;
+  const Eigen::Vector2f robot_to_waypoint_delta =
+      waypoint.tra - est_world_pose_.tra;
+  const float robot_to_waypoint_angle =
+      std::atan2(robot_to_waypoint_delta.y(), robot_to_waypoint_delta.x());
+
+  NP_FINITE(robot_angle);
+  NP_FINITE_VEC2(robot_to_waypoint_delta);
+  NP_FINITE(robot_to_waypoint_angle);
+
+  const float robot_to_waypoint_angle_delta =
+      geometry::AngleDiff(robot_angle, robot_to_waypoint_angle);
+  NP_FINITE_MSG(robot_to_waypoint_angle_delta,
+                "Robot angle: " << robot_angle << " robot to waypoint angle: "
+                                << robot_to_waypoint_angle);
+  NP_CHECK_VAL(robot_to_waypoint_angle_delta >= -(kPi + kEpsilon) &&
+                   robot_to_waypoint_angle_delta <= (kPi + kEpsilon),
+               robot_to_waypoint_angle_delta);
   float x = 0;
-  if (angle < params::CONFIG_rotation_drive_threshold) {
-    x = std::sqrt(distance_to_goal_sq);
-    x *= math_util::Sign(waypoint_heading.dot(robot_heading));
+  if (std::abs(robot_to_waypoint_angle_delta) <
+      params::CONFIG_rotation_drive_threshold) {
+    x = robot_to_waypoint_delta.norm();
   }
   return {x * params::CONFIG_translation_p,
           0,
-          angle * angle_direction * params::CONFIG_rotation_p};
+          robot_to_waypoint_angle_delta * params::CONFIG_rotation_p};
 }
 
 util::Twist PIDController::ApplyCommandLimits(util::Twist c) const {

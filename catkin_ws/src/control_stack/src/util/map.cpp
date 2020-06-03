@@ -48,7 +48,7 @@ Map::Map(const std::string& filepath) {
     while (std::getline(s, field, ',')) {
       fields.push_back(std::stof(field));
     }
-    NP_CHECK(fields.size() == 4);
+    CHECK(fields.size() == 4);
     float x1 = fields[0];
     float y1 = fields[1];
     float x2 = fields[2];
