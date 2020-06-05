@@ -44,14 +44,11 @@ class RRT : public PathFinder {
                const float& robot_radius,
                const float& safety_margin);
 
-  Path2d FindPath(const util::Map& dynamic_map,
+  Path2f FindPath(const util::Map& dynamic_map,
                   const Eigen::Vector2f& start,
-                  const Eigen::Vector2f& goal,
-                  ros::Publisher* pub) override;
+                  const Eigen::Vector2f& goal) override;
 
  private:
-  const float& robot_radius;
-  const float& safety_margin;
   struct TreePoint {
     static constexpr int kRootParent = -1;
     Eigen::Vector2f point;
@@ -69,7 +66,7 @@ class RRT : public PathFinder {
 
     int FindClosestPoint(const Eigen::Vector2f& steering_point);
 
-    Path2d UnwindPath(const int goal_idx) const;
+    Path2f UnwindPath(const int goal_idx) const;
   };
   std::default_random_engine generator;
 
@@ -77,23 +74,15 @@ class RRT : public PathFinder {
                                       const std::string& frame_id,
                                       const std::string& ns);
 
-  bool IsLineColliding(const util::Map& dynamic_map,
-                       const Eigen::Vector2f& p1,
-                       const Eigen::Vector2f& p2) const;
-
   int AddPoint(const util::Map& dynamic_map,
                Tree* tree,
                const Eigen::Vector2f& steering_point);
 
-  Path2d SmoothPath(const util::Map& dynamic_map, Path2d path);
+  Path2f SmoothPath(const util::Map& dynamic_map, Path2f path);
 
-  Path2d GenerateNewPath(const util::Map& dynamic_map,
+  Path2f GenerateNewPath(const util::Map& dynamic_map,
                          const Eigen::Vector2f& start,
-                         const Eigen::Vector2f& goal,
-                         ros::Publisher* pub);
-
-  bool IsPathColliding(const util::Map& dynamic_map,
-                       const Path2d& path) const override;
+                         const Eigen::Vector2f& goal);
 
   bool IsNearGoal(const Eigen::Vector2f& goal,
                   const Eigen::Vector2f& point) const;

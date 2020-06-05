@@ -180,18 +180,14 @@ TrajectoryRollout::TrajectoryRollout(const util::Pose& start_pose,
 }
 
 bool TrajectoryRollout::IsColliding(const util::Wall& wall,
-                                    const float& robot_radius,
-                                    const float safety_margin) const {
-  const float min_dist_threshold = robot_radius + kEpsilon + safety_margin;
-  if (IsCollidingLinear(
-          start_pose, achieved_vel_pose, wall, min_dist_threshold)) {
+                                    const float radius) const {
+  if (IsCollidingLinear(start_pose, achieved_vel_pose, wall, radius)) {
     return true;
   }
 
   // Turn in place or no rotation.
   if (fabs(rotate_circle_radius) < kEpsilon) {
-    return IsCollidingLinear(
-        achieved_vel_pose, final_pose, wall, min_dist_threshold);
+    return IsCollidingLinear(achieved_vel_pose, final_pose, wall, radius);
   }
 
   const int rotation_sign = math_util::Sign(commanded_v.rot);
@@ -210,7 +206,7 @@ bool TrajectoryRollout::IsColliding(const util::Wall& wall,
 
   NP_FINITE(dist);
   NP_CHECK_VAL(dist >= 0.0f, dist);
-  return dist <= min_dist_threshold;
+  return dist <= radius;
 }
 }  // namespace motion_planning
 }  // namespace cs

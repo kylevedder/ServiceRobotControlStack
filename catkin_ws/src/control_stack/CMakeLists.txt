@@ -155,6 +155,7 @@ include_directories(
   lib/
   lib/config_reader/include
   lib/shared
+  lib/libMultiRobotPlanning/include
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${CERES_INCLUDE_DIRS}

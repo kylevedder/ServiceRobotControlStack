@@ -38,6 +38,7 @@
 #include "cs/localization/particle_filter.h"
 #include "cs/motion_planning/pid.h"
 #include "cs/obstacle_avoidance/obstacle_detector.h"
+#include "cs/path_finding/astar.h"
 #include "cs/path_finding/rrt.h"
 #include "cs/state_estimation/pf_state_estimator.h"
 #include "cs/state_estimation/sim_state_estimator.h"
@@ -72,7 +73,7 @@ struct CallbackWrapper {
   std::unique_ptr<cs::state_estimation::StateEstimator> state_estimator_;
   cs::obstacle_avoidance::ObstacleDetector obstacle_detector_;
   cs::motion_planning::PIDController motion_planner_;
-  cs::path_finding::RRT path_finder_;
+  cs::path_finding::AStar path_finder_;
   tf::TransformBroadcaster br_;
   util::Pose current_goal_;
   int current_goal_index_;
@@ -163,6 +164,11 @@ struct CallbackWrapper {
     }
   }
 
+  void DrawPath(const cs::path_finding::Path2f& p) {
+    robot_path_pub_.publish(
+        visualization::DrawPath(p, params::CONFIG_map_tf_frame, "path"));
+  }
+
   void DrawGoal(const util::Pose& goal) {
     visualization_msgs::MarkerArray goal_marker;
     visualization::DrawPose(goal,
@@ -176,17 +182,82 @@ struct CallbackWrapper {
     goal_pub_.publish(goal_marker);
   }
 
+  void DrawRobot(const util::Map& full_map, const util::Twist& command) {
+    robot_size_pub_.publish(
+        visualization::MakeCylinder({0, 0},
+                                    params::CONFIG_kRobotRadius,
+                                    0.1,
+                                    params::CONFIG_base_link_tf_frame,
+                                    "robot_size",
+                                    0,
+                                    1,
+                                    0,
+                                    1,
+                                    0.05));
+    robot_size_pub_.publish(visualization::MakeCylinder(
+        {0, 0},
+        params::CONFIG_kRobotRadius + params::CONFIG_kSafetyMargin,
+        0.1,
+        params::CONFIG_base_link_tf_frame,
+        "safety_size",
+        0,
+        0,
+        1,
+        0.1,
+        0.05));
+
+    const cs::motion_planning::TrajectoryRollout tr(
+        state_estimator_->GetEstimatedPose(),
+        state_estimator_->GetEstimatedVelocity(),
+        command,
+        params::CONFIG_kCollisionRollout);
+
+    std::vector<util::Wall> colliding_walls;
+    for (const auto& w : full_map.walls) {
+      if (tr.IsColliding(
+              w, params::CONFIG_kRobotRadius + params::CONFIG_kSafetyMargin)) {
+        colliding_walls.push_back(w);
+      }
+    }
+    robot_size_pub_.publish(visualization::DrawWalls(
+        colliding_walls, params::CONFIG_map_tf_frame, "colliding_walls", 0.3));
+
+    robot_size_pub_.publish(visualization::MakeCylinder(
+        tr.final_pose.tra,
+        params::CONFIG_kRobotRadius + params::CONFIG_kSafetyMargin,
+        0.1,
+        params::CONFIG_map_tf_frame,
+        "final_safety",
+        1,
+        0,
+        0,
+        0.1,
+        0.05));
+  }
+
+  util::Pose GetNextPose(const util::Pose& goal_pose,
+                         const cs::path_finding::Path2f& path) {
+    //    if (!path.waypoints.empty()) {
+    //      for (const auto& p : path.waypoints) {
+    //        std::cout << "(" << p.x() << ", " << p.y() << ") ";
+    //      }
+    //      std::cout << std::endl;
+    //    }
+    if (path.waypoints.size() > 2) {
+      return {path.waypoints[1], 0};
+    }
+    return goal_pose;
+  }
+
   void LaserCallback(const sensor_msgs::LaserScan& msg) {
     util::LaserScan laser(msg);
     state_estimator_->UpdateLaser(laser, msg.header.stamp);
     const auto est_pose = state_estimator_->GetEstimatedPose();
     position_pub_.publish(est_pose.ToTwist());
     obstacle_detector_.UpdateObservation(est_pose, laser, &detected_walls_pub_);
-    //    const auto path =
-    //    path_finder_.FindPath(obstacle_detector_.GetDynamicMap(),
-    //                                            est_pose.tra,
-    //                                            current_goal_,
-    //                                            &rrt_tree_pub_);
+    const auto path = path_finder_.FindPath(
+        obstacle_detector_.GetDynamicMap(), est_pose.tra, current_goal_.tra);
+    DrawPath(path);
     //    const auto base_link_path =
     //    path.TransformPath((-est_pose).ToAffine());
     //    robot_path_pub_.publish(visualization::DrawPath(path, "map", "path"));
@@ -200,29 +271,22 @@ struct CallbackWrapper {
           params::CONFIG_goal_poses[current_goal_index_ %
                                     params::CONFIG_goal_poses.size()]);
     }
-    const auto waypoint = current_goal_;
+    const util::Pose waypoint = GetNextPose(current_goal_, path);
     DrawGoal(waypoint);
-    //        (path.IsValid() ? path.waypoints[1]
-    //                        : state_estimator_.GetEstimatedPose().tra);
-    const auto desired_command = motion_planner_.DriveToPose(
+    const util::Twist command = motion_planner_.DriveToPose(
         obstacle_detector_.GetDynamicMap(), waypoint);
 
-    command_pub_.publish(desired_command.ToTwist());
-    state_estimator_->UpdateLastCommand(desired_command);
+    std::cout << "Command: " << command << std::endl;
+    std::cout << "Waypoint: " << waypoint << std::endl;
+
+    command_pub_.publish(command.ToTwist());
+    state_estimator_->UpdateLastCommand(command);
+
     PublishTransforms();
     if (kDebug) {
       state_estimator_->Visualize(&particle_pub_);
       map_pub_.publish(map_.ToMarker());
-      robot_size_pub_.publish(
-          visualization::MakeCylinder({0, 0},
-                                      params::CONFIG_kRobotRadius,
-                                      3.0,
-                                      "/base_link",
-                                      "robot_size",
-                                      0,
-                                      1,
-                                      0,
-                                      1));
+      DrawRobot(map_, command);
       map_pub_.publish(map_.ToMarker());
     }
   }

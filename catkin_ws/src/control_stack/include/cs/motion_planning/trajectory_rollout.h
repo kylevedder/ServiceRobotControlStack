@@ -47,9 +47,7 @@ struct TrajectoryRollout {
                     const util::Twist& commanded_v,
                     const float rollout_duration);
 
-  bool IsColliding(const util::Wall& wall,
-                   const float& robot_radius,
-                   const float safety_margin) const;
+  bool IsColliding(const util::Wall& wall, const float radius) const;
 };
 
 }  // namespace motion_planning

@@ -38,7 +38,7 @@ pf = {
   -- kMap = "../rosbuild_ws/simulator/f1tenth_simulator/maps/GDC3.txt";
   map = "src/control_stack/maps/outside_grasp.map";
   start_pose = {-0.5, -1, 0};
-  goal_poses = {{0.3, -0.3, 0}, {1, -15, -3.14}};
+  goal_poses = {{0.27, -0.33, 0}, {1, -15, -3.14}};
   kRobotRadius = 0.1;
   kSafetyMargin = 0.2;
   kCollisionRollout = 3;
@@ -90,7 +90,7 @@ rrt = {
 control = {
   rotation_drive_threshold = 0.7; -- Radians.
   rotation_p = 1.25;
-  translation_p = 0.31;
+  translation_p = 0.5;
   goal_deadzone_tra = 0.15; -- Meters.
   goal_deadzone_rot = 0.05; -- Radians.
 };

@@ -44,6 +44,19 @@ struct Path {
   Path(const std::vector<Position>& waypoints, const Cost& cost)
       : waypoints(waypoints), cost(cost) {}
 
+  Path(const Path& p) : waypoints(p.waypoints), cost(p.cost) {}
+  Path(Path&& p) : waypoints(std::move(p.waypoints)), cost(std::move(p.cost)) {}
+  Path& operator=(const Path& p) {
+    this->waypoints = p.waypoints;
+    this->cost = p.cost;
+    return *this;
+  };
+  Path& operator=(Path&& p) {
+    this->waypoints = std::move(p.waypoints);
+    this->cost = std::move(p.cost);
+    return *this;
+  };
+
   bool IsValid() const { return !waypoints.empty(); }
 
   template <typename Transform>
@@ -56,27 +69,36 @@ struct Path {
   }
 };
 
-using Path2d = Path<Eigen::Vector2f, float>;
+using Path2f = Path<Eigen::Vector2f, float>;
 
 class PathFinder {
  protected:
   const util::Map& map_;
-  Path2d prev_path_;
+  const float& robot_radius_;
+  const float& safety_margin_;
+  Path2f prev_path_;
   double prev_path_time_;
 
-  virtual bool IsPathColliding(const util::Map& dynamic_map,
-                               const Path2d& path) const = 0;
+  bool IsLineColliding(const util::Map& dynamic_map,
+                       const Eigen::Vector2f& p1,
+                       const Eigen::Vector2f& p2) const;
 
-  Path2d UsePrevPathOrUpdate(const util::Map& dynamic_map,
-                             const Path2d& proposed_path);
+  bool IsPathColliding(const util::Map& dynamic_map, const Path2f& path) const;
+
+  Path2f UsePrevPathOrUpdate(const util::Map& dynamic_map,
+                             const Path2f& proposed_path);
+
+  Path2f SmoothPath(const util::Map& dynamic_map, Path2f path) const;
 
  public:
-  explicit PathFinder(const util::Map& map) : map_(map) {}
+  PathFinder(const util::Map& map,
+             const float& robot_radius,
+             const float& safety_margin)
+      : map_(map), robot_radius_(robot_radius), safety_margin_(safety_margin) {}
 
-  virtual Path2d FindPath(const util::Map& dynamic_map,
+  virtual Path2f FindPath(const util::Map& dynamic_map,
                           const Eigen::Vector2f& start,
-                          const Eigen::Vector2f& goal,
-                          ros::Publisher* pub) = 0;
+                          const Eigen::Vector2f& goal) = 0;
 };
 
 }  // namespace path_finding

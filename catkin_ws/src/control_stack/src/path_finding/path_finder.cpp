@@ -42,8 +42,8 @@ CONFIG_FLOAT(goal_delta_change, "path_finding.goal_delta_change");
 CONFIG_FLOAT(max_distance_off_path, "path_finding.max_distance_off_path");
 };  // namespace params
 
-Path2d PathFinder::UsePrevPathOrUpdate(const util::Map& dynamic_map,
-                                       const Path2d& proposed_path) {
+Path2f PathFinder::UsePrevPathOrUpdate(const util::Map& dynamic_map,
+                                       const Path2f& proposed_path) {
   static constexpr bool kDebug = false;
   NP_CHECK(!proposed_path.IsValid() ||
            !IsPathColliding(dynamic_map, proposed_path));
@@ -125,5 +125,65 @@ Path2d PathFinder::UsePrevPathOrUpdate(const util::Map& dynamic_map,
   }
   return prev_path_;
 }
+
+bool PathFinder::IsLineColliding(const util::Map& dynamic_map,
+                                 const Eigen::Vector2f& p1,
+                                 const Eigen::Vector2f& p2) const {
+  for (const auto& w : map_.walls) {
+    if (geometry::MinDistanceLineLine(w.p1, w.p2, p1, p2) <=
+        (robot_radius_ + safety_margin_)) {
+      return true;
+    }
+  }
+  for (const auto& w : dynamic_map.walls) {
+    if (geometry::MinDistanceLineLine(w.p1, w.p2, p1, p2) <=
+        (robot_radius_ + safety_margin_)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool PathFinder::IsPathColliding(const util::Map& dynamic_map,
+                                 const Path2f& path) const {
+  if (path.waypoints.size() < 2) {
+    return true;
+  }
+  for (size_t i = 0; i < path.waypoints.size() - 1; ++i) {
+    NP_CHECK(i < path.waypoints.size());
+    NP_CHECK(i + 1 < path.waypoints.size());
+    const auto& curr = path.waypoints[i];
+    const auto& next = path.waypoints[i + 1];
+    if (IsLineColliding(dynamic_map, curr, next)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+Path2f SlicePath(Path2f path, const size_t end_idx) {
+  NP_CHECK(path.waypoints.size() > end_idx)
+  if (end_idx > 2) {
+    path.waypoints.erase(path.waypoints.begin() + 1,
+                         path.waypoints.begin() + end_idx);
+  }
+  return path;
+}
+
+Path2f PathFinder::SmoothPath(const util::Map& dynamic_map, Path2f path) const {
+  if (path.waypoints.size() <= 2 || IsPathColliding(dynamic_map, path)) {
+    return path;
+  }
+  const auto& start = path.waypoints.front();
+  for (size_t i = 2; i < path.waypoints.size(); ++i) {
+    const auto& intermediate = path.waypoints[i];
+    if (IsLineColliding(dynamic_map, start, intermediate)) {
+      return SlicePath(std::move(path), i);
+    }
+  }
+  path.waypoints = {path.waypoints.front(), path.waypoints.back()};
+  return path;
+}
+
 }  // namespace path_finding
 }  // namespace cs

@@ -43,48 +43,19 @@ CONFIG_FLOAT(is_goal_threshold, "rrt.is_goal_threshold");
 RRT::RRT(const util::Map& map,
          const float& robot_radius,
          const float& safety_margin)
-    : PathFinder(map),
-      robot_radius(robot_radius),
-      safety_margin(safety_margin) {}
+    : PathFinder(map, robot_radius, safety_margin) {}
 
-Path2d RRT::FindPath(const util::Map& dynamic_map,
+Path2f RRT::FindPath(const util::Map& dynamic_map,
                      const Eigen::Vector2f& start,
-                     const Eigen::Vector2f& goal,
-                     ros::Publisher* pub) {
+                     const Eigen::Vector2f& goal) {
   // Drive straight to goal.
   if (!IsLineColliding(dynamic_map, start, goal)) {
     return UsePrevPathOrUpdate(dynamic_map,
-                               Path2d({start, goal}, (start - goal).norm()));
+                               Path2f({start, goal}, (start - goal).norm()));
   }
 
   return UsePrevPathOrUpdate(dynamic_map,
-                             GenerateNewPath(dynamic_map, start, goal, pub));
-}
-
-bool RRT::IsLineColliding(const util::Map& dynamic_map,
-                          const Eigen::Vector2f& p1,
-                          const Eigen::Vector2f& p2) const {
-  for (const auto& w : map_.walls) {
-    if (geometry::CheckLineLineCollision(w.p1, w.p2, p1, p2)) {
-      return true;
-    }
-
-    if (geometry::MinDistanceLineLine(w.p1, w.p2, p1, p2) <
-        (robot_radius + safety_margin)) {
-      return true;
-    }
-  }
-  for (const auto& w : dynamic_map.walls) {
-    if (geometry::CheckLineLineCollision(w.p1, w.p2, p1, p2)) {
-      return true;
-    }
-
-    if (geometry::MinDistanceLineLine(w.p1, w.p2, p1, p2) <
-        (robot_radius + safety_margin)) {
-      return true;
-    }
-  }
-  return false;
+                             GenerateNewPath(dynamic_map, start, goal));
 }
 
 int RRT::AddPoint(const util::Map& dynamic_map,
@@ -110,7 +81,7 @@ bool RRT::IsNearGoal(const Eigen::Vector2f& goal,
          math_util::Sq(params::CONFIG_is_goal_threshold);
 }
 
-Path2d RRT::SmoothPath(const util::Map& dynamic_map, Path2d path) {
+Path2f RRT::SmoothPath(const util::Map& dynamic_map, Path2f path) {
   if (!path.IsValid()) {
     return path;
   }
@@ -129,10 +100,9 @@ Path2d RRT::SmoothPath(const util::Map& dynamic_map, Path2d path) {
   return path;
 }
 
-Path2d RRT::GenerateNewPath(const util::Map& dynamic_map,
+Path2f RRT::GenerateNewPath(const util::Map& dynamic_map,
                             const Eigen::Vector2f& start,
-                            const Eigen::Vector2f& goal,
-                            ros::Publisher* pub) {
+                            const Eigen::Vector2f& goal) {
   Tree tree(start);
 
   float x_min = std::min(start.x(), goal.x());
@@ -163,36 +133,13 @@ Path2d RRT::GenerateNewPath(const util::Map& dynamic_map,
     }
     const Eigen::Vector2f& added_point = tree.points[added_point_idx].point;
     if (IsNearGoal(goal, added_point)) {
-      if (pub != nullptr) {
-        pub->publish(DrawTree(tree, "map", "tree"));
-      }
       auto path = tree.UnwindPath(added_point_idx);
       std::reverse(path.waypoints.begin(), path.waypoints.end());
       return SmoothPath(dynamic_map, path);
     }
   }
-  if (pub != nullptr) {
-    pub->publish(DrawTree(tree, "map", "tree"));
-  }
   ROS_WARN("Reached max iterations without finding goal!");
   return {};
-}
-
-bool RRT::IsPathColliding(const util::Map& dynamic_map,
-                          const Path2d& path) const {
-  if (path.waypoints.size() < 2) {
-    return true;
-  }
-  for (size_t i = 0; i < path.waypoints.size() - 1; ++i) {
-    NP_CHECK(i < path.waypoints.size());
-    NP_CHECK(i + 1 < path.waypoints.size());
-    const auto& curr = path.waypoints[i];
-    const auto& next = path.waypoints[i + 1];
-    if (IsLineColliding(dynamic_map, curr, next)) {
-      return true;
-    }
-  }
-  return false;
 }
 
 int RRT::Tree::FindClosestPoint(const Eigen::Vector2f& steering_point) {
@@ -209,8 +156,8 @@ int RRT::Tree::FindClosestPoint(const Eigen::Vector2f& steering_point) {
   return min_i;
 }
 
-Path2d RRT::Tree::UnwindPath(const int goal_idx) const {
-  Path2d p;
+Path2f RRT::Tree::UnwindPath(const int goal_idx) const {
+  Path2f p;
   p.waypoints.push_back(points[goal_idx].point);
   TreePoint current_point = points[goal_idx];
   while (current_point.parent != TreePoint::kRootParent) {

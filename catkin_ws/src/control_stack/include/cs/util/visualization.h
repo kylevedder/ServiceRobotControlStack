@@ -71,7 +71,8 @@ inline visualization_msgs::Marker DrawPlane(
 inline visualization_msgs::Marker DrawWalls(
     const std::vector<util::Wall>& walls,
     const std::string& frame_id,
-    const std::string& ns) {
+    const std::string& ns,
+    const float z = 0) {
   visualization_msgs::Marker marker;
   marker.header.frame_id = frame_id;
   marker.header.stamp = ros::Time();
@@ -84,9 +85,11 @@ inline visualization_msgs::Marker DrawWalls(
     geometry_msgs::Point p1;
     p1.x = w.p1.x();
     p1.y = w.p1.y();
+    p1.z = z;
     geometry_msgs::Point p2;
     p2.x = w.p2.x();
     p2.y = w.p2.y();
+    p2.z = z;
     marker.points.push_back(p1);
     marker.points.push_back(p2);
   }
@@ -101,7 +104,7 @@ inline visualization_msgs::Marker DrawWalls(
   return marker;
 }
 
-inline visualization_msgs::Marker DrawPath(const cs::path_finding::Path2d& path,
+inline visualization_msgs::Marker DrawPath(const cs::path_finding::Path2f& path,
                                            const std::string& frame_id,
                                            const std::string& ns) {
   visualization_msgs::Marker marker;

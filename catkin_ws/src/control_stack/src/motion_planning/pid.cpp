@@ -62,20 +62,29 @@ util::Twist PIDController::DriveToPose(const util::Map& dynamic_map,
   complete_map_ = map_.Merge(dynamic_map);
 
   const auto proposed_command = ProposeCommand(waypoint);
-  std::cout << "Proposed command: " << proposed_command << std::endl;
   const auto limited_command = ApplyCommandLimits(proposed_command);
 
   if (!IsCommandColliding(limited_command)) {
     return limited_command;
   }
 
-  auto costs = array_util::MakeArray<5>(0.0f);
-  std::array<util::Twist, 5> alternate_commands = {
-      {{0, 0, 0},
-       {0, 0, params::CONFIG_kMaxRotVel},
-       {0, 0, -params::CONFIG_kMaxRotVel},
-       {est_velocity_.tra, params::CONFIG_kMaxRotVel},
-       {est_velocity_.tra, -params::CONFIG_kMaxRotVel}}};
+  std::cout << "Command colliding" << std::endl;
+
+  static constexpr int kNumAlt = 11;
+  auto costs = array_util::MakeArray<kNumAlt>(0.0f);
+  std::array<util::Twist, kNumAlt> alternate_commands = {{
+      {0, 0, 0},
+      {0, 0, params::CONFIG_kMaxRotVel},
+      {0, 0, -params::CONFIG_kMaxRotVel},
+      {est_velocity_.tra, params::CONFIG_kMaxRotVel},
+      {est_velocity_.tra, -params::CONFIG_kMaxRotVel},
+      {est_velocity_.tra / 2, params::CONFIG_kMaxRotVel},
+      {est_velocity_.tra / 2, -params::CONFIG_kMaxRotVel},
+      {est_velocity_.tra / 2, params::CONFIG_kMaxRotVel / 2},
+      {est_velocity_.tra / 2, -params::CONFIG_kMaxRotVel / 2},
+      {est_velocity_.tra, params::CONFIG_kMaxRotVel / 2},
+      {est_velocity_.tra, -params::CONFIG_kMaxRotVel / 2},
+  }};
 
   NP_CHECK(alternate_commands[0] == util::Twist(0, 0, 0));
 
@@ -111,7 +120,7 @@ bool PIDController::AtPose(const util::Pose& pose) const {
   const Eigen::Vector2f tra_delta = est_world_pose_.tra - pose.tra;
   if (tra_delta.squaredNorm() < Sq(params::CONFIG_goal_deadzone_tra)) {
     const float waypoint_angle_delta =
-        geometry::AngleDiff(est_world_pose_.rot, pose.rot);
+        math_util::AngleDiff(est_world_pose_.rot, pose.rot);
     NP_FINITE(waypoint_angle_delta);
     if (std::abs(waypoint_angle_delta) < params::CONFIG_goal_deadzone_rot) {
       return true;
@@ -126,14 +135,12 @@ util::Twist PIDController::ProposeCommand(const util::Pose& waypoint) const {
   // Handle final turn to face waypoint's angle.
   if (tra_delta.squaredNorm() < Sq(params::CONFIG_goal_deadzone_tra)) {
     const float waypoint_angle_delta =
-        geometry::AngleDiff(est_world_pose_.rot, waypoint.rot);
-    std::cout << "Final pose angle delta: " << waypoint_angle_delta
-              << std::endl;
+        math_util::AngleDiff(est_world_pose_.rot, waypoint.rot);
     if (std::abs(waypoint_angle_delta) < params::CONFIG_goal_deadzone_rot) {
       return {0, 0, 0};
     }
     // Rotate in place to final pose rotation.
-    return {0, 0, waypoint_angle_delta * params::CONFIG_rotation_p};
+    return {0, 0, -waypoint_angle_delta * params::CONFIG_rotation_p};
   }
 
   const float robot_angle = est_world_pose_.rot;
@@ -147,7 +154,7 @@ util::Twist PIDController::ProposeCommand(const util::Pose& waypoint) const {
   NP_FINITE(robot_to_waypoint_angle);
 
   const float robot_to_waypoint_angle_delta =
-      geometry::AngleDiff(robot_angle, robot_to_waypoint_angle);
+      math_util::AngleDiff(robot_angle, robot_to_waypoint_angle);
   NP_FINITE_MSG(robot_to_waypoint_angle_delta,
                 "Robot angle: " << robot_angle << " robot to waypoint angle: "
                                 << robot_to_waypoint_angle);
@@ -161,7 +168,7 @@ util::Twist PIDController::ProposeCommand(const util::Pose& waypoint) const {
   }
   return {x * params::CONFIG_translation_p,
           0,
-          robot_to_waypoint_angle_delta * params::CONFIG_rotation_p};
+          -robot_to_waypoint_angle_delta * params::CONFIG_rotation_p};
 }
 
 util::Twist PIDController::ApplyCommandLimits(util::Twist c) const {
@@ -216,7 +223,7 @@ bool PIDController::IsCommandColliding(
   const TrajectoryRollout tr(
       est_world_pose_, est_velocity_, commanded_velocity, rollout_duration);
   for (const auto& w : complete_map_.walls) {
-    if (tr.IsColliding(w, robot_radius, safety_margin)) {
+    if (tr.IsColliding(w, robot_radius + safety_margin)) {
       if (kDebug) {
         ROS_INFO("Current command: (%f, %f), %f",
                  commanded_velocity.tra.x(),
