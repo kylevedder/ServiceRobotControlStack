@@ -165,7 +165,7 @@ Path2f SlicePath(Path2f path, const size_t end_idx) {
   NP_CHECK(path.waypoints.size() > end_idx)
   if (end_idx > 2) {
     path.waypoints.erase(path.waypoints.begin() + 1,
-                         path.waypoints.begin() + end_idx);
+                         path.waypoints.begin() + (end_idx - 1));
   }
   return path;
 }

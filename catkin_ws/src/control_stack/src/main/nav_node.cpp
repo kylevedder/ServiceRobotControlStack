@@ -43,6 +43,7 @@
 #include "cs/state_estimation/pf_state_estimator.h"
 #include "cs/state_estimation/sim_state_estimator.h"
 #include "cs/state_estimation/state_estimator.h"
+#include "cs/util/physics.h"
 #include "cs/util/pose.h"
 #include "cs/util/twist.h"
 #include "cs/util/util.h"
@@ -58,7 +59,11 @@ CONFIG_VECTOR3F(start_pose, "pf.start_pose");
 CONFIG_VECTOR3FLIST(goal_poses, "pf.goal_poses");
 CONFIG_FLOAT(kRobotRadius, "pf.kRobotRadius");
 CONFIG_FLOAT(kSafetyMargin, "pf.kSafetyMargin");
-CONFIG_FLOAT(kCollisionRollout, "pf.kCollisionRollout");
+
+CONFIG_FLOAT(kMaxTraAcc, "limits.kMaxTraAcc");
+CONFIG_FLOAT(kMaxTraVel, "limits.kMaxTraVel");
+CONFIG_FLOAT(kMaxRotAcc, "limits.kMaxRotAcc");
+CONFIG_FLOAT(kMaxRotVel, "limits.kMaxRotVel");
 
 CONFIG_STRING(map_tf_frame, "frames.map_tf_frame");
 CONFIG_STRING(base_link_tf_frame, "frames.base_tf_frame");
@@ -182,7 +187,7 @@ struct CallbackWrapper {
     goal_pub_.publish(goal_marker);
   }
 
-  void DrawRobot(const util::Map& full_map, const util::Twist& command) {
+  void DrawRobot(const util::Map& full_map, util::Twist command) {
     robot_size_pub_.publish(
         visualization::MakeCylinder({0, 0},
                                     params::CONFIG_kRobotRadius,
@@ -206,11 +211,58 @@ struct CallbackWrapper {
         0.1,
         0.05));
 
+    //    command.rot = -params::CONFIG_kMaxRotVel;
+    //    command = util::physics::ApplyCommandLimits(
+    //        command,
+    //        state_estimator_->GetLaserTimeDelta(),
+    //        state_estimator_->GetEstimatedVelocity(),
+    //        params::CONFIG_kMaxTraVel,
+    //        params::CONFIG_kMaxTraAcc,
+    //        params::CONFIG_kMaxRotVel,
+    //        params::CONFIG_kMaxRotVel);
+
+    //    std::cout << "Hard clockwise turn: " << command << std::endl;
+
+    const auto cd = util::physics::ComputeCommandDelta(
+        state_estimator_->GetEstimatedPose(),
+        state_estimator_->GetEstimatedVelocity(),
+        state_estimator_->GetLaserTimeDelta(),
+        command);
+
+    if (cd.type == util::physics::CommandDelta::Type::CURVE) {
+      robot_size_pub_.publish(
+          visualization::MakeCylinder(cd.curve.rotate_circle_center_wf,
+                                      0.1,
+                                      0.1,
+                                      params::CONFIG_map_tf_frame,
+                                      "rotatecenter",
+                                      1,
+                                      0,
+                                      0,
+                                      1));
+    }
+
+    //    const auto cs =
+    //        util::physics::ComputeFullStop(cd, params::CONFIG_kMaxTraAcc);
+
     const cs::motion_planning::TrajectoryRollout tr(
         state_estimator_->GetEstimatedPose(),
         state_estimator_->GetEstimatedVelocity(),
         command,
-        params::CONFIG_kCollisionRollout);
+        state_estimator_->GetLaserTimeDelta(),
+        true);
+
+    robot_size_pub_.publish(visualization::MakeCylinder(
+        tr.final_pose.tra,
+        params::CONFIG_kRobotRadius + params::CONFIG_kSafetyMargin,
+        0.1,
+        params::CONFIG_map_tf_frame,
+        "final_safety",
+        1,
+        0,
+        0,
+        0.1,
+        0.05));
 
     std::vector<util::Wall> colliding_walls;
     for (const auto& w : full_map.walls) {
@@ -273,11 +325,20 @@ struct CallbackWrapper {
     }
     const util::Pose waypoint = GetNextPose(current_goal_, path);
     DrawGoal(waypoint);
-    const util::Twist command = motion_planner_.DriveToPose(
-        obstacle_detector_.GetDynamicMap(), waypoint);
+    util::Twist command =
+        motion_planner_.DriveToPose(obstacle_detector_.GetDynamicMap(), waypoint);
+    // {params::CONFIG_kMaxTraVel, 0, params::CONFIG_kMaxRotVel};
+
+    command = util::physics::ApplyCommandLimits(
+        command,
+        state_estimator_->GetLaserTimeDelta(),
+        state_estimator_->GetEstimatedVelocity(),
+        params::CONFIG_kMaxTraVel,
+        params::CONFIG_kMaxTraAcc,
+        params::CONFIG_kMaxRotVel,
+        params::CONFIG_kMaxRotAcc);
 
     std::cout << "Command: " << command << std::endl;
-    std::cout << "Waypoint: " << waypoint << std::endl;
 
     command_pub_.publish(command.ToTwist());
     state_estimator_->UpdateLastCommand(command);

@@ -68,9 +68,9 @@ od = {
 };
 
 limits = {
-  kMaxTraAcc = 0.2;
+  kMaxTraAcc = 0.5;
   kMaxTraVel = 1;
-  kMaxRotAcc = 2;
+  kMaxRotAcc = 5;
   kMaxRotVel = 1;
 };
 

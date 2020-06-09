@@ -44,8 +44,9 @@ struct TrajectoryRollout {
   TrajectoryRollout() = delete;
   TrajectoryRollout(const util::Pose& start_pose,
                     const util::Twist& current_v,
-                    const util::Twist& commanded_v,
-                    const float rollout_duration);
+                    util::Twist commanded_v,
+                    const float rollout_duration,
+                    const bool debug = false);
 
   bool IsColliding(const util::Wall& wall, const float radius) const;
 };

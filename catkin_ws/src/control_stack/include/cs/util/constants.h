@@ -53,6 +53,26 @@ static constexpr int kAssertFailReturnCode = 1;
 #define CHECK_EQ(exp1, exp2) CHECK_PRINT_VALS((exp1) == (exp2), exp1, exp2);
 #endif
 
+#ifndef CHECK_NE
+#define CHECK_NE(exp1, exp2) CHECK_PRINT_VALS((exp1) != (exp2), exp1, exp2);
+#endif
+
+#ifndef CHECK_GT
+#define CHECK_GT(exp1, exp2) CHECK_PRINT_VALS((exp1) > (exp2), exp1, exp2);
+#endif
+
+#ifndef CHECK_LT
+#define CHECK_LT(exp1, exp2) CHECK_PRINT_VALS((exp1) < (exp2), exp1, exp2);
+#endif
+
+#ifndef CHECK_GE
+#define CHECK_GE(exp1, exp2) CHECK_PRINT_VALS((exp1) >= (exp2), exp1, exp2);
+#endif
+
+#ifndef CHECK_LE
+#define CHECK_LE(exp1, exp2) CHECK_PRINT_VALS((exp1) <= (exp2), exp1, exp2);
+#endif
+
 #define CHECK_MSG(exp, msg)                                             \
   if (!(exp)) {                                                         \
     std::cerr << __FILE__ << ":" << __LINE__ << " Assertion \"" << #exp \
@@ -97,14 +117,34 @@ static constexpr int kAssertFailReturnCode = 1;
     CHECK_PRINT_VAL(exp, val); \
   }
 
-#define NP_CHECK_VALS(exp, val1, val2) \
-  if (!kProduction) {                  \
-    CHECK_PRINT_VAL(exp, val1, val2);  \
-  }
-
 #define NP_CHECK_EQ(exp1, exp2) \
   if (!kProduction) {           \
     CHECK_EQ(exp1, exp2);       \
+  }
+
+#define NP_CHECK_NE(exp1, exp2) \
+  if (!kProduction) {           \
+    CHECK_NE(exp1, exp2);       \
+  }
+
+#define NP_CHECK_GT(exp1, exp2) \
+  if (!kProduction) {           \
+    CHECK_GT(exp1, exp2);       \
+  }
+
+#define NP_CHECK_LT(exp1, exp2) \
+  if (!kProduction) {           \
+    CHECK_LT(exp1, exp2);       \
+  }
+
+#define NP_CHECK_GE(exp1, exp2) \
+  if (!kProduction) {           \
+    CHECK_GE(exp1, exp2);       \
+  }
+
+#define NP_CHECK_LE(exp1, exp2) \
+  if (!kProduction) {           \
+    CHECK_LE(exp1, exp2);       \
   }
 
 #define NP_FINITE(exp) \

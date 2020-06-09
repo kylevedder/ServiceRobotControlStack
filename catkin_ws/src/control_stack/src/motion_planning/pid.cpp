@@ -24,11 +24,13 @@
 
 #include "cs/path_finding/astar.h"
 
-#include <cs/motion_planning/pid.h>
-#include <shared/util/array_util.h>
 #include <algorithm>
 #include <limits>
 #include <string>
+
+#include "cs/motion_planning/pid.h"
+#include "cs/util/physics.h"
+#include "shared/util/array_util.h"
 
 #include "config_reader/macros.h"
 
@@ -49,7 +51,6 @@ CONFIG_FLOAT(kMaxRotVel, "limits.kMaxRotVel");
 
 CONFIG_FLOAT(robot_radius, "pf.kRobotRadius");
 CONFIG_FLOAT(safety_margin, "pf.kSafetyMargin");
-CONFIG_FLOAT(collision_rollout, "pf.kCollisionRollout");
 
 CONFIG_FLOAT(translational_cost_scale_factor, "od.kTranslationCostScaleFactor");
 
@@ -68,8 +69,6 @@ util::Twist PIDController::DriveToPose(const util::Map& dynamic_map,
     return limited_command;
   }
 
-  std::cout << "Command colliding" << std::endl;
-
   static constexpr int kNumAlt = 11;
   auto costs = array_util::MakeArray<kNumAlt>(0.0f);
   std::array<util::Twist, kNumAlt> alternate_commands = {{
@@ -86,8 +85,6 @@ util::Twist PIDController::DriveToPose(const util::Map& dynamic_map,
       {est_velocity_.tra, -params::CONFIG_kMaxRotVel / 2},
   }};
 
-  NP_CHECK(alternate_commands[0] == util::Twist(0, 0, 0));
-
   for (auto& cmd : alternate_commands) {
     cmd = ApplyCommandLimits(cmd);
   }
@@ -96,12 +93,21 @@ util::Twist PIDController::DriveToPose(const util::Map& dynamic_map,
     costs[i] = AlternateCommandCost(limited_command, alternate_commands[i]);
   }
 
+  for (size_t i = 0; i < alternate_commands.size(); ++i) {
+    std::cout << "Alternate command: " << alternate_commands[i]
+              << " Cost: " << costs[i] << std::endl;
+  }
+
   size_t best_idx = array_util::ArgMin(costs);
+
+  std::cout << "Best: " << best_idx << std::endl;
   // If every command causes a crash, we command full brakes, limited by
   // acceleration constraints.
   if (costs[best_idx] >= std::numeric_limits<float>::max()) {
     best_idx = 0;
   }
+  std::cout << "Command Colliding. Proposed: " << proposed_command
+            << " Alternate: " << alternate_commands[best_idx] << std::endl;
   return alternate_commands[best_idx];
 }
 
@@ -172,50 +178,18 @@ util::Twist PIDController::ProposeCommand(const util::Pose& waypoint) const {
 }
 
 util::Twist PIDController::ApplyCommandLimits(util::Twist c) const {
-  const float& time_delta = state_estimator_.GetLaserTimeDelta();
-  static constexpr bool kDebug = false;
-  NP_CHECK(time_delta >= 0);
-  if (kDebug) {
-    ROS_INFO("Time delta: %f", time_delta);
-  }
-
-  if (time_delta < kEpsilon) {
-    return est_velocity_;
-  }
-
-  // Cap translational velocity.
-  if (c.tra.squaredNorm() > math_util::Sq(params::CONFIG_kMaxTraVel)) {
-    c.tra = c.tra.normalized() * params::CONFIG_kMaxTraVel;
-  }
-  // Cap rotational velocity.
-  if (fabs(c.rot) > params::CONFIG_kMaxRotVel) {
-    c.rot = math_util::Sign(c.rot) * params::CONFIG_kMaxRotVel;
-  }
-
-  // m/s - m/s -> m/s / s = m/s^2
-  const util::Twist acceleration = (c - est_velocity_) / time_delta;
-
-  // Cap translational acceleration.
-  if (acceleration.tra.squaredNorm() >
-      math_util::Sq(params::CONFIG_kMaxTraAcc)) {
-    // m/s = m/s + m/s^2 * s
-    c.tra = est_velocity_.tra + acceleration.tra.normalized() *
-                                    params::CONFIG_kMaxTraAcc * time_delta;
-  }
-
-  // Cap rotational acceleration.
-  if (fabs(acceleration.rot) > math_util::Sq(params::CONFIG_kMaxRotAcc)) {
-    // rad/s = rad/s + rad/s^2 * s
-    c.rot = est_velocity_.rot + math_util::Sign(acceleration.rot) *
-                                    params::CONFIG_kMaxRotAcc * time_delta;
-  }
-
-  return c;
+  return util::physics::ApplyCommandLimits(c,
+                                           state_estimator_.GetLaserTimeDelta(),
+                                           est_velocity_,
+                                           params::CONFIG_kMaxTraVel,
+                                           params::CONFIG_kMaxTraAcc,
+                                           params::CONFIG_kMaxRotVel,
+                                           params::CONFIG_kMaxRotAcc);
 }
 
 bool PIDController::IsCommandColliding(
     const util::Twist& commanded_velocity) const {
-  const float& rollout_duration = params::CONFIG_collision_rollout;
+  const float rollout_duration = state_estimator_.GetLaserTimeDelta();
   const float& robot_radius = params::CONFIG_robot_radius;
   const float& safety_margin = params::CONFIG_safety_margin;
 

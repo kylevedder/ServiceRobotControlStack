@@ -28,6 +28,7 @@
 #include "config_reader/macros.h"
 #include "cs/util/constants.h"
 #include "cs/util/map.h"
+#include "cs/util/physics.h"
 #include "shared/math/geometry.h"
 
 namespace cs {
@@ -114,8 +115,9 @@ bool IsCollidingLinear(const util::Pose& pose1,
 
 TrajectoryRollout::TrajectoryRollout(const util::Pose& start_pose,
                                      const util::Twist& current_v,
-                                     const util::Twist& commanded_v,
-                                     const float rollout_duration)
+                                     util::Twist commanded_v,
+                                     const float rollout_duration,
+                                     const bool debug)
     : start_pose(start_pose),
       current_v(current_v),
       commanded_v(commanded_v),
@@ -123,9 +125,7 @@ TrajectoryRollout::TrajectoryRollout(const util::Pose& start_pose,
       achieved_vel_pose({0, 0}, 0),
       rotate_circle_center(0, 0),
       rotate_circle_radius(0),
-      rotate_circle_achieved_vel_angle(0),
-      final_pose({0, 0}, 0),
-      rotate_circle_finale_pose_angle(0) {
+      final_pose({0, 0}, 0) {
   NP_CHECK(current_v.tra.y() == 0);
   NP_CHECK(commanded_v.tra.y() == 0);
   NP_FINITE(current_v.tra.x());
@@ -133,50 +133,30 @@ TrajectoryRollout::TrajectoryRollout(const util::Pose& start_pose,
   NP_FINITE(current_v.rot);
   NP_FINITE(commanded_v.rot);
 
-  const float achieved_vel_time = AchievedVelocityTime(current_v, commanded_v);
-  NP_FINITE(achieved_vel_time);
-  achieved_vel_pose =
-      AchievedVelocityPose(start_pose, current_v, achieved_vel_time);
-  NP_CHECK(achieved_vel_pose.IsFinite());
-  const float rotate_time = rollout_duration - achieved_vel_time;
-  NP_FINITE(rotate_time);
+  commanded_v = util::physics::ApplyCommandLimits(commanded_v,
+                                                  rollout_duration,
+                                                  current_v,
+                                                  tr_params::CONFIG_kMaxTraVel,
+                                                  tr_params::CONFIG_kMaxTraAcc,
+                                                  tr_params::CONFIG_kMaxRotVel,
+                                                  tr_params::CONFIG_kMaxRotAcc);
 
-  if (fabs(commanded_v.rot) < tr_params::CONFIG_min_trajectory_rotation ||
-      rotate_time <= 0) {
-    // Handle small rotation case where numerically unstable.
-    const float delta_dist = commanded_v.tra.x() * std::max(rotate_time, 0.0f);
-    rotate_circle_center = achieved_vel_pose.tra;
-    rotate_circle_radius = 0;
-    final_pose = achieved_vel_pose +
-                 util::Pose({std::cos(achieved_vel_pose.rot) * delta_dist,
-                             std::sin(achieved_vel_pose.rot) * delta_dist},
-                            0);
-    NP_CHECK(final_pose.IsFinite());
+  const auto cd = util::physics::ComputeCommandDelta(
+      start_pose, current_v, rollout_duration, commanded_v);
 
-  } else {
-    // Handle general case which is numerically stable.
-    NP_FINITE(commanded_v.rot);
-    NP_FINITE(rotate_time);
-    NP_CHECK_VAL(rotate_time >= 0, rotate_time);
-    rotate_circle_radius = RotationCircleRadius(commanded_v);
-    NP_FINITE(rotate_circle_radius);
-    NP_CHECK_VAL(rotate_circle_radius >= 0, rotate_circle_radius);
-    rotate_circle_center =
-        CircleCenter(achieved_vel_pose, commanded_v, rotate_circle_radius);
-    rotate_circle_achieved_vel_angle = math_util::AngleMod(
-        geometry::Angle<float>(achieved_vel_pose.tra - rotate_circle_center));
-    NP_FINITE(rotate_circle_achieved_vel_angle);
-    const float rotate_delta = commanded_v.rot * rotate_time;
-    rotate_circle_finale_pose_angle =
-        math_util::AngleMod(rotate_circle_achieved_vel_angle + rotate_delta);
-    NP_FINITE(rotate_circle_finale_pose_angle);
-
-    NP_FINITE(rotate_circle_center.x());
-    NP_FINITE(rotate_circle_center.y());
-    final_pose =
-        RotateFinalPose(achieved_vel_pose, rotate_delta, rotate_circle_radius);
-    NP_CHECK(final_pose.IsFinite());
+  if (debug) {
+    std::cout << "Command Delta type: " << cd.type << std::endl;
   }
+
+  const auto cs =
+      util::physics::ComputeFullStop(cd, tr_params::CONFIG_kMaxTraAcc);
+
+  this->achieved_vel_pose = cd.GetEndPosition();
+  if (cd.type == util::physics::CommandDelta::Type::CURVE) {
+    this->rotate_circle_center = cd.curve.rotate_circle_center_wf;
+    this->rotate_circle_radius = cd.curve.rotate_circle_radius;
+  }
+  this->final_pose = cs.stop_position_wf;
 }
 
 bool TrajectoryRollout::IsColliding(const util::Wall& wall,
@@ -185,28 +165,11 @@ bool TrajectoryRollout::IsColliding(const util::Wall& wall,
     return true;
   }
 
-  // Turn in place or no rotation.
-  if (fabs(rotate_circle_radius) < kEpsilon) {
-    return IsCollidingLinear(achieved_vel_pose, final_pose, wall, radius);
+  if (IsCollidingLinear(achieved_vel_pose, final_pose, wall, radius)) {
+    return true;
   }
 
-  const int rotation_sign = math_util::Sign(commanded_v.rot);
-  NP_CHECK_VAL(rotation_sign == 0 || rotation_sign == 1 || rotation_sign == -1,
-               rotation_sign);
-
-  NP_CHECK_VAL(rotate_circle_radius >= 0, rotate_circle_radius);
-  const float dist =
-      geometry::MinDistanceLineArc(wall.p1,
-                                   wall.p2,
-                                   rotate_circle_center,
-                                   rotate_circle_radius,
-                                   rotate_circle_achieved_vel_angle,
-                                   rotate_circle_finale_pose_angle,
-                                   rotation_sign);
-
-  NP_FINITE(dist);
-  NP_CHECK_VAL(dist >= 0.0f, dist);
-  return dist <= radius;
+  return false;
 }
 }  // namespace motion_planning
 }  // namespace cs

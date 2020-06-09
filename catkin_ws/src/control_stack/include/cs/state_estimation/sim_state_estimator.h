@@ -51,7 +51,7 @@ class SimStateEstimator : public StateEstimator {
       const cs::datastructures::CircularBuffer<ros::Time, kTimeBufferSize>& b)
       const {
     if (b.size() <= 1) {
-      return kEpsilon;
+      return 2 * kEpsilon;
     }
     const double total_time_delta = (b.back() - b.front()).toSec();
     const double iterations = static_cast<double>(b.size() - 1);

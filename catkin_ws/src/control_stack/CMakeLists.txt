@@ -193,6 +193,7 @@ include_directories(
 
 add_library(util_lib
   src/util/map.cpp
+  src/util/physics.cpp
 )
 
 add_library(nav_lib

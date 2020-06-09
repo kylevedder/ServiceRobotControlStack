@@ -11,7 +11,7 @@ pushd robot_status_gui/robot_status_gui
 rm -rf build/ bin/ lib/
 popd
 
-pushd simulator/f1tenth_simulator
+pushd simulator/ut_multirobot_sim
 rm -rf build/ bin/ lib/
 popd
 
