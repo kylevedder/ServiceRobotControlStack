@@ -14,12 +14,6 @@ if [ "$failed" -ne "0" ]; then exit 1; fi
 pushd rosbuild_ws
 export BASE_ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH
 
-pushd robot_status_gui/robot_status_gui
-export ROS_PACKAGE_PATH=`pwd`:$BASE_ROS_PACKAGE_PATH
-make -j `nproc`
-if [ "$?" -ne "0" ]; then failed=1; fi
-popd
-
 pushd simulator/ut_multirobot_sim
 export ROS_PACKAGE_PATH=`pwd`:$BASE_ROS_PACKAGE_PATH
 make -j `nproc`

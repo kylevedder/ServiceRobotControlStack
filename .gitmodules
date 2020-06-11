@@ -4,10 +4,6 @@
 [submodule "catkin_ws/src/control_stack/lib/shared"]
 	path = catkin_ws/src/control_stack/lib/shared
 	url = ../../ut-amrl/amrl_shared_lib.git
-[submodule "rosbuild_ws/robot_status_gui/robot_status_gui"]
-	path = rosbuild_ws/robot_status_gui/robot_status_gui
-	url = ../../ut-amrl/robot_status_gui.git
-
 [submodule "rosbuild_ws/simulator/ut_multirobot_sim"]
 	path = rosbuild_ws/simulator/ut_multirobot_sim
 	url = ../../ut-amrl/ut_multirobot_sim.git
