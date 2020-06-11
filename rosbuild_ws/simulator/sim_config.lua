@@ -38,18 +38,7 @@ laser_noise_stddev = 0.01
 angular_error_bias = DegToRad(0);
 angular_error_rate = 0.1;
 
--- Defining robot type enumerator
-local RobotType = {
-    F1TEN="F1TEN",
-    COBOT="COBOT",
-    BWIBOT="BWIBOT"
-}
-
--- robot_type = RobotType.F1TEN
--- robot_config = "config/ackermann_config.lua"
--- robot_type = RobotType.BWIBOT
--- robot_config = "config/bwibot_config.lua"
-robot_type = RobotType.BWIBOT
+robot_type = "DIFF_DRIVE"
 robot_config = "rosbuild_ws/simulator/turtlebot_config.lua"
 laser_topic = "/Cobot/scan"
 laser_frame = "/laser"
