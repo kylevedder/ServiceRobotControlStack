@@ -137,9 +137,10 @@ util::Pose RotationCircleDistancePose(const util::Pose& robot_wf,
     return robot_wf + util::Pose(0, 0, rotation_velocity * time_delta);
   }
 
+  const int rotation_sign = math_util::Sign(rotation_velocity);
+
   // All of the following math is in robot frame.
-  const float signed_radius =
-      circle_radius * math_util::Sign(rotation_velocity);
+  const float signed_radius = circle_radius * rotation_sign;
 
   const float angle_rf = dx / circle_radius;
   NP_FINITE(angle_rf);
@@ -151,7 +152,7 @@ util::Pose RotationCircleDistancePose(const util::Pose& robot_wf,
   // Convert transform from robot frame to world frame.
   util::Pose result_wf = robot_wf;
   result_wf.tra += Eigen::Rotation2Df(robot_wf.rot) * final_pose_rf_tra;
-  result_wf.rot = math_util::AngleMod(result_wf.rot + angle_rf);
+  result_wf.rot = math_util::AngleMod(result_wf.rot + angle_rf * rotation_sign);
   NP_CHECK(result_wf.IsFinite());
   return result_wf;
 }

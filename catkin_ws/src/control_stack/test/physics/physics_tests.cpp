@@ -142,7 +142,7 @@ TEST(ComputeCommandDelta, MoveConstantTurnRight180) {
   EXPECT_EQ(command_delta.GetEndVelocity(), current_velocity);
   EXPECT_NEAR(command_delta.GetEndPosition().tra.x(), 0, 0.0001);
   EXPECT_FLOAT_EQ(command_delta.GetEndPosition().tra.y(), -2);
-  EXPECT_FLOAT_EQ(command_delta.GetEndPosition().rot, M_PI);
+  EXPECT_FLOAT_EQ(command_delta.GetEndPosition().rot, -M_PI);
 }
 
 TEST(ComputeCommandDelta, MoveConstantTurnLeft90) {
@@ -156,6 +156,18 @@ TEST(ComputeCommandDelta, MoveConstantTurnLeft90) {
   EXPECT_FLOAT_EQ(command_delta.GetEndPosition().rot, M_PI / 2);
 }
 
+TEST(ComputeCommandDelta, MoveConstantStraightTurnLeft90) {
+  const util::Twist current_velocity(1, 0, 0);
+  const util::Twist commanded_velocity(1, 0, 0.5);
+  const util::Pose current_pose(0, 0, 0);
+  const float time_delta = M_PI;
+  const CommandDelta command_delta = ComputeCommandDelta(current_pose, current_velocity, commanded_velocity, time_delta);
+  EXPECT_EQ(command_delta.GetEndVelocity(), commanded_velocity);
+  EXPECT_NEAR(command_delta.GetEndPosition().tra.x(), 2, 0.0001);
+  EXPECT_FLOAT_EQ(command_delta.GetEndPosition().tra.y(), 2);
+  EXPECT_FLOAT_EQ(command_delta.GetEndPosition().rot, M_PI / 2);
+}
+
 TEST(ComputeCommandDelta, MoveConstantTurnRight90) {
   const util::Twist current_velocity(1, 0, -0.5);
   const util::Pose current_pose(0, 0, 0);
@@ -164,7 +176,19 @@ TEST(ComputeCommandDelta, MoveConstantTurnRight90) {
   EXPECT_EQ(command_delta.GetEndVelocity(), current_velocity);
   EXPECT_NEAR(command_delta.GetEndPosition().tra.x(), 2, 0.0001);
   EXPECT_FLOAT_EQ(command_delta.GetEndPosition().tra.y(), -2);
-  EXPECT_FLOAT_EQ(command_delta.GetEndPosition().rot, M_PI / 2);
+  EXPECT_FLOAT_EQ(command_delta.GetEndPosition().rot, -M_PI / 2);
+}
+
+TEST(ComputeCommandDelta, MoveConstantStraightTurnRight90) {
+  const util::Twist current_velocity(1, 0, 0);
+  const util::Twist commanded_velocity(1, 0, -0.5);
+  const util::Pose current_pose(0, 0, 0);
+  const float time_delta = M_PI;
+  const CommandDelta command_delta = ComputeCommandDelta(current_pose, current_velocity, commanded_velocity, time_delta);
+  EXPECT_EQ(command_delta.GetEndVelocity(), commanded_velocity);
+  EXPECT_NEAR(command_delta.GetEndPosition().tra.x(), 2, 0.0001);
+  EXPECT_FLOAT_EQ(command_delta.GetEndPosition().tra.y(), -2);
+  EXPECT_FLOAT_EQ(command_delta.GetEndPosition().rot, -M_PI / 2);
 }
 
 TEST(ComputeCommandDelta, MoveAccel) {
