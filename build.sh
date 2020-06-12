@@ -5,9 +5,11 @@ failed=0
 pushd catkin_ws
 catkin_make
 if [ "$?" -ne "0" ]; then failed=1; fi
-devel/lib/control_stack/control_stack_unit_tests
-if [ "$?" -ne "0" ]; then failed=1; fi
 popd
+if [ "$failed" -ne "0" ]; then exit 1; fi
+
+catkin_ws/devel/lib/control_stack/control_stack_unit_tests
+if [ "$?" -ne "0" ]; then failed=1; fi
 
 if [ "$failed" -ne "0" ]; then exit 1; fi
 
