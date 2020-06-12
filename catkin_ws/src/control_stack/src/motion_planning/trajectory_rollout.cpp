@@ -142,7 +142,7 @@ TrajectoryRollout::TrajectoryRollout(const util::Pose& start_pose,
                                                   tr_params::CONFIG_kMaxRotAcc);
 
   const auto cd = util::physics::ComputeCommandDelta(
-      start_pose, current_v, rollout_duration, commanded_v);
+      start_pose, current_v, commanded_v, rollout_duration);
 
   if (debug) {
     std::cout << "Command Delta type: " << cd.type << std::endl;

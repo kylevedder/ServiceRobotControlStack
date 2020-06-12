@@ -226,8 +226,8 @@ struct CallbackWrapper {
     const auto cd = util::physics::ComputeCommandDelta(
         state_estimator_->GetEstimatedPose(),
         state_estimator_->GetEstimatedVelocity(),
-        state_estimator_->GetLaserTimeDelta(),
-        command);
+        command,
+        state_estimator_->GetLaserTimeDelta());
 
     if (cd.type == util::physics::CommandDelta::Type::CURVE) {
       robot_size_pub_.publish(
@@ -325,8 +325,8 @@ struct CallbackWrapper {
     }
     const util::Pose waypoint = GetNextPose(current_goal_, path);
     DrawGoal(waypoint);
-    util::Twist command =
-        motion_planner_.DriveToPose(obstacle_detector_.GetDynamicMap(), waypoint);
+    util::Twist command = motion_planner_.DriveToPose(
+        obstacle_detector_.GetDynamicMap(), waypoint);
     // {params::CONFIG_kMaxTraVel, 0, params::CONFIG_kMaxRotVel};
 
     command = util::physics::ApplyCommandLimits(

@@ -104,9 +104,9 @@ struct StopDelta {
 };
 
 CommandDelta ComputeCommandDelta(const util::Pose& current_position_wf,
+                                 const util::Twist& current_velocity_rf,
                                  const util::Twist& commanded_velocity_rf,
-                                 const float time_delta,
-                                 const util::Twist& current_velocity_rf);
+                                 const float time_delta);
 
 StopDelta ComputeFullStop(const CommandDelta& command_delta,
                           const float max_tra_acceleration);

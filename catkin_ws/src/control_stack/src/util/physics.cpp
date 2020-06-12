@@ -91,7 +91,7 @@ CommandDeltaStraight ComputeCommandDeltaStraight(
   const float acceleration_times_time =
       (commanded_velocity_rf.tra.x() - current_velocity_rf.tra.x());
   // dx = vi * dt + 1/2 a * t^2 = vi * dt + 1/2 (a * t) * t
-  const float dx = commanded_velocity_rf.tra.x() * time_delta +
+  const float dx = current_velocity_rf.tra.x() * time_delta +
                    0.5 * acceleration_times_time * time_delta;
   cd.end_position_wf = current_position_wf;
   cd.end_position_wf.tra += geometry::Heading(current_position_wf.rot) * dx;
@@ -199,9 +199,9 @@ CommandDeltaCurve ComputeCommandDeltaCurve(
 }
 
 CommandDelta ComputeCommandDelta(const util::Pose& current_position_wf,
+                                 const util::Twist& current_velocity_rf,
                                  const util::Twist& commanded_velocity_rf,
-                                 const float time_delta,
-                                 const util::Twist& current_velocity_rf) {
+                                 const float time_delta) {
   NP_CHECK(commanded_velocity_rf.IsFinite());
   if (std::abs(commanded_velocity_rf.rot) < kEpsilon) {
     // Straight case, no curve.
@@ -219,6 +219,7 @@ CommandDelta ComputeCommandDelta(const util::Pose& current_position_wf,
 
 StopDelta ComputeFullStop(const CommandDelta& command_delta,
                           const float max_tra_acceleration) {
+  NP_CHECK_GT(max_tra_acceleration, kEpsilon);
   // We ignore rotational deceleration and assume that translational
   // deceleration is the only concern, with the robot traveling along the circle
   // prescribed by its rotational velocity.
