@@ -301,4 +301,53 @@ TEST(ComputeFullStop, MoveReverseDecel2) {
   EXPECT_EQ(stop_delta.stop_position_wf, util::Pose(-2, 0, 0));
 }
 
+TEST(PhysicsIntegration, DecelToStopPositionIteration) {
+  util::Twist current_velocity(1, 0, 0);
+  const util::Twist desired_velocity(0, 0, 0);
+  util::Pose current_pose(0, 0, 0);
+
+  const float max_accel_tra = 0.5;
+  const float max_vel_tra = 1.5;
+  const float max_accel_rot = 2;
+  const float max_vel_rot = 3;
+  const float time_step_delta = 0.1;
+
+  // vf^2 = vi^2 + 2 a dx
+  // -vi^2 / (2a) = dx
+  const float expected_total_dx = math_util::Sq(current_velocity.tra.x()) / (2 * max_accel_tra);
+
+  ASSERT_FLOAT_EQ(current_velocity.tra.x() / max_accel_tra / time_step_delta, 20);
+
+  for (int i = 0; i < 20; ++i ) {
+    const util::Twist command_velocity =
+      util::physics::ApplyCommandLimits(
+          desired_velocity,
+          time_step_delta,
+          current_velocity,
+          max_vel_tra,
+          max_accel_tra,
+          max_vel_rot,
+          max_accel_rot);
+    const float exp_cmd_vel = 1.0 - (i + 1) * max_accel_tra * time_step_delta;
+    EXPECT_NEAR(command_velocity.tra.x(), exp_cmd_vel, 0.0001);
+
+    // dx = vi dt + 0.5 a t^2
+
+    const float dx = current_velocity.tra.x() * time_step_delta - 0.5 * max_accel_tra * math_util::Sq(time_step_delta);
+
+    auto cd = ComputeCommandDelta(current_pose, current_velocity, command_velocity, time_step_delta);
+    auto stop = ComputeFullStop(cd, max_accel_tra);
+    EXPECT_NEAR(stop.stop_position_wf.tra.x(), expected_total_dx, 0.0001);
+
+    EXPECT_NEAR(cd.GetEndVelocity().tra.x(), command_velocity.tra.x(), 0.0001);
+
+    current_pose.tra.x() += dx;
+
+    current_velocity = command_velocity;
+  }
+
+  EXPECT_NEAR(current_velocity.tra.x(), 0, 0.0001);
+  EXPECT_NEAR(expected_total_dx, current_pose.tra.x(), 0.0001);
+}
+
 // clang-format on
