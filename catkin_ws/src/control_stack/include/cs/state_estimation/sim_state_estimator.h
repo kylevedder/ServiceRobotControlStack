@@ -79,12 +79,11 @@ class SimStateEstimator : public StateEstimator {
     laser_times_.push_back(time);
   }
 
-  void UpdateOdom(const util::Twist& odom_velocity, const ros::Time& time) {
-    last_odom_velocity_ = odom_velocity;
+  void UpdateOdom(const util::Twist&, const ros::Time& time) {
     odom_times_.push_back(time);
   }
 
-  void UpdateLastCommand(__attribute__((unused)) const util::Twist& cmd) {}
+  void UpdateLastCommand(const util::Twist& cmd) { last_odom_velocity_ = cmd; }
 
   util::Pose GetEstimatedPose() const { return ground_truth_pose_; }
 
@@ -94,7 +93,7 @@ class SimStateEstimator : public StateEstimator {
 
   float GetLaserTimeDelta() const { return GetTimeDelta(laser_times_); }
 
-  void Visualize(__attribute__((unused)) ros::Publisher* pub) const {}
+  void Visualize(ros::Publisher*) const {}
 };
 
 }  // namespace state_estimation

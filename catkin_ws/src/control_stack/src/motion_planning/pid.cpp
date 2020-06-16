@@ -65,9 +65,11 @@ util::Twist PIDController::DriveToPose(const util::Map& dynamic_map,
   const auto proposed_command = ProposeCommand(waypoint);
   const auto limited_command = ApplyCommandLimits(proposed_command);
 
-  if (!IsCommandColliding(limited_command)) {
+  const auto limited_command_res = IsCommandColliding(limited_command);
+  if (!limited_command_res.first) {
     return limited_command;
   }
+  const TrajectoryRollout& limited_command_tr = limited_command_res.second;
 
   static constexpr int kNumAlt = 11;
   auto costs = array_util::MakeArray<kNumAlt>(0.0f);
@@ -90,36 +92,28 @@ util::Twist PIDController::DriveToPose(const util::Map& dynamic_map,
   }
 
   for (size_t i = 0; i < alternate_commands.size(); ++i) {
-    costs[i] = AlternateCommandCost(limited_command, alternate_commands[i]);
-  }
-
-  for (size_t i = 0; i < alternate_commands.size(); ++i) {
-    std::cout << "Alternate command: " << alternate_commands[i]
-              << " Cost: " << costs[i] << std::endl;
+    costs[i] = AlternateCommandCost(limited_command_tr, alternate_commands[i]);
   }
 
   size_t best_idx = array_util::ArgMin(costs);
 
-  std::cout << "Best: " << best_idx << std::endl;
   // If every command causes a crash, we command full brakes, limited by
   // acceleration constraints.
   if (costs[best_idx] >= std::numeric_limits<float>::max()) {
     best_idx = 0;
   }
-  std::cout << "Command Colliding. Proposed: " << proposed_command
-            << " Alternate: " << alternate_commands[best_idx] << std::endl;
   return alternate_commands[best_idx];
 }
 
-float PIDController::AlternateCommandCost(const util::Twist& desired,
+float PIDController::AlternateCommandCost(const TrajectoryRollout& desired_tr,
                                           const util::Twist& alternate) const {
-  const auto delta_pose = desired - alternate;
-  if (IsCommandColliding(alternate)) {
+  const auto collide_result = IsCommandColliding(alternate);
+  if (collide_result.first) {
     return std::numeric_limits<float>::max();
   }
-  return math_util::Sq(delta_pose.tra.lpNorm<1>() *
-                       params::CONFIG_translational_cost_scale_factor) +
-         fabs(delta_pose.rot);
+  const TrajectoryRollout& alternate_tr = collide_result.second;
+  return (desired_tr.final_pose.tra - alternate_tr.final_pose.tra)
+      .squaredNorm();
 }
 
 bool PIDController::AtPose(const util::Pose& pose) const {
@@ -187,7 +181,7 @@ util::Twist PIDController::ApplyCommandLimits(util::Twist c) const {
                                            params::CONFIG_kMaxRotAcc);
 }
 
-bool PIDController::IsCommandColliding(
+std::pair<bool, TrajectoryRollout> PIDController::IsCommandColliding(
     const util::Twist& commanded_velocity) const {
   const float rollout_duration = state_estimator_.GetLaserTimeDelta();
   const float& robot_radius = params::CONFIG_robot_radius;
@@ -213,10 +207,10 @@ bool PIDController::IsCommandColliding(
                  w.p2.x(),
                  w.p2.y());
       }
-      return true;
+      return {true, tr};
     }
   }
-  return false;
+  return {false, tr};
 }
 
 }  // namespace motion_planning

@@ -249,8 +249,7 @@ struct CallbackWrapper {
         state_estimator_->GetEstimatedPose(),
         state_estimator_->GetEstimatedVelocity(),
         command,
-        state_estimator_->GetLaserTimeDelta(),
-        true);
+        state_estimator_->GetLaserTimeDelta());
 
     robot_size_pub_.publish(visualization::MakeCylinder(
         tr.final_pose.tra,
@@ -301,6 +300,24 @@ struct CallbackWrapper {
     return goal_pose;
   }
 
+  util::Twist Command() {
+    static std::int64_t step = 0;
+    float x = 0;
+
+    const auto step_delta = step % 320;
+    if (step_delta < 80) {
+      std::cout << "POSITIVE\n";
+      x = params::CONFIG_kMaxTraVel;
+    } else if (step_delta >= 160 && step_delta < 240) {
+      std::cout << "NEGATIVE\n";
+      x = -params::CONFIG_kMaxTraVel;
+    } else {
+      std::cout << "STOPPED\n";
+    }
+    ++step;
+    return {x, 0, 0};
+  }
+
   void LaserCallback(const sensor_msgs::LaserScan& msg) {
     util::LaserScan laser(msg);
     state_estimator_->UpdateLaser(laser, msg.header.stamp);
@@ -327,16 +344,6 @@ struct CallbackWrapper {
     DrawGoal(waypoint);
     util::Twist command = motion_planner_.DriveToPose(
         obstacle_detector_.GetDynamicMap(), waypoint);
-    // {params::CONFIG_kMaxTraVel, 0, params::CONFIG_kMaxRotVel};
-
-    command = util::physics::ApplyCommandLimits(
-        command,
-        state_estimator_->GetLaserTimeDelta(),
-        state_estimator_->GetEstimatedVelocity(),
-        params::CONFIG_kMaxTraVel,
-        params::CONFIG_kMaxTraAcc,
-        params::CONFIG_kMaxRotVel,
-        params::CONFIG_kMaxRotAcc);
 
     std::cout << "Command: " << command << std::endl;
 

@@ -39,6 +39,7 @@ CONFIG_FLOAT(kMaxTraAcc, "limits.kMaxTraAcc");
 CONFIG_FLOAT(kMaxTraVel, "limits.kMaxTraVel");
 CONFIG_FLOAT(kMaxRotAcc, "limits.kMaxRotAcc");
 CONFIG_FLOAT(kMaxRotVel, "limits.kMaxRotVel");
+CONFIG_FLOAT(decelerate_scaler, "safety.decelerate_scaler");
 
 CONFIG_FLOAT(min_trajectory_rotation, "od.min_trajectory_rotation");
 }  // namespace tr_params
@@ -116,8 +117,7 @@ bool IsCollidingLinear(const util::Pose& pose1,
 TrajectoryRollout::TrajectoryRollout(const util::Pose& start_pose,
                                      const util::Twist& current_v,
                                      util::Twist commanded_v,
-                                     const float rollout_duration,
-                                     const bool debug)
+                                     const float rollout_duration)
     : start_pose(start_pose),
       current_v(current_v),
       commanded_v(commanded_v),
@@ -144,12 +144,8 @@ TrajectoryRollout::TrajectoryRollout(const util::Pose& start_pose,
   const auto cd = util::physics::ComputeCommandDelta(
       start_pose, current_v, commanded_v, rollout_duration);
 
-  if (debug) {
-    std::cout << "Command Delta type: " << cd.type << std::endl;
-  }
-
-  const auto cs =
-      util::physics::ComputeFullStop(cd, tr_params::CONFIG_kMaxTraAcc);
+  const auto cs = util::physics::ComputeFullStop(
+      cd, tr_params::CONFIG_kMaxTraAcc * tr_params::CONFIG_decelerate_scaler);
 
   this->achieved_vel_pose = cd.GetEndPosition();
   if (cd.type == util::physics::CommandDelta::Type::CURVE) {

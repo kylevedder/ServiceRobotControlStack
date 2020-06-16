@@ -208,6 +208,9 @@ target_link_libraries(nav_lib
         ${catkin_LIBRARIES}
         )
 
+add_executable(sine_controller src/util/sine_controller.cpp)
+target_link_libraries(sine_controller util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
+
 add_executable(nav_node src/main/nav_node.cpp)
 target_link_libraries(nav_node util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
 

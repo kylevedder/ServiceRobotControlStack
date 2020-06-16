@@ -27,6 +27,7 @@
 #include <limits>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "cs/path_finding/path_finder.h"
@@ -51,10 +52,11 @@ class PIDController {
 
   util::Twist ApplyCommandLimits(util::Twist c) const;
 
-  float AlternateCommandCost(const util::Twist& desired,
+  float AlternateCommandCost(const TrajectoryRollout& desired_tr,
                              const util::Twist& alternate) const;
 
-  bool IsCommandColliding(const util::Twist& commanded_velocity) const;
+  std::pair<bool, TrajectoryRollout> IsCommandColliding(
+      const util::Twist& commanded_velocity) const;
 
  public:
   PIDController() = delete;

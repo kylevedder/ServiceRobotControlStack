@@ -1,5 +1,4 @@
-#pragma once
-// Copyright 2019 kvedder@seas.upenn.edu
+// Copyright 2020 kvedder@seas.upenn.edu
 // School of Engineering and Applied Sciences,
 // University of Pennsylvania
 //
@@ -22,33 +21,50 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 // ========================================================================
-#include "cs/util/map.h"
-#include "cs/util/pose.h"
+
+#include <ros/ros.h>
+#include <sensor_msgs/LaserScan.h>
+#include <chrono>
+#include <string>
+#include <thread>
+
+#include "cs/util/constants.h"
 #include "cs/util/twist.h"
 
-namespace cs {
-namespace motion_planning {
+std::pair<std::string, std::string> GetTopics(int argc, char** argv) {
+  if (argc != 3) {
+    std::cerr << "Usage: " << argv[0] << " "
+              << "/topic_to_pub /topic_to_sub" << std::endl;
+    return {"", ""};
+  }
+  return {std::string(argv[1]), std::string(argv[2])};
+}
 
-struct TrajectoryRollout {
-  util::Pose start_pose;
-  util::Twist current_v;
-  util::Twist commanded_v;
-  float rollout_duration;
-  util::Pose achieved_vel_pose;
-  Eigen::Vector2f rotate_circle_center;
-  float rotate_circle_radius;
-  float rotate_circle_achieved_vel_angle;
-  util::Pose final_pose;
-  float rotate_circle_finale_pose_angle;
+static constexpr float kRate = 40.0;
+ros::Publisher command_pub;
 
-  TrajectoryRollout() = delete;
-  TrajectoryRollout(const util::Pose& start_pose,
-                    const util::Twist& current_v,
-                    util::Twist commanded_v,
-                    const float rollout_duration);
+util::Twist Command() {
+  static std::int64_t step = 0;
+  const float x = std::sin(step * kPi / kRate / 2.0f);
+  ++step;
+  return {x, 0, 0};
+}
 
-  bool IsColliding(const util::Wall& wall, const float radius) const;
-};
+void LaserCallback(const sensor_msgs::LaserScan&) {
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  command_pub.publish(Command().ToTwist());
+}
 
-}  // namespace motion_planning
-}  // namespace cs
+int main(int argc, char** argv) {
+  ros::init(argc, argv, "SineController");
+  ros::NodeHandle n;
+  const auto topic = GetTopics(argc, argv);
+  if (topic.first == "") {
+    return 1;
+  }
+  command_pub = n.advertise<geometry_msgs::Twist>(topic.first, 10);
+  ros::Subscriber command_pub = n.subscribe(topic.second, 10, LaserCallback);
+  ros::spin();
+
+  return 0;
+}
