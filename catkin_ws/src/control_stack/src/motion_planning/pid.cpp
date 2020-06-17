@@ -44,6 +44,9 @@ CONFIG_FLOAT(translation_p, "control.translation_p");
 CONFIG_FLOAT(goal_deadzone_tra, "control.goal_deadzone_tra");
 CONFIG_FLOAT(goal_deadzone_rot, "control.goal_deadzone_rot");
 
+CONFIG_FLOAT(stop_past_goal_threshold, "control.stop_past_goal_threshold");
+CONFIG_FLOAT(stop_past_goal_dampener, "control.stop_past_goal_dampener");
+
 CONFIG_FLOAT(kMaxTraAcc, "limits.kMaxTraAcc");
 CONFIG_FLOAT(kMaxTraVel, "limits.kMaxTraVel");
 CONFIG_FLOAT(kMaxRotAcc, "limits.kMaxRotAcc");
@@ -166,9 +169,29 @@ util::Twist PIDController::ProposeCommand(const util::Pose& waypoint) const {
       params::CONFIG_rotation_drive_threshold) {
     x = robot_to_waypoint_delta.norm();
   }
-  return {x * params::CONFIG_translation_p,
-          0,
-          -robot_to_waypoint_angle_delta * params::CONFIG_rotation_p};
+
+  util::Twist proposed_command(
+      x * params::CONFIG_translation_p,
+      0,
+      -robot_to_waypoint_angle_delta * params::CONFIG_rotation_p);
+
+  const TrajectoryRollout tr(state_estimator_.GetEstimatedPose(),
+                             state_estimator_.GetEstimatedVelocity(),
+                             proposed_command,
+                             state_estimator_.GetLaserTimeDelta());
+
+  const Eigen::Vector2f waypoint_to_stop_delta =
+      tr.final_pose.tra - waypoint.tra;
+  if (robot_to_waypoint_delta.dot(waypoint_to_stop_delta) > 0.0f) {
+    const float dampener_distance =
+        std::max(waypoint_to_stop_delta.squaredNorm() -
+                     math_util::Sq(params::CONFIG_stop_past_goal_threshold),
+                 0.0f);
+    proposed_command.tra.x() -=
+        dampener_distance * params::CONFIG_stop_past_goal_dampener;
+  }
+
+  return proposed_command;
 }
 
 util::Twist PIDController::ApplyCommandLimits(util::Twist c) const {
