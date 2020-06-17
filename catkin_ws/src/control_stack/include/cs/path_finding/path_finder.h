@@ -88,7 +88,9 @@ class PathFinder {
   Path2f UsePrevPathOrUpdate(const util::Map& dynamic_map,
                              const Path2f& proposed_path);
 
-  Path2f SmoothPath(const util::Map& dynamic_map, Path2f path) const;
+  Path2f SmoothPath(const Eigen::Vector2f& start,
+                    const util::Map& dynamic_map,
+                    Path2f path) const;
 
  public:
   PathFinder(const util::Map& map,

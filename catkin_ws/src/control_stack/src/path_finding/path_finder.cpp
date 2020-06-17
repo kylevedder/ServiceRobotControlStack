@@ -170,18 +170,26 @@ Path2f SlicePath(Path2f path, const size_t end_idx) {
   return path;
 }
 
-Path2f PathFinder::SmoothPath(const util::Map& dynamic_map, Path2f path) const {
+Path2f PathFinder::SmoothPath(const Eigen::Vector2f& start,
+                              const util::Map& dynamic_map,
+                              Path2f path) const {
   if (path.waypoints.size() <= 2 || IsPathColliding(dynamic_map, path)) {
     return path;
   }
-  const auto& start = path.waypoints.front();
+  bool found_valid_smoothing = false;
   for (size_t i = 2; i < path.waypoints.size(); ++i) {
     const auto& intermediate = path.waypoints[i];
     if (IsLineColliding(dynamic_map, start, intermediate)) {
-      return SlicePath(std::move(path), i);
+      if (found_valid_smoothing) {
+        return SlicePath(std::move(path), i);
+      }
+    } else {
+      found_valid_smoothing = true;
     }
   }
-  path.waypoints = {path.waypoints.front(), path.waypoints.back()};
+  if (found_valid_smoothing) {
+    path.waypoints = {path.waypoints.front(), path.waypoints.back()};
+  }
   return path;
 }
 

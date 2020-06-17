@@ -179,10 +179,16 @@ class AStar : public PathFinder {
     if (!IsLineColliding(dynamic_map, start, goal)) {
       return {{start, goal}, (goal - start).norm()};
     }
+    if (prev_path_.IsValid() && prev_path_.waypoints.back() == goal &&
+        !IsPathColliding(dynamic_map, prev_path_)) {
+      return SmoothPath(start, dynamic_map, prev_path_);
+    }
+
+    std::cout << "REPLAN" << std::endl;
 
     const auto merged_map = map_.Merge(dynamic_map);
     static constexpr int kCellsPerMeter = 2;
-    static constexpr size_t kMaxExpansions = 1000000;
+    static constexpr size_t kMaxExpansions = 10000;
     using Env = astar::Environment<kCellsPerMeter>;
 
     const auto start_state = Env::WorldPositionToState(start);
@@ -195,6 +201,7 @@ class AStar : public PathFinder {
         solution;
     const bool success = astar.search(start_state, solution);
     if (!success) {
+      std::cout << "Path planning failed!" << std::endl;
       return {};
     }
 
@@ -205,7 +212,8 @@ class AStar : public PathFinder {
     path.waypoints.push_back(goal);
     path.cost =
         static_cast<float>(solution.cost) / static_cast<float>(kCellsPerMeter);
-    return SmoothPath(dynamic_map, path);
+    prev_path_ = path;
+    return SmoothPath(start, dynamic_map, path);
   }
 };
 
