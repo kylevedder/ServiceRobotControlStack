@@ -1,38 +1,13 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(control_stack)
 
-if(NOT ("" STREQUAL "${USER_CXX_COMPILER}"))
-    message("Setting custom C++ compiler! (${USER_CXX_COMPILER})")
-    set(CMAKE_CXX_COMPILER "${USER_CXX_COMPILER}")
-else()
-    message("Setting standard C++ compiler! (clang++)")
-    set(CMAKE_CXX_COMPILER "clang++")
-endif()
-
-if(NOT ("" STREQUAL "${USER_C_COMPILER}"))
-    message("Setting custom C compiler! (${USER_C_COMPILER})")
-    set(CMAKE_C_COMPILER "${USER_C_COMPILER}")
-else()
-    message("Setting standard C++ compiler! (clang)")
-    set(CMAKE_C_COMPILER "clang")
-endif()
-
-if(NOT ("" STREQUAL "${USER_OPT_LEVEL}"))
-    message("Setting custom optimization level! (${USER_OPT_LEVEL})")
-    set(OPT_LEVEL "${USER_OPT_LEVEL}")
-else()
-    message("Setting standard optimization level! (-O3)")
-    set(OPT_LEVEL "-O3")
-endif()
-
-
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror")
 
 message( "C++ Compiler: ${CMAKE_CXX_COMPILER}" )
 message( "C Compiler: ${CMAKE_C_COMPILER}" )
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11 -g -Wall -Werror ${OPT_LEVEL})
+add_compile_options(-std=c++11 -march=native -g -O3)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -140,8 +115,8 @@ find_package(Ceres REQUIRED)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES control_stack
-  CATKIN_DEPENDS roscpp rospy std_msgs robot_status_gui
-#  DEPENDS robot_status_gui
+  CATKIN_DEPENDS roscpp rospy std_msgs
+#  DEPENDS
 )
 
 ###########
@@ -160,6 +135,7 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS}
   ${CERES_INCLUDE_DIRS}
 )
+ADD_SUBDIRECTORY(lib/shared)
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -205,18 +181,19 @@ add_library(nav_lib
         src/localization/particle_filter.cpp)
 target_link_libraries(nav_lib
         util_lib
+        amrl_shared_lib
         ${catkin_LIBRARIES}
         )
 
 add_executable(sine_controller src/util/sine_controller.cpp)
-target_link_libraries(sine_controller util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
+target_link_libraries(sine_controller util_lib nav_lib lua5.1 amrl_shared_lib ${catkin_LIBRARIES})
 
 add_executable(nav_node src/main/nav_node.cpp)
-target_link_libraries(nav_node util_lib nav_lib lua5.1 ${catkin_LIBRARIES})
+target_link_libraries(nav_node util_lib nav_lib lua5.1 amrl_shared_lib ${catkin_LIBRARIES})
 
 ADD_EXECUTABLE(control_stack_unit_tests
         test/physics/physics_tests.cpp)
-TARGET_LINK_LIBRARIES(control_stack_unit_tests gtest gtest_main util_lib)
+TARGET_LINK_LIBRARIES(control_stack_unit_tests gtest gtest_main util_lib amrl_shared_lib)
 
 #add_executable(bag_slam src/util/bag_slam.cpp)
 #target_link_libraries(bag_slam util_lib nav_lib lua5.1 ${catkin_LIBRARIES} ${CERES_LIBRARIES} )

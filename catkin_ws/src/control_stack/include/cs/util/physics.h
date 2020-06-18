@@ -29,6 +29,7 @@
 #include <string>
 #include <vector>
 
+#include "cs/util/constants.h"
 #include "cs/util/pose.h"
 #include "cs/util/twist.h"
 #include "shared/math/math_util.h"
@@ -85,6 +86,9 @@ struct CommandDelta {
         return curve.end_position_wf;
       case Type::STRAIGHT:
         return straight.end_position_wf;
+      default:
+        CHECK(false);
+        return curve.end_position_wf;
     }
   }
 
@@ -94,6 +98,9 @@ struct CommandDelta {
         return curve.end_velocity_rf;
       case Type::STRAIGHT:
         return straight.end_velocity_rf;
+      default:
+        CHECK(false);
+        return curve.end_velocity_rf;
     }
   }
 };

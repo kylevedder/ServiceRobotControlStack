@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+export CC=`which clang`
+export CXX=`which clang++`
 source /opt/ros/$ROS_DISTRO/setup.bash
 failed=0
 pushd catkin_ws

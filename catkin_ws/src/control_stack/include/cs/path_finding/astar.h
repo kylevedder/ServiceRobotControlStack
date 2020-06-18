@@ -37,6 +37,7 @@
 #include "libMultiRobotPlanning/bounded_a_star.hpp"
 #include "shared/math/geometry.h"
 #include "shared/math/math_util.h"
+#include "shared/util/timer.h"
 
 namespace cs {
 namespace path_finding {
@@ -103,7 +104,9 @@ class Environment {
       : goal_(std::move(goal)),
         map_(map),
         df_(df),
-        min_distance_from_wall_(min_distance_from_wall) {}
+        min_distance_from_wall_(min_distance_from_wall),
+        transition_valid_timer_("transition_valid"),
+        neighbor_generation_timer_("neighbor_generation") {}
 
   int admissibleHeuristic(const State& s) const {
     return Eigen::Vector2i(goal_.pos - s.pos).lpNorm<1>();
@@ -111,8 +114,10 @@ class Environment {
 
   bool isSolution(const State& s) const { return s == goal_; }
 
-  void getNeighbors(const State& s, std::vector<Neigh>& neighbors) const {
+  void getNeighbors(const State& s, std::vector<Neigh>& neighbors) {
     neighbors.clear();
+
+    CumulativeFunctionTimer::Invocation invoke(&neighbor_generation_timer_);
 
     State up(s.x(), s.y() + 1);
     if (TransitionValid(s, up)) {
@@ -149,7 +154,8 @@ class Environment {
   }
 
  private:
-  bool TransitionValid(const State& s1, const State& s2) const {
+  bool TransitionValid(const State& s1, const State& s2) {
+    CumulativeFunctionTimer::Invocation invoke(&transition_valid_timer_);
     const auto p1 = StateToWorldPosition(s1);
     const auto p2 = StateToWorldPosition(s2);
     for (const auto& p : df_.features) {
@@ -171,6 +177,8 @@ class Environment {
   const util::Map& map_;
   const util::DynamicFeatures& df_;
   float min_distance_from_wall_;
+  CumulativeFunctionTimer transition_valid_timer_;
+  CumulativeFunctionTimer neighbor_generation_timer_;
 };
 
 }  // namespace astar
