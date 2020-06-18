@@ -39,7 +39,6 @@
 #include "cs/motion_planning/pid.h"
 #include "cs/obstacle_avoidance/obstacle_detector.h"
 #include "cs/path_finding/astar.h"
-#include "cs/path_finding/rrt.h"
 #include "cs/state_estimation/pf_state_estimator.h"
 #include "cs/state_estimation/sim_state_estimator.h"
 #include "cs/state_estimation/state_estimator.h"
@@ -324,8 +323,10 @@ struct CallbackWrapper {
     const auto est_pose = state_estimator_->GetEstimatedPose();
     position_pub_.publish(est_pose.ToTwist());
     obstacle_detector_.UpdateObservation(est_pose, laser, &detected_walls_pub_);
-    const auto path = path_finder_.FindPath(
-        obstacle_detector_.GetDynamicMap(), est_pose.tra, current_goal_.tra);
+    const auto path =
+        path_finder_.FindPath(obstacle_detector_.GetDynamicFeatures(),
+                              est_pose.tra,
+                              current_goal_.tra);
     DrawPath(path);
     //    const auto base_link_path =
     //    path.TransformPath((-est_pose).ToAffine());
@@ -343,9 +344,7 @@ struct CallbackWrapper {
     const util::Pose waypoint = GetNextPose(current_goal_, path);
     DrawGoal(waypoint);
     util::Twist command = motion_planner_.DriveToPose(
-        obstacle_detector_.GetDynamicMap(), waypoint);
-
-    std::cout << "Command: " << command << std::endl;
+        obstacle_detector_.GetDynamicFeatures(), waypoint);
 
     command_pub_.publish(command.ToTwist());
     state_estimator_->UpdateLastCommand(command);

@@ -27,6 +27,7 @@
 #include <eigen3/Eigen/Core>
 #include <vector>
 
+#include "cs/obstacle_avoidance/obstacle_detector.h"
 #include "cs/util/map.h"
 #include "cs/util/pose.h"
 
@@ -79,17 +80,18 @@ class PathFinder {
   Path2f prev_path_;
   double prev_path_time_;
 
-  bool IsLineColliding(const util::Map& dynamic_map,
+  bool IsLineColliding(const util::DynamicFeatures& dynamic_map,
                        const Eigen::Vector2f& p1,
                        const Eigen::Vector2f& p2) const;
 
-  bool IsPathColliding(const util::Map& dynamic_map, const Path2f& path) const;
+  bool IsPathColliding(const util::DynamicFeatures& dynamic_map,
+                       const Path2f& path) const;
 
-  Path2f UsePrevPathOrUpdate(const util::Map& dynamic_map,
+  Path2f UsePrevPathOrUpdate(const util::DynamicFeatures& dynamic_map,
                              const Path2f& proposed_path);
 
   Path2f SmoothPath(const Eigen::Vector2f& start,
-                    const util::Map& dynamic_map,
+                    const util::DynamicFeatures& dynamic_map,
                     Path2f path) const;
 
  public:
@@ -98,7 +100,7 @@ class PathFinder {
              const float& safety_margin)
       : map_(map), robot_radius_(robot_radius), safety_margin_(safety_margin) {}
 
-  virtual Path2f FindPath(const util::Map& dynamic_map,
+  virtual Path2f FindPath(const util::DynamicFeatures& dynamic_map,
                           const Eigen::Vector2f& start,
                           const Eigen::Vector2f& goal) = 0;
 };

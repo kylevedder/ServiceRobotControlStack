@@ -42,7 +42,7 @@ CONFIG_FLOAT(goal_delta_change, "path_finding.goal_delta_change");
 CONFIG_FLOAT(max_distance_off_path, "path_finding.max_distance_off_path");
 };  // namespace params
 
-Path2f PathFinder::UsePrevPathOrUpdate(const util::Map& dynamic_map,
+Path2f PathFinder::UsePrevPathOrUpdate(const util::DynamicFeatures& dynamic_map,
                                        const Path2f& proposed_path) {
   static constexpr bool kDebug = false;
   NP_CHECK(!proposed_path.IsValid() ||
@@ -126,7 +126,7 @@ Path2f PathFinder::UsePrevPathOrUpdate(const util::Map& dynamic_map,
   return prev_path_;
 }
 
-bool PathFinder::IsLineColliding(const util::Map& dynamic_map,
+bool PathFinder::IsLineColliding(const util::DynamicFeatures& dynamic_map,
                                  const Eigen::Vector2f& p1,
                                  const Eigen::Vector2f& p2) const {
   for (const auto& w : map_.walls) {
@@ -135,8 +135,8 @@ bool PathFinder::IsLineColliding(const util::Map& dynamic_map,
       return true;
     }
   }
-  for (const auto& w : dynamic_map.walls) {
-    if (geometry::MinDistanceLineLine(w.p1, w.p2, p1, p2) <=
+  for (const auto& w : dynamic_map.features) {
+    if (geometry::MinDistanceLineLine(w, w, p1, p2) <=
         (robot_radius_ + safety_margin_)) {
       return true;
     }
@@ -144,7 +144,7 @@ bool PathFinder::IsLineColliding(const util::Map& dynamic_map,
   return false;
 }
 
-bool PathFinder::IsPathColliding(const util::Map& dynamic_map,
+bool PathFinder::IsPathColliding(const util::DynamicFeatures& dynamic_map,
                                  const Path2f& path) const {
   if (path.waypoints.size() < 2) {
     return true;
@@ -171,7 +171,7 @@ Path2f SlicePath(Path2f path, const size_t end_idx) {
 }
 
 Path2f PathFinder::SmoothPath(const Eigen::Vector2f& start,
-                              const util::Map& dynamic_map,
+                              const util::DynamicFeatures& dynamic_map,
                               Path2f path) const {
   if (path.waypoints.size() <= 2 || IsPathColliding(dynamic_map, path)) {
     return path;

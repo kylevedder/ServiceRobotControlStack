@@ -1,5 +1,5 @@
 #pragma once
-// Copyright 2019 - 2020 kvedder@seas.upenn.edu
+// Copyright 2020 kvedder@seas.upenn.edu
 // School of Engineering and Applied Sciences,
 // University of Pennsylvania
 //
@@ -23,38 +23,18 @@
 // SOFTWARE.
 // ========================================================================
 
-#include <visualization_msgs/Marker.h>
 #include <eigen3/Eigen/Core>
-#include <eigen3/Eigen/Geometry>
-#include <string>
 #include <vector>
-#include "cs/util/pose.h"
 
 namespace util {
 
-struct Wall {
-  Eigen::Vector2f p1;
-  Eigen::Vector2f p2;
-  Wall() : p1(), p2() {}
-  Wall(const Eigen::Vector2f& p1, const Eigen::Vector2f& p2) : p1(p1), p2(p2) {}
-};
+struct DynamicFeatures {
+  std::vector<Eigen::Vector2f> features;
 
-struct Map {
-  std::vector<Wall> walls;
+  DynamicFeatures() = default;
+  explicit DynamicFeatures(const std::vector<Eigen::Vector2f>& features);
 
-  Map() = default;
-  explicit Map(const std::string& filepath);
-  explicit Map(std::vector<Wall> walls);
-
-  float MinDistanceAlongRay(const util::Pose& ray,
-                            const float& min_depth,
-                            const float& max_depth) const;
-
-  float MinDistanceToWall(const Eigen::Vector2f& observation) const;
-
-  visualization_msgs::Marker ToMarker() const;
-
-  Map Merge(const Map& other) const;
+  void Reset();
 };
 
 }  // namespace util

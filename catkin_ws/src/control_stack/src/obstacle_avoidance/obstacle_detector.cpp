@@ -62,7 +62,7 @@ bool IsMapObservation(const float& distance_to_wall) {
   return (distance_to_wall < od_params::CONFIG_is_wall_threshold);
 }
 
-std::vector<Eigen::Vector2f> ObstacleDetector::GetNonMapPoints(
+util::DynamicFeatures ObstacleDetector::GetNonMapPoints(
     const util::Pose& observation_pose,
     const util::LaserScan& observation) const {
   const float min_depth = od_params::CONFIG_kMinDistanceThreshold;
@@ -73,10 +73,10 @@ std::vector<Eigen::Vector2f> ObstacleDetector::GetNonMapPoints(
         return f > min_depth && f < max_depth;
       });
 
-  std::vector<Eigen::Vector2f> v;
+  util::DynamicFeatures v;
   for (const auto& p : points) {
     if (!IsMapObservation(map_.MinDistanceToWall(p))) {
-      v.push_back(p);
+      v.features.push_back(p);
     }
   }
   return v;
@@ -156,20 +156,19 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
                                          const util::LaserScan& observation,
                                          ros::Publisher* pub) {
   static constexpr bool kDebug = false;
-  dynamic_map_.walls.clear();
   const bool should_publish = (pub != nullptr);
 
   static visualization_msgs::Marker old_marker;
 
-  const auto non_map_points = GetNonMapPoints(observation_pose, observation);
-  for (const auto& p : non_map_points) {
-    dynamic_map_.walls.push_back({p, p});
-  }
+  dynamic_features_ = GetNonMapPoints(observation_pose, observation);
+  //  for (const auto& p : non_map_points) {
+  //    dynamic_map_.walls.push_back({p, p});
+  //  }
 
   if (kDebug && should_publish) {
-    ROS_INFO("Rendering %zu non-map points", non_map_points.size());
+    ROS_INFO("Rendering %zu non-map points", dynamic_features_.features.size());
     visualization_msgs::Marker new_marker =
-        visualization::PointsToLineList(non_map_points,
+        visualization::PointsToLineList(dynamic_features_.features,
                                         observation_pose,
                                         od_params::CONFIG_map_tf_frame,
                                         "non_map_pts",
@@ -183,14 +182,14 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
   }
 }
 
-void ObstacleDetector::DrawDynamic(ros::Publisher* pub) const {
+void ObstacleDetector::DrawDynamic(ros::Publisher*) const {
   // ROS_INFO("Obstacle detector found: %zu obstacles", dynamic_walls_.size());
-  pub->publish(visualization::DrawWalls(
-      dynamic_map_.walls, "est_map", "dynamic_walls_ns"));
+  //  pub->publish(visualization::DrawWalls(
+  //      dynamic_map_.walls, "est_map", "dynamic_walls_ns"));
 }
 
-const util::Map& ObstacleDetector::GetDynamicMap() const {
-  return dynamic_map_;
+const util::DynamicFeatures& ObstacleDetector::GetDynamicFeatures() const {
+  return dynamic_features_;
 }
 
 }  // namespace obstacle_avoidance

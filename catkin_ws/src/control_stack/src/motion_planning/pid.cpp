@@ -59,11 +59,11 @@ CONFIG_FLOAT(translational_cost_scale_factor, "od.kTranslationCostScaleFactor");
 
 }  // namespace params
 
-util::Twist PIDController::DriveToPose(const util::Map& dynamic_map,
-                                       const util::Pose& waypoint) {
+util::Twist PIDController::DriveToPose(
+    const util::DynamicFeatures& dynamic_features, const util::Pose& waypoint) {
   est_world_pose_ = state_estimator_.GetEstimatedPose();
   est_velocity_ = state_estimator_.GetEstimatedVelocity();
-  complete_map_ = map_.Merge(dynamic_map);
+  dynamic_features_ = dynamic_features;
 
   const auto proposed_command = ProposeCommand(waypoint);
   const auto limited_command = ApplyCommandLimits(proposed_command);
@@ -213,7 +213,23 @@ std::pair<bool, TrajectoryRollout> PIDController::IsCommandColliding(
   static constexpr bool kDebug = false;
   const TrajectoryRollout tr(
       est_world_pose_, est_velocity_, commanded_velocity, rollout_duration);
-  for (const auto& w : complete_map_.walls) {
+  for (const auto& p : dynamic_features_.features) {
+    if (tr.IsColliding({p, p}, robot_radius + safety_margin)) {
+      if (kDebug) {
+        ROS_INFO("Current command: (%f, %f), %f",
+                 commanded_velocity.tra.x(),
+                 commanded_velocity.tra.y(),
+                 commanded_velocity.rot);
+        ROS_INFO("End pose: (%f, %f), %f",
+                 tr.final_pose.tra.x(),
+                 tr.final_pose.tra.y(),
+                 tr.final_pose.rot);
+        ROS_INFO("Colliding with observed point: (%f, %f)", p.x(), p.y());
+      }
+      return {true, tr};
+    }
+  }
+  for (const auto& w : map_.walls) {
     if (tr.IsColliding(w, robot_radius + safety_margin)) {
       if (kDebug) {
         ROS_INFO("Current command: (%f, %f), %f",

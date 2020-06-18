@@ -193,11 +193,11 @@ include_directories(
 
 add_library(util_lib
   src/util/map.cpp
+  src/util/dynamic_features.cpp
   src/util/physics.cpp
 )
 
 add_library(nav_lib
-        src/path_finding/rrt.cpp
         src/path_finding/path_finder.cpp
         src/obstacle_avoidance/obstacle_detector.cpp
         src/motion_planning/trajectory_rollout.cpp

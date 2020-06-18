@@ -30,6 +30,7 @@
 #include <utility>
 #include <vector>
 
+#include "cs/obstacle_avoidance/obstacle_detector.h"
 #include "cs/path_finding/path_finder.h"
 #include "cs/state_estimation/state_estimator.h"
 #include "cs/util/constants.h"
@@ -44,7 +45,7 @@ class PIDController {
  private:
   const util::Map& map_;
   const cs::state_estimation::StateEstimator& state_estimator_;
-  util::Map complete_map_;
+  util::DynamicFeatures dynamic_features_;
   util::Pose est_world_pose_;
   util::Twist est_velocity_;
 
@@ -64,13 +65,13 @@ class PIDController {
                 const cs::state_estimation::StateEstimator& state_estimator)
       : map_(map),
         state_estimator_(state_estimator),
-        complete_map_(map),
+        dynamic_features_(),
         est_world_pose_(),
         est_velocity_() {}
 
   bool AtPose(const util::Pose& pose) const;
 
-  util::Twist DriveToPose(const util::Map& dynamic_map,
+  util::Twist DriveToPose(const util::DynamicFeatures& dynamic_features,
                           const util::Pose& waypoint);
 };
 

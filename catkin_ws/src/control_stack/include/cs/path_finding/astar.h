@@ -98,9 +98,11 @@ class Environment {
  public:
   Environment(State goal,
               const util::Map& map,
+              const util::DynamicFeatures& df,
               const float min_distance_from_wall)
       : goal_(std::move(goal)),
         map_(map),
+        df_(df),
         min_distance_from_wall_(min_distance_from_wall) {}
 
   int admissibleHeuristic(const State& s) const {
@@ -150,6 +152,12 @@ class Environment {
   bool TransitionValid(const State& s1, const State& s2) const {
     const auto p1 = StateToWorldPosition(s1);
     const auto p2 = StateToWorldPosition(s2);
+    for (const auto& p : df_.features) {
+      const float d = geometry::MinDistanceLineLine(p1, p2, p, p);
+      if (d <= min_distance_from_wall_) {
+        return false;
+      }
+    }
     for (const auto& w : map_.walls) {
       const float d = geometry::MinDistanceLineLine(p1, p2, w.p1, w.p2);
       if (d <= min_distance_from_wall_) {
@@ -161,6 +169,7 @@ class Environment {
 
   State goal_;
   const util::Map& map_;
+  const util::DynamicFeatures& df_;
   float min_distance_from_wall_;
 };
 
@@ -173,7 +182,7 @@ class AStar : public PathFinder {
                  const float& safety_margin)
       : PathFinder(map, robot_radius, safety_margin) {}
 
-  Path2f FindPath(const util::Map& dynamic_map,
+  Path2f FindPath(const util::DynamicFeatures& dynamic_map,
                   const Eigen::Vector2f& start,
                   const Eigen::Vector2f& goal) override {
     if (!IsLineColliding(dynamic_map, start, goal)) {
@@ -186,7 +195,6 @@ class AStar : public PathFinder {
 
     std::cout << "REPLAN" << std::endl;
 
-    const auto merged_map = map_.Merge(dynamic_map);
     static constexpr int kCellsPerMeter = 2;
     static constexpr size_t kMaxExpansions = 10000;
     using Env = astar::Environment<kCellsPerMeter>;
@@ -194,7 +202,7 @@ class AStar : public PathFinder {
     const auto start_state = Env::WorldPositionToState(start);
     const auto goal_state = Env::WorldPositionToState(goal);
 
-    Env env(goal_state, merged_map, robot_radius_ + safety_margin_);
+    Env env(goal_state, map_, dynamic_map, robot_radius_ + safety_margin_);
     libMultiRobotPlanning::BoundedAStar<astar::State, astar::Action, int, Env>
         astar(env, kMaxExpansions);
     libMultiRobotPlanning::PlanResult<astar::State, astar::Action, int>

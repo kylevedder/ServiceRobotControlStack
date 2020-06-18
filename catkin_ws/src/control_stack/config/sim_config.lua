@@ -37,7 +37,7 @@ pf = {
 
   map = "../rosbuild_ws/simulator/ut_multirobot_sim/maps/GDC3/GDC3.vectormap.txt";
   start_pose = {33, 21.5, 0};
-  goal_poses = {{-33, 21.5, 0}, {33, 21.5, 0}};
+  goal_poses = {{33, 21.5, 0}, {-33, 21.5, 0}, {-33, -21.5, 0}, {-33, 21.5, 0}};
 
 --   map = "src/control_stack/maps/outside_grasp.map";
 --   start_pose = {-2.5, -1, 0};

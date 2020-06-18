@@ -1,4 +1,3 @@
-#pragma once
 // Copyright 2019 - 2020 kvedder@seas.upenn.edu
 // School of Engineering and Applied Sciences,
 // University of Pennsylvania
@@ -22,48 +21,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 // ========================================================================
-#include <ros/ros.h>
-#include <random>
-#include <vector>
 
 #include "cs/util/dynamic_features.h"
-#include "cs/util/laser_scan.h"
-#include "cs/util/map.h"
-#include "cs/util/pose.h"
-#include "cs/util/twist.h"
 
-namespace cs {
-namespace obstacle_avoidance {
+namespace util {
 
-class ObstacleDetector {
- public:
-  ObstacleDetector() = delete;
-  explicit ObstacleDetector(const util::Map& map);
+DynamicFeatures::DynamicFeatures(const std::vector<Eigen::Vector2f>& features)
+    : features(features) {}
 
-  void UpdateObservation(const util::Pose& observation_pose,
-                         const util::LaserScan& observation);
-  void UpdateObservation(const util::Pose& observation_pose,
-                         const util::LaserScan& observation,
-                         ros::Publisher* pub);
+void DynamicFeatures::Reset() { features.clear(); }
 
-  void DrawDynamic(ros::Publisher* pub) const;
-
-  const util::DynamicFeatures& GetDynamicFeatures() const;
-
- private:
-  util::DynamicFeatures GetNonMapPoints(
-      const util::Pose& observation_pose,
-      const util::LaserScan& observation) const;
-
-  //  bool StartedInCollision(const float robot_radius) const;
-
-  const util::Map& map_;
-  util::DynamicFeatures dynamic_features_;
-  //  util::Pose estimated_pose_;
-  //  util::Twist odom_velocity_;
-  //  util::Twist prior_commanded_velocity_;
-  std::mt19937 random_gen_;
-};
-
-}  // namespace obstacle_avoidance
-}  // namespace cs
+}  // namespace util
