@@ -37,7 +37,7 @@ pf = {
 
   map = "../rosbuild_ws/simulator/ut_multirobot_sim/maps/GDC3/GDC3.vectormap.txt";
   start_pose = {33, 21.5, 0};
-  goal_poses = {{33, 21.5, 0}, {-33, -21.5, 0}, {-33, 21.5, 0}};
+  goal_poses = {{33, 21.5, 0}, {-33, -21.5, 0}, {-30, -17, 0}, {-20, -17, 0}};
 
 --   map = "src/control_stack/maps/outside_grasp.map";
 --   start_pose = {-2.5, -1, 0};
@@ -76,7 +76,7 @@ od = {
 };
 
 limits = {
-  kMaxTraAcc = 0.2;
+  kMaxTraAcc = 3;
   kMaxTraVel = 3;
   kMaxRotAcc = 3;
   kMaxRotVel = 3;
@@ -100,9 +100,9 @@ rrt = {
 };
 
 control = {
-  rotation_drive_threshold = 0.7; -- Radians.
-  rotation_p = 1.25;
-  translation_p = 0.5;
+  rotation_drive_threshold = 0.3; -- Radians.
+  rotation_p = 2.5;
+  translation_p = 2;
   stop_past_goal_threshold = 0.5;
   stop_past_goal_dampener = 5;
   goal_deadzone_tra = 0.15; -- Meters.

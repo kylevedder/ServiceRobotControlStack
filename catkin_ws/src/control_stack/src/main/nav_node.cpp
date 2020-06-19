@@ -202,6 +202,17 @@ struct CallbackWrapper {
                                     1,
                                     0.05));
     robot_size_pub_.publish(visualization::MakeCylinder(
+        {params::CONFIG_kRobotRadius + params::CONFIG_kSafetyMargin, 0},
+        0.05,
+        0.1,
+        params::CONFIG_base_link_tf_frame,
+        "forward_bump",
+        1,
+        0,
+        0,
+        1,
+        0.05));
+    robot_size_pub_.publish(visualization::MakeCylinder(
         {0, 0},
         params::CONFIG_kRobotRadius + params::CONFIG_kSafetyMargin,
         0.1,
