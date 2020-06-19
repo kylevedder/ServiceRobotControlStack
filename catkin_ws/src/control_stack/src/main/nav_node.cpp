@@ -226,18 +226,6 @@ struct CallbackWrapper {
         0.1,
         0.05));
 
-    //    command.rot = -params::CONFIG_kMaxRotVel;
-    //    command = util::physics::ApplyCommandLimits(
-    //        command,
-    //        state_estimator_->GetLaserTimeDelta(),
-    //        state_estimator_->GetEstimatedVelocity(),
-    //        params::CONFIG_kMaxTraVel,
-    //        params::CONFIG_kMaxTraAcc,
-    //        params::CONFIG_kMaxRotVel,
-    //        params::CONFIG_kMaxRotVel);
-
-    //    std::cout << "Hard clockwise turn: " << command << std::endl;
-
     const auto cd = util::physics::ComputeCommandDelta(
         state_estimator_->GetEstimatedPose(),
         state_estimator_->GetEstimatedVelocity(),
@@ -256,9 +244,6 @@ struct CallbackWrapper {
                                       0,
                                       1));
     }
-
-    //    const auto cs =
-    //        util::physics::ComputeFullStop(cd, params::CONFIG_kMaxTraAcc);
 
     const cs::motion_planning::TrajectoryRollout tr(
         state_estimator_->GetEstimatedPose(),
@@ -303,12 +288,6 @@ struct CallbackWrapper {
 
   util::Pose GetNextPose(const util::Pose& current_pose,
                          const cs::path_finding::Path2f& path) {
-    //    if (!path.waypoints.empty()) {
-    //      for (const auto& p : path.waypoints) {
-    //        std::cout << "(" << p.x() << ", " << p.y() << ") ";
-    //      }
-    //      std::cout << std::endl;
-    //    }
     if (path.waypoints.size() > 1) {
       return {path.waypoints[1], 0};
     }
