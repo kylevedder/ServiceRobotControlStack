@@ -218,6 +218,7 @@ class Environment {
 
 }  // namespace astar
 
+template <int CellsPerMeter>
 class AStar : public PathFinder {
  public:
   explicit AStar(const util::Map& map,
@@ -240,9 +241,8 @@ class AStar : public PathFinder {
     CumulativeFunctionTimer total_plan_timer("Total Plan");
     CumulativeFunctionTimer::Invocation invoke(&total_plan_timer);
 
-    static constexpr int kCellsPerMeter = 2;
     static constexpr size_t kMaxExpansions = 10000;
-    using Env = astar::Environment<kCellsPerMeter>;
+    using Env = astar::Environment<CellsPerMeter>;
 
     const auto start_state = Env::WorldPositionToState(start);
     const auto goal_state = Env::WorldPositionToState(goal);
@@ -273,10 +273,9 @@ class AStar : public PathFinder {
     }
     path.waypoints.push_back(goal);
     path.cost =
-        static_cast<float>(solution.cost) / static_cast<float>(kCellsPerMeter);
+        static_cast<float>(solution.cost) / static_cast<float>(CellsPerMeter);
     prev_path_ = path;
     return SmoothPath(start, dynamic_map, path);
-    ;
   }
 };
 

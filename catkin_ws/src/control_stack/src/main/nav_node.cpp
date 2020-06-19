@@ -77,7 +77,8 @@ struct CallbackWrapper {
   std::unique_ptr<cs::state_estimation::StateEstimator> state_estimator_;
   cs::obstacle_avoidance::ObstacleDetector obstacle_detector_;
   cs::motion_planning::PIDController motion_planner_;
-  cs::path_finding::AStar path_finder_;
+  cs::path_finding::AStar<2> global_path_finder_;
+  cs::path_finding::AStar<5> local_path_finder_;
   tf::TransformBroadcaster br_;
   util::Pose current_goal_;
   int current_goal_index_;
@@ -117,7 +118,9 @@ struct CallbackWrapper {
         state_estimator_(MakeStateEstimator(n)),
         obstacle_detector_(map_),
         motion_planner_(map_, *state_estimator_),
-        path_finder_(
+        global_path_finder_(
+            map_, params::CONFIG_kRobotRadius, params::CONFIG_kSafetyMargin),
+        local_path_finder_(
             map_, params::CONFIG_kRobotRadius, params::CONFIG_kSafetyMargin),
         current_goal_(util::Pose(params::CONFIG_goal_poses.front())),
         current_goal_index_(0) {
@@ -305,21 +308,24 @@ struct CallbackWrapper {
     const auto est_pose = state_estimator_->GetEstimatedPose();
     position_pub_.publish(est_pose.ToTwist());
     obstacle_detector_.UpdateObservation(est_pose, laser, &detected_walls_pub_);
-    const auto path =
-        path_finder_.FindPath(obstacle_detector_.GetDynamicFeatures(),
-                              est_pose.tra,
-                              current_goal_.tra);
-    DrawPath(path);
+    const auto global_path =
+        global_path_finder_.FindPath({}, est_pose.tra, current_goal_.tra);
+    DrawPath(global_path);
     if (motion_planner_.AtPose(current_goal_)) {
       ++current_goal_index_;
       current_goal_ = util::Pose(
           params::CONFIG_goal_poses[current_goal_index_ %
                                     params::CONFIG_goal_poses.size()]);
     }
-    const util::Pose waypoint = GetNextPose(current_goal_, path);
-    DrawGoal(waypoint);
+    const util::Pose global_waypoint = GetNextPose(current_goal_, global_path);
+    const auto local_path =
+        local_path_finder_.FindPath(obstacle_detector_.GetDynamicFeatures(),
+                                    est_pose.tra,
+                                    global_waypoint.tra);
+    const util::Pose local_waypoint = GetNextPose(current_goal_, local_path);
+    DrawGoal(local_waypoint);
     util::Twist command = motion_planner_.DriveToPose(
-        obstacle_detector_.GetDynamicFeatures(), waypoint);
+        obstacle_detector_.GetDynamicFeatures(), local_waypoint);
 
     command_pub_.publish(command.ToTwist());
     state_estimator_->UpdateLastCommand(command);
