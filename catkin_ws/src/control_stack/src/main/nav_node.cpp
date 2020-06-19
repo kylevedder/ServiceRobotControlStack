@@ -39,6 +39,7 @@
 #include "cs/motion_planning/pid.h"
 #include "cs/obstacle_avoidance/obstacle_detector.h"
 #include "cs/path_finding/astar.h"
+#include "cs/path_finding/global_path_finder.h"
 #include "cs/state_estimation/pf_state_estimator.h"
 #include "cs/state_estimation/sim_state_estimator.h"
 #include "cs/state_estimation/state_estimator.h"
@@ -77,8 +78,9 @@ struct CallbackWrapper {
   std::unique_ptr<cs::state_estimation::StateEstimator> state_estimator_;
   cs::obstacle_avoidance::ObstacleDetector obstacle_detector_;
   cs::motion_planning::PIDController motion_planner_;
-  cs::path_finding::AStar<2> global_path_finder_;
-  cs::path_finding::AStar<5> local_path_finder_;
+  cs::path_finding::GlobalPathFinder<cs::path_finding::AStar<3, 10000, false>>
+      global_path_finder_;
+  cs::path_finding::AStar<5, 700, false> local_path_finder_;
   tf::TransformBroadcaster br_;
   util::Pose current_goal_;
   int current_goal_index_;
@@ -125,13 +127,13 @@ struct CallbackWrapper {
         current_goal_(util::Pose(params::CONFIG_goal_poses.front())),
         current_goal_index_(0) {
     position_pub_ =
-        n->advertise<geometry_msgs::Twist>(constants::kPositionTopic, 10);
-    command_pub_ = n->advertise<geometry_msgs::Twist>(
-        constants::kCommandVelocityTopic, 10);
+        n->advertise<geometry_msgs::Twist>(constants::kPositionTopic, 1);
+    command_pub_ =
+        n->advertise<geometry_msgs::Twist>(constants::kCommandVelocityTopic, 1);
     laser_sub_ = n->subscribe(
-        constants::kLaserTopic, 10, &CallbackWrapper::LaserCallback, this);
+        constants::kLaserTopic, 1, &CallbackWrapper::LaserCallback, this);
     odom_sub_ = n->subscribe(
-        constants::kOdomTopic, 10, &CallbackWrapper::OdomCallback, this);
+        constants::kOdomTopic, 1, &CallbackWrapper::OdomCallback, this);
     teleop_sub_ = n->subscribe(
         constants::kGoalTopic, 10, &CallbackWrapper::GoalCallback, this);
 
@@ -299,7 +301,7 @@ struct CallbackWrapper {
         0.05));
   }
 
-  util::Pose GetNextPose(const util::Pose& goal_pose,
+  util::Pose GetNextPose(const util::Pose& current_pose,
                          const cs::path_finding::Path2f& path) {
     //    if (!path.waypoints.empty()) {
     //      for (const auto& p : path.waypoints) {
@@ -310,7 +312,7 @@ struct CallbackWrapper {
     if (path.waypoints.size() > 1) {
       return {path.waypoints[1], 0};
     }
-    return goal_pose;
+    return current_pose;
   }
 
   void LaserCallback(const sensor_msgs::LaserScan& msg) {
@@ -319,8 +321,8 @@ struct CallbackWrapper {
     const auto est_pose = state_estimator_->GetEstimatedPose();
     position_pub_.publish(est_pose.ToTwist());
     obstacle_detector_.UpdateObservation(est_pose, laser, &detected_walls_pub_);
-    const auto global_path =
-        global_path_finder_.FindPath({}, est_pose.tra, current_goal_.tra);
+    global_path_finder_.PlanPath(est_pose.tra, current_goal_.tra);
+    const auto global_path = global_path_finder_.GetPath();
     DrawPath(global_path);
     if (motion_planner_.AtPose(current_goal_)) {
       ++current_goal_index_;
@@ -328,12 +330,15 @@ struct CallbackWrapper {
           params::CONFIG_goal_poses[current_goal_index_ %
                                     params::CONFIG_goal_poses.size()]);
     }
-    const util::Pose global_waypoint = GetNextPose(current_goal_, global_path);
+    const util::Pose global_waypoint = GetNextPose(est_pose, global_path);
     const auto local_path =
         local_path_finder_.FindPath(obstacle_detector_.GetDynamicFeatures(),
                                     est_pose.tra,
                                     global_waypoint.tra);
-    const util::Pose local_waypoint = GetNextPose(current_goal_, local_path);
+    if (local_path.waypoints.empty()) {
+      ROS_INFO("Local path planner failed");
+    }
+    const util::Pose local_waypoint = GetNextPose(est_pose, local_path);
     DrawGoal(local_waypoint);
     util::Twist command = motion_planner_.DriveToPose(
         obstacle_detector_.GetDynamicFeatures(), local_waypoint);

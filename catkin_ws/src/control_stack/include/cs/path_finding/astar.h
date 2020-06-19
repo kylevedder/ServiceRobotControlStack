@@ -37,7 +37,6 @@
 #include "libMultiRobotPlanning/bounded_a_star.hpp"
 #include "shared/math/geometry.h"
 #include "shared/math/math_util.h"
-#include "shared/util/timer.h"
 
 namespace cs {
 namespace path_finding {
@@ -110,7 +109,7 @@ std::ostream& operator<<(std::ostream& os, const Action& a) {
 
 using Neigh = libMultiRobotPlanning::Neighbor<State, Action, float>;
 
-template <int CellsPerMeter>
+template <int CellsPerMeter, bool UseEightGrid>
 class Environment {
  public:
   Environment(State goal,
@@ -120,17 +119,18 @@ class Environment {
       : goal_(std::move(goal)),
         map_(map),
         df_(df),
-        min_distance_from_wall_(min_distance_from_wall),
-        transition_valid_timer_("transition_valid") {}
+        min_distance_from_wall_(min_distance_from_wall) {}
 
   float admissibleHeuristic(const State& s) const {
+    if (UseEightGrid) {
+      const Eigen::Vector2i delta = (goal_.pos - s.pos).cwiseAbs();
+
+      if (delta.x() > delta.y()) {
+        return delta.y() * (kSqrtTwo - 1) + delta.x();
+      }
+      return delta.x() * (kSqrtTwo - 1) + delta.y();
+    }
     return Eigen::Vector2i(goal_.pos - s.pos).lpNorm<1>();
-    //    const Eigen::Vector2i delta = (goal_.pos - s.pos).cwiseAbs();
-    //
-    //    if (delta.x() > delta.y()) {
-    //      return delta.y() * (kSqrtTwo - 1) + delta.x();
-    //    }
-    //    return delta.x() * (kSqrtTwo - 1) + delta.y();
   }
 
   bool isSolution(const State& s) const { return s == goal_; }
@@ -155,24 +155,24 @@ class Environment {
       neighbors.emplace_back(Neigh(right, Action::Right, 1));
     }
 
-    //    State up_left(s.x() - 1, s.y() + 1);
-    //    if (TransitionValid(s, up_left)) {
-    //      neighbors.emplace_back(Neigh(up_left, Action::UpLeft, kSqrtTwo));
-    //    }
-    //    State up_right(s.x() + 1, s.y() + 1);
-    //    if (TransitionValid(s, up_right)) {
-    //      neighbors.emplace_back(Neigh(up_right, Action::UpRight, kSqrtTwo));
-    //    }
-    //    State down_left(s.x() - 1, s.y() - 1);
-    //    if (TransitionValid(s, down_left)) {
-    //      neighbors.emplace_back(Neigh(down_left, Action::DownLeft,
-    //      kSqrtTwo));
-    //    }
-    //    State down_right(s.x() + 1, s.y() - 1);
-    //    if (TransitionValid(s, down_right)) {
-    //      neighbors.emplace_back(Neigh(down_right, Action::DownRight,
-    //      kSqrtTwo));
-    //    }
+    if (UseEightGrid) {
+      State up_left(s.x() - 1, s.y() + 1);
+      if (TransitionValid(s, up_left)) {
+        neighbors.emplace_back(Neigh(up_left, Action::UpLeft, kSqrtTwo));
+      }
+      State up_right(s.x() + 1, s.y() + 1);
+      if (TransitionValid(s, up_right)) {
+        neighbors.emplace_back(Neigh(up_right, Action::UpRight, kSqrtTwo));
+      }
+      State down_left(s.x() - 1, s.y() - 1);
+      if (TransitionValid(s, down_left)) {
+        neighbors.emplace_back(Neigh(down_left, Action::DownLeft, kSqrtTwo));
+      }
+      State down_right(s.x() + 1, s.y() - 1);
+      if (TransitionValid(s, down_right)) {
+        neighbors.emplace_back(Neigh(down_right, Action::DownRight, kSqrtTwo));
+      }
+    }
   }
 
   void onExpandNode(const State& /*s*/, int /*fScore*/, int /*gScore*/) {}
@@ -193,7 +193,6 @@ class Environment {
 
  private:
   bool TransitionValid(const State& s1, const State& s2) {
-    CumulativeFunctionTimer::Invocation invoke(&transition_valid_timer_);
     const auto p1 = StateToWorldPosition(s1);
     const auto p2 = StateToWorldPosition(s2);
     for (const auto& p : df_.features) {
@@ -213,12 +212,11 @@ class Environment {
   const util::Map& map_;
   const util::DynamicFeatures& df_;
   float min_distance_from_wall_;
-  CumulativeFunctionTimer transition_valid_timer_;
 };
 
 }  // namespace astar
 
-template <int CellsPerMeter>
+template <int CellsPerMeter, size_t MaxExpansions, bool UseEightGrid>
 class AStar : public PathFinder {
  public:
   explicit AStar(const util::Map& map,
@@ -237,12 +235,7 @@ class AStar : public PathFinder {
       return SmoothPath(start, dynamic_map, prev_path_);
     }
 
-    std::cout << "REPLAN" << std::endl;
-    CumulativeFunctionTimer total_plan_timer("Total Plan");
-    CumulativeFunctionTimer::Invocation invoke(&total_plan_timer);
-
-    static constexpr size_t kMaxExpansions = 10000;
-    using Env = astar::Environment<CellsPerMeter>;
+    using Env = astar::Environment<CellsPerMeter, UseEightGrid>;
 
     const auto start_state = Env::WorldPositionToState(start);
     const auto goal_state = Env::WorldPositionToState(goal);
@@ -252,17 +245,10 @@ class AStar : public PathFinder {
             dynamic_map,
             robot_radius_ + safety_margin_ + kEpsilon);
     libMultiRobotPlanning::BoundedAStar<astar::State, astar::Action, float, Env>
-        astar(env, kMaxExpansions);
+        astar(env, MaxExpansions);
     libMultiRobotPlanning::PlanResult<astar::State, astar::Action, float>
         solution;
-    bool success = false;
-    {
-      CumulativeFunctionTimer just_search("Just Search");
-      CumulativeFunctionTimer::Invocation invoke(&just_search);
-      success = astar.search(start_state, solution);
-    }
-    if (!success) {
-      std::cout << "Path planning failed!" << std::endl;
+    if (!astar.search(start_state, solution)) {
       return {};
     }
 

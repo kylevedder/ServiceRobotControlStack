@@ -247,7 +247,6 @@ StopDelta ComputeFullStop(const CommandDelta& command_delta,
         geometry::Heading(command_delta.straight.end_position_wf.rot) * dx;
     sd.stop_position_wf = command_delta.straight.end_position_wf;
     sd.stop_position_wf.tra += delta;
-    NP_CHECK_NE(sd.stop_position_wf, util::Pose(0, 0, 0));
     return sd;
   }
 
@@ -257,7 +256,6 @@ StopDelta ComputeFullStop(const CommandDelta& command_delta,
                                  command_delta.curve.rotate_circle_radius,
                                  dx,
                                  time_delta);
-  NP_CHECK_NE(sd.stop_position_wf, util::Pose(0, 0, 0));
   return sd;
 }
 
