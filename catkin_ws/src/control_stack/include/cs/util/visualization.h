@@ -83,12 +83,12 @@ inline visualization_msgs::Marker DrawWalls(
 
   for (const auto& w : walls) {
     geometry_msgs::Point p1;
-    p1.x = w.p1.x();
-    p1.y = w.p1.y();
+    p1.x = w.p0.x();
+    p1.y = w.p0.y();
     p1.z = z;
     geometry_msgs::Point p2;
-    p2.x = w.p2.x();
-    p2.y = w.p2.y();
+    p2.x = w.p1.x();
+    p2.y = w.p1.y();
     p2.z = z;
     marker.points.push_back(p1);
     marker.points.push_back(p2);

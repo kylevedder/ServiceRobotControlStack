@@ -106,12 +106,7 @@ bool IsCollidingLinear(const util::Pose& pose1,
                        const float& min_dist_threshold) {
   const auto& p1 = pose1.tra;
   const auto& p2 = pose2.tra;
-  const auto& w1 = wall.p1;
-  const auto& w2 = wall.p2;
-
-  const float dist = geometry::MinDistanceLineLine(p1, p2, w1, w2);
-  NP_FINITE(dist);
-  return dist <= min_dist_threshold;
+  return wall.CloserThan(p1, p2, min_dist_threshold);
 }
 
 TrajectoryRollout::TrajectoryRollout(const util::Pose& start_pose,

@@ -73,7 +73,7 @@ float Map::MinDistanceAlongRay(const util::Pose& ray,
     const Eigen::Vector2f& ray_start = ray.tra;
     const Eigen::Vector2f& ray_end = ray.tra + delta;
     const auto res =
-        geometry::CheckLineLineIntersection(w.p1, w.p2, ray_start, ray_end);
+        geometry::CheckLineLineIntersection(w.p0, w.p1, ray_start, ray_end);
     if (!res.first) {
       continue;
     }
@@ -99,9 +99,9 @@ float Map::MinDistanceToWall(const Eigen::Vector2f& observation) const {
   }
   float min_distance = std::numeric_limits<float>::max();
   for (const Wall& w : walls) {
-    const Eigen::Vector2f wall_dir = (w.p1 - w.p2).normalized();
-    const Eigen::Vector2f p1_to_obs = observation - w.p1;
-    const Eigen::Vector2f p2_to_obs = observation - w.p2;
+    const Eigen::Vector2f wall_dir = (w.p0 - w.p1).normalized();
+    const Eigen::Vector2f p1_to_obs = observation - w.p0;
+    const Eigen::Vector2f p2_to_obs = observation - w.p1;
     const float dist_p1_sq =
         (p1_to_obs - ((p1_to_obs).dot(wall_dir) * wall_dir)).squaredNorm();
     const float dist_p2_sq =

@@ -129,15 +129,14 @@ Path2f PathFinder::UsePrevPathOrUpdate(const util::DynamicFeatures& dynamic_map,
 bool PathFinder::IsLineColliding(const util::DynamicFeatures& dynamic_map,
                                  const Eigen::Vector2f& p1,
                                  const Eigen::Vector2f& p2) const {
-  for (const auto& w : map_.walls) {
-    if (geometry::MinDistanceLineLine(w.p1, w.p2, p1, p2) <=
-        (robot_radius_ + safety_margin_)) {
+  for (const auto& w : dynamic_map.features) {
+    if (geometry::Line2f(p1, p2).CloserThan(
+            w, w, robot_radius_ + safety_margin_ + kEpsilon)) {
       return true;
     }
   }
-  for (const auto& w : dynamic_map.features) {
-    if (geometry::MinDistanceLineLine(w, w, p1, p2) <=
-        (robot_radius_ + safety_margin_)) {
+  for (const auto& w : map_.walls) {
+    if (w.CloserThan(p1, p2, robot_radius_ + safety_margin_ + kEpsilon)) {
       return true;
     }
   }
@@ -147,7 +146,7 @@ bool PathFinder::IsLineColliding(const util::DynamicFeatures& dynamic_map,
 bool PathFinder::IsPathColliding(const util::DynamicFeatures& dynamic_map,
                                  const Path2f& path) const {
   if (path.waypoints.size() < 2) {
-    return true;
+    return false;
   }
   for (size_t i = 0; i < path.waypoints.size() - 1; ++i) {
     NP_CHECK(i < path.waypoints.size());
@@ -173,17 +172,21 @@ Path2f SlicePath(Path2f path, const size_t end_idx) {
 Path2f PathFinder::SmoothPath(const Eigen::Vector2f& start,
                               const util::DynamicFeatures& dynamic_map,
                               Path2f path) const {
-  if (path.waypoints.size() <= 2 || IsPathColliding(dynamic_map, path)) {
+  if (path.waypoints.size() <= 2) {
     return path;
   }
   for (int i = static_cast<int>(path.waypoints.size()) - 1; i > 0; --i) {
     const auto& intermediate = path.waypoints[i];
     if (!IsLineColliding(dynamic_map, start, intermediate)) {
-      path = SlicePath(std::move(path), i);
-      break;
+      const auto intermediate_copy = intermediate;
+      path = SlicePath(path, i);
+      path.waypoints.front() = start;
+      NP_CHECK(
+          !IsLineColliding(dynamic_map, path.waypoints[0], path.waypoints[1]));
+      NP_CHECK(path.waypoints[1] == intermediate_copy);
+      return path;
     }
   }
-  path.waypoints.front() = start;
   return path;
 }
 

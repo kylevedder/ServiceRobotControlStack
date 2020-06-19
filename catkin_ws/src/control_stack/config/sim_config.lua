@@ -37,11 +37,15 @@ pf = {
 
   map = "../rosbuild_ws/simulator/ut_multirobot_sim/maps/GDC3/GDC3.vectormap.txt";
   start_pose = {33, 21.5, 0};
-  goal_poses = {{33, 21.5, 0}, {-33, 21.5, 0}, {-33, -21.5, 0}, {-33, 21.5, 0}};
+  goal_poses = {{33, 21.5, 0}, {-33, -21.5, 0}, {-33, 21.5, 0}};
 
 --   map = "src/control_stack/maps/outside_grasp.map";
 --   start_pose = {-2.5, -1, 0};
 --   goal_poses = {{0.27, -0.33, 0}, {1, -15, -3.14}, {-3.5, -7.5, 0}};
+
+--   map = "src/control_stack/maps/loop.map";
+--   start_pose = {-4, -4, 0};
+--   goal_poses = {{4, 4, 0}, {-4, -4, -3.14}};
 
   kRobotRadius = 0.1;
   kSafetyMargin = 0.2;

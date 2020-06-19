@@ -29,15 +29,11 @@
 #include <string>
 #include <vector>
 #include "cs/util/pose.h"
+#include "shared/math/line2d.h"
 
 namespace util {
 
-struct Wall {
-  Eigen::Vector2f p1;
-  Eigen::Vector2f p2;
-  Wall() : p1(), p2() {}
-  Wall(const Eigen::Vector2f& p1, const Eigen::Vector2f& p2) : p1(p1), p2(p2) {}
-};
+using Wall = geometry::Line2f;
 
 struct Map {
   std::vector<Wall> walls;

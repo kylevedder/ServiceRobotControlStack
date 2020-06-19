@@ -58,8 +58,13 @@ CONFIG_FLOAT(is_wall_threshold, "od.is_wall_threshold");
 ObstacleDetector::ObstacleDetector(const util::Map& map)
     : map_(map), random_gen_(0) {}
 
-bool IsMapObservation(const float& distance_to_wall) {
-  return (distance_to_wall < od_params::CONFIG_is_wall_threshold);
+bool IsMapObservation(const util::Map& map, const Eigen::Vector2f& p) {
+  for (const auto& w : map.walls) {
+    if (w.CloserThan(p, p, od_params::CONFIG_is_wall_threshold)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 util::DynamicFeatures ObstacleDetector::GetNonMapPoints(
@@ -75,7 +80,7 @@ util::DynamicFeatures ObstacleDetector::GetNonMapPoints(
 
   util::DynamicFeatures v;
   for (const auto& p : points) {
-    if (!IsMapObservation(map_.MinDistanceToWall(p))) {
+    if (!IsMapObservation(map_, p)) {
       v.features.push_back(p);
     }
   }

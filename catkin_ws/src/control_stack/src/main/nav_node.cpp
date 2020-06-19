@@ -293,28 +293,10 @@ struct CallbackWrapper {
     //      }
     //      std::cout << std::endl;
     //    }
-    if (path.waypoints.size() > 2) {
+    if (path.waypoints.size() > 1) {
       return {path.waypoints[1], 0};
     }
     return goal_pose;
-  }
-
-  util::Twist Command() {
-    static std::int64_t step = 0;
-    float x = 0;
-
-    const auto step_delta = step % 320;
-    if (step_delta < 80) {
-      std::cout << "POSITIVE\n";
-      x = params::CONFIG_kMaxTraVel;
-    } else if (step_delta >= 160 && step_delta < 240) {
-      std::cout << "NEGATIVE\n";
-      x = -params::CONFIG_kMaxTraVel;
-    } else {
-      std::cout << "STOPPED\n";
-    }
-    ++step;
-    return {x, 0, 0};
   }
 
   void LaserCallback(const sensor_msgs::LaserScan& msg) {
@@ -328,13 +310,6 @@ struct CallbackWrapper {
                               est_pose.tra,
                               current_goal_.tra);
     DrawPath(path);
-    //    const auto base_link_path =
-    //    path.TransformPath((-est_pose).ToAffine());
-    //    robot_path_pub_.publish(visualization::DrawPath(path, "map", "path"));
-    //    base_link_robot_path_pub_.publish(
-    //        visualization::DrawPath(base_link_path, "base_link", "path"));
-    //    ROS_INFO("Dynamic map has %zu points",
-    //             obstacle_detector_.GetDynamicMap().walls.size());
     if (motion_planner_.AtPose(current_goal_)) {
       ++current_goal_index_;
       current_goal_ = util::Pose(

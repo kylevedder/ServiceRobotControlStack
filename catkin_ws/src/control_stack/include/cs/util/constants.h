@@ -27,6 +27,7 @@
 static constexpr bool kProduction = false;
 static constexpr float kEpsilon = 0.00001f;
 static constexpr float kPi = M_PI;
+static constexpr float kSqrtTwo = 1.414213562;
 
 namespace constants {
 static constexpr auto kPositionTopic = "/localization_position";

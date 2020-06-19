@@ -22,11 +22,8 @@
 // SOFTWARE.
 // ========================================================================
 
-#include "cs/path_finding/astar.h"
-
 #include <algorithm>
 #include <limits>
-#include <string>
 
 #include "cs/motion_planning/pid.h"
 #include "cs/util/physics.h"
@@ -241,10 +238,10 @@ std::pair<bool, TrajectoryRollout> PIDController::IsCommandColliding(
                  tr.final_pose.tra.y(),
                  tr.final_pose.rot);
         ROS_INFO("Colliding with observed wall: (%f, %f) <-> (%f, %f)",
+                 w.p0.x(),
+                 w.p0.y(),
                  w.p1.x(),
-                 w.p1.y(),
-                 w.p2.x(),
-                 w.p2.y());
+                 w.p1.y());
       }
       return {true, tr};
     }
