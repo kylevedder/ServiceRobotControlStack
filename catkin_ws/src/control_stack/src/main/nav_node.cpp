@@ -110,7 +110,10 @@ struct CallbackWrapper {
       ROS_INFO("Using sim ground truth for state estimation");
       return new cs::state_estimation::SimStateEstimator(n);
     }
-    ROS_INFO("Using PF for state estimation");
+    ROS_INFO("Using PF for state estimation initialized at (%f, %f), %f",
+             params::CONFIG_start_pose.x(),
+             params::CONFIG_start_pose.y(),
+             params::CONFIG_start_pose.z());
     return new cs::state_estimation::PFStateEstimator(
         map_, util::Pose(params::CONFIG_start_pose));
   }
@@ -321,7 +324,6 @@ struct CallbackWrapper {
     DrawGoal(local_waypoint);
     util::Twist command = motion_planner_.DriveToPose(
         obstacle_detector_.GetDynamicFeatures(), local_waypoint);
-
     command_pub_.publish(command.ToTwist());
     state_estimator_->UpdateLastCommand(command);
 

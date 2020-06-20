@@ -26,13 +26,13 @@ laser = {
 };
 
 state_estimation = {
-  use_sim_ground_truth = true;
+  use_sim_ground_truth = false;
 };
 
 pf = {
-  kLaserStdDev = 0.01;
-  kArcStdDev = 0.005;
-  kRotateStdDev = 0.004;
+  kLaserStdDev = 0.05;
+  kArcStdDev = 0.01;
+  kRotateStdDev = 0.04;
   kTemporalConsistencyWeight = 0;
 
   map = "../rosbuild_ws/simulator/ut_multirobot_sim/maps/GDC3/GDC3.vectormap.txt";
@@ -76,7 +76,7 @@ od = {
 };
 
 limits = {
-  kMaxTraAcc = 3;
+  kMaxTraAcc = 0.4;
   kMaxTraVel = 3;
   kMaxRotAcc = 3;
   kMaxRotVel = 3;
@@ -102,9 +102,9 @@ rrt = {
 control = {
   rotation_drive_threshold = 0.3; -- Radians.
   rotation_p = 2.5;
-  translation_p = 2;
-  stop_past_goal_threshold = 0.5;
+  translation_p = 1.0;
+  stop_past_goal_threshold = 0.75;
   stop_past_goal_dampener = 5;
-  goal_deadzone_tra = 0.15; -- Meters.
-  goal_deadzone_rot = 0.05; -- Radians.
+  goal_deadzone_tra = 0.2; -- Meters.
+  goal_deadzone_rot = 0.3; -- Radians.
 };

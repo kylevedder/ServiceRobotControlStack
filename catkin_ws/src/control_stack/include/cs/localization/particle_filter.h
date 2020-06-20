@@ -56,20 +56,17 @@ class SensorModel {
   explicit SensorModel(const util::Map& map);
 
   float GetProbability(const util::Pose& pose_global_frame,
-                       const util::LaserScan& laser_scan,
-                       util::LaserScan* filtered_laser_scan) const;
+                       const util::LaserScan& laser_scan) const;
 };
 
 struct Particle {
   util::Pose pose;
-  util::Pose prev_pose;
-  util::LaserScan prev_filtered_laser;
   float weight;
 
   Particle() : pose(), weight(0.0f) {}
 
   Particle(const util::Pose& pose, const float weight)
-      : pose(pose), prev_pose(pose), weight(weight) {}
+      : pose(pose), weight(weight) {}
 
   bool operator==(const Particle& other) const {
     return (pose == other.pose) && (weight == other.weight);
@@ -87,12 +84,13 @@ class ParticleFilter {
   MotionModel motion_model_;
   SensorModel sensor_model_;
 
-  util::LaserScan ReweightParticles(const util::LaserScan& laser_scan);
+  void ReweightParticles(const util::LaserScan& laser_scan);
 
   void ResampleParticles();
 
  public:
   ParticleFilter() = delete;
+  ParticleFilter(const ParticleFilter& other) = delete;
 
   explicit ParticleFilter(const util::Map& map);
 
@@ -102,6 +100,8 @@ class ParticleFilter {
 
   void InitalizePose(const util::Pose& start_pose);
 
+  // Updates odometry with translation and rotation over timestep, in robot
+  // frame.
   void UpdateOdom(const float& translation, const float& rotation);
 
   void UpdateObservation(const util::LaserScan& laser_scan,

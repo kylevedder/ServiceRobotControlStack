@@ -31,6 +31,7 @@
 
 #include "config_reader/config_reader.h"
 #include "cs/localization/particle_filter.h"
+#include "cs/motion_planning/trajectory_rollout.h"
 #include "cs/util/constants.h"
 #include "cs/util/visualization.h"
 #include "shared/math/math_util.h"
@@ -49,30 +50,14 @@ namespace localization {
 MotionModel::MotionModel() : rd_(), gen_(0) {}
 
 util::Pose FollowTrajectory(const util::Pose& pose_global_frame,
-                            const float& distance_along_arc,
-                            const float& rotation) {
-  const Eigen::Rotation2Df robot_to_global_frame(pose_global_frame.rot);
-  const Eigen::Vector2f robot_forward_global_frame =
-      robot_to_global_frame * Eigen::Vector2f(1, 0);
-
-  if (rotation == 0) {
-    util::Pose updated_pose = pose_global_frame;
-    updated_pose.tra += robot_forward_global_frame * distance_along_arc;
-    return updated_pose;
-  }
-
-  const float circle_radius = distance_along_arc / rotation;
-
-  const float move_x_dist = std::sin(rotation) * circle_radius;
-  const float move_y_dist =
-      (std::cos(fabs(rotation)) * circle_radius - circle_radius);
-
-  const Eigen::Vector2f movement_arc_robot_frame(move_x_dist, move_y_dist);
-  const Eigen::Vector2f movement_arc_global_frame =
-      robot_to_global_frame * movement_arc_robot_frame;
-
-  return {movement_arc_global_frame + pose_global_frame.tra,
-          math_util::AngleMod(rotation + pose_global_frame.rot)};
+                            const float& delta_translation_rf,
+                            const float& delta_rotation_rf) {
+  const util::Twist command_rf(delta_translation_rf, 0, delta_rotation_rf);
+  // Command delta t is hardcoded to 1 because the delta rotation and
+  // translation have already been scaled to the single timestep.
+  cs::motion_planning::TrajectoryRollout tr(
+      pose_global_frame, command_rf, command_rf, 1);
+  return tr.achieved_vel_pose;
 }
 
 util::Pose MotionModel::ForwardPredict(const util::Pose& pose_global_frame,
@@ -115,9 +100,7 @@ float GetDepthProbability(const float& sensor_reading,
 }
 
 float SensorModel::GetProbability(const util::Pose& pose_global_frame,
-                                  const util::LaserScan& laser_scan,
-                                  util::LaserScan* filtered_laser_scan) const {
-  NP_NOT_NULL(filtered_laser_scan);
+                                  const util::LaserScan& laser_scan) const {
   if (laser_scan.ros_laser_scan_.ranges.empty()) {
     return 0;
   }
@@ -152,10 +135,6 @@ float SensorModel::GetProbability(const util::Pose& pose_global_frame,
 
     const float depth_probability =
         GetDepthProbability(range, distance_to_map_wall, range_min, range_max);
-    if (depth_probability > 0.0f || range > range_max / 2.0f) {
-      (*filtered_laser_scan).ros_laser_scan_.ranges[i] =
-          std::numeric_limits<float>::quiet_NaN();
-    }
     probability_sum += depth_probability;
   }
   return probability_sum / laser_scan.ros_laser_scan_.ranges.size();
@@ -238,33 +217,20 @@ float ScanSimilarity(const util::LaserScan& scan1,
 
 float ParticleFilter::ScoreObservation(
     const util::Pose& pose, const util::LaserScan& laser_scan) const {
-  util::LaserScan filtered_laser_scan = laser_scan;
-  return sensor_model_.GetProbability(pose, laser_scan, &filtered_laser_scan);
+  return sensor_model_.GetProbability(pose, laser_scan);
 }
 
-util::LaserScan ParticleFilter::ReweightParticles(
-    const util::LaserScan& laser_scan) {
+void ParticleFilter::ReweightParticles(const util::LaserScan& laser_scan) {
   for (Particle& p : particles_) {
-    util::LaserScan filtered_laser_scan = laser_scan;
-    p.weight =
-        sensor_model_.GetProbability(p.pose, laser_scan, &filtered_laser_scan);
-    const float similarity =
-        pf::CONFIG_kTemporalConsistencyWeight *
-        ScanSimilarity(laser_scan, p.pose, p.prev_filtered_laser, p.prev_pose);
-    p.weight += similarity;
-
-    p.prev_filtered_laser = filtered_laser_scan;
-    p.prev_pose = p.pose;
+    p.weight = ScoreObservation(p.pose, laser_scan);
 
     NP_FINITE(p.pose.tra.x());
     NP_FINITE(p.pose.tra.y());
     NP_FINITE(p.pose.rot);
   }
 
-  util::LaserScan filtered_laser_scan = laser_scan;
   const util::Pose centroid = WeightedCentroid();
-  sensor_model_.GetProbability(centroid, laser_scan, &filtered_laser_scan);
-  return filtered_laser_scan;
+  sensor_model_.GetProbability(centroid, laser_scan);
 }
 
 void ParticleFilter::ResampleParticles() {
@@ -311,10 +277,10 @@ void ParticleFilter::UpdateObservation(const util::LaserScan& laser_scan,
     return;
   }
 
-  const auto filtered_laser_scan = ReweightParticles(laser_scan);
+  ReweightParticles(laser_scan);
 
   if (sampled_scan_pub != nullptr) {
-    sampled_scan_pub->publish(filtered_laser_scan.ros_laser_scan_);
+    sampled_scan_pub->publish(laser_scan.ros_laser_scan_);
   }
 
   ResampleParticles();
@@ -331,6 +297,7 @@ util::Pose ParticleFilter::MaxWeight() const {
 }
 
 util::Pose ParticleFilter::WeightedCentroid() const {
+  NP_CHECK_GT(particles_.size(), 0);
   float total_weight = 0;
   for (const Particle& p : particles_) {
     total_weight += p.weight;
@@ -338,6 +305,8 @@ util::Pose ParticleFilter::WeightedCentroid() const {
 
   util::Pose weighted_centroid({0, 0}, 0);
   if (total_weight == 0.0f) {
+    ROS_WARN(
+        "Total particle weight 0; observations have diverged from estimates.");
     return weighted_centroid;
   }
 
