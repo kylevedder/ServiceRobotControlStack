@@ -391,7 +391,6 @@ inline visualization_msgs::Marker PointsToLineList(
 
 inline visualization_msgs::Marker LaserToLineList(const util::LaserScan& laser,
                                                   const util::Pose& robot_pose,
-                                                  const util::Map& map,
                                                   const std::string& frame_id,
                                                   const std::string& ns,
                                                   const float r,
@@ -408,15 +407,12 @@ inline visualization_msgs::Marker LaserToLineList(const util::LaserScan& laser,
 
   const float& min_angle = laser.ros_laser_scan_.angle_min;
   const float& angle_delta = laser.ros_laser_scan_.angle_increment;
-  const float& range_min = laser.ros_laser_scan_.range_min;
-  const float& range_max = laser.ros_laser_scan_.range_max;
 
   for (size_t i = 0; i < laser.ros_laser_scan_.ranges.size(); ++i) {
     const float angle = math_util::AngleMod(
         min_angle + angle_delta * static_cast<float>(i) + robot_pose.rot);
     const util::Pose ray(robot_pose.tra, angle);
-    const float dist =
-        map.MinDistanceAlongRay(ray, range_min, range_max - kEpsilon);
+    const float dist = laser.ros_laser_scan_.ranges[i];
     const Eigen::Vector2f& s = robot_pose.tra;
     const Eigen::Vector2f e =
         Eigen::Rotation2Df(ray.rot) * Eigen::Vector2f(dist, 0) + s;

@@ -50,10 +50,10 @@ class MotionModel {
 
 class SensorModel {
  private:
-  const util::Map& map_;
+  const util::vector_map::VectorMap& map_;
 
  public:
-  explicit SensorModel(const util::Map& map);
+  explicit SensorModel(const util::vector_map::VectorMap& map);
 
   float GetProbability(const util::Pose& pose_global_frame,
                        const util::LaserScan& laser_scan) const;
@@ -92,9 +92,10 @@ class ParticleFilter {
   ParticleFilter() = delete;
   ParticleFilter(const ParticleFilter& other) = delete;
 
-  explicit ParticleFilter(const util::Map& map);
+  explicit ParticleFilter(const util::vector_map::VectorMap& map);
 
-  ParticleFilter(const util::Map& map, const util::Pose& start_pose);
+  ParticleFilter(const util::vector_map::VectorMap& map,
+                 const util::Pose& start_pose);
 
   bool IsInitialized() const;
 

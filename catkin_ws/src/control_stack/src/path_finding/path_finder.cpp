@@ -135,7 +135,7 @@ bool PathFinder::IsLineColliding(const util::DynamicFeatures& dynamic_map,
       return true;
     }
   }
-  for (const auto& w : map_.walls) {
+  for (const auto& w : map_.lines) {
     if (w.CloserThan(p1, p2, robot_radius_ + safety_margin_ + kEpsilon)) {
       return true;
     }

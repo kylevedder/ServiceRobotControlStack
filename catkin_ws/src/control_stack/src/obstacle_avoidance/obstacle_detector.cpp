@@ -55,11 +55,12 @@ CONFIG_STRING(map_tf_frame, "frames.map_tf_frame");
 CONFIG_FLOAT(is_wall_threshold, "od.is_wall_threshold");
 }  // namespace od_params
 
-ObstacleDetector::ObstacleDetector(const util::Map& map)
+ObstacleDetector::ObstacleDetector(const util::vector_map::VectorMap& map)
     : map_(map), random_gen_(0) {}
 
-bool IsMapObservation(const util::Map& map, const Eigen::Vector2f& p) {
-  for (const auto& w : map.walls) {
+bool IsMapObservation(const util::vector_map::VectorMap& map,
+                      const Eigen::Vector2f& p) {
+  for (const auto& w : map.lines) {
     if (w.CloserThan(p, p, od_params::CONFIG_is_wall_threshold)) {
       return true;
     }

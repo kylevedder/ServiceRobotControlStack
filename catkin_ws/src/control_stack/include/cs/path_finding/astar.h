@@ -113,7 +113,7 @@ template <int CellsPerMeter, bool UseEightGrid>
 class Environment {
  public:
   Environment(State goal,
-              const util::Map& map,
+              const util::vector_map::VectorMap& map,
               const util::DynamicFeatures& df,
               const float min_distance_from_wall)
       : goal_(std::move(goal)),
@@ -200,7 +200,7 @@ class Environment {
         return false;
       }
     }
-    for (const auto& w : map_.walls) {
+    for (const auto& w : map_.lines) {
       if (w.CloserThan(p1, p2, min_distance_from_wall_)) {
         return false;
       }
@@ -209,7 +209,7 @@ class Environment {
   }
 
   State goal_;
-  const util::Map& map_;
+  const util::vector_map::VectorMap& map_;
   const util::DynamicFeatures& df_;
   float min_distance_from_wall_;
 };
@@ -219,7 +219,7 @@ class Environment {
 template <int CellsPerMeter, size_t MaxExpansions, bool UseEightGrid>
 class AStar : public PathFinder {
  public:
-  explicit AStar(const util::Map& map,
+  explicit AStar(const util::vector_map::VectorMap& map,
                  const float& robot_radius,
                  const float& safety_margin)
       : PathFinder(map, robot_radius, safety_margin) {}

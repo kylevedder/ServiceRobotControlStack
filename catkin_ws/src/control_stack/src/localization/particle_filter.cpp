@@ -36,6 +36,7 @@
 #include "cs/util/visualization.h"
 #include "shared/math/math_util.h"
 #include "shared/math/statistics.h"
+#include "shared/util/timer.h"
 
 namespace pf {
 CONFIG_FLOAT(kLaserStdDev, "pf.kLaserStdDev");
@@ -76,7 +77,7 @@ util::Pose MotionModel::ForwardPredict(const util::Pose& pose_global_frame,
   return FollowTrajectory(pose_global_frame, distance_along_arc, rotation);
 }
 
-SensorModel::SensorModel(const util::Map& map) : map_(map) {}
+SensorModel::SensorModel(const util::vector_map::VectorMap& map) : map_(map) {}
 
 float GetDepthProbability(const float& sensor_reading,
                           const float& map_reading,
@@ -107,43 +108,49 @@ float SensorModel::GetProbability(const util::Pose& pose_global_frame,
 
   float probability_sum = 0;
 
-  const float& min_angle = laser_scan.ros_laser_scan_.angle_min;
-  const float& angle_delta = laser_scan.ros_laser_scan_.angle_increment;
+  const float& angle_min = laser_scan.ros_laser_scan_.angle_min;
+  const float& angle_max = laser_scan.ros_laser_scan_.angle_max;
   const float& range_min = laser_scan.ros_laser_scan_.range_min;
   const float& range_max = laser_scan.ros_laser_scan_.range_max;
+  const int num_rays = laser_scan.ros_laser_scan_.ranges.size();
 
+  NP_CHECK_GT(num_rays, 0);
   NP_CHECK(range_min <= range_max);
 
-  for (size_t i = 0; i < laser_scan.ros_laser_scan_.ranges.size(); ++i) {
-    float range = laser_scan.ros_laser_scan_.ranges[i];
-    if (!std::isfinite(range)) {
-      range = range_max;
+  std::vector<float> scan;
+  scan.reserve(num_rays);
+  map_.GetPredictedScan(pose_global_frame.tra,
+                        range_min,
+                        range_max,
+                        angle_min + pose_global_frame.rot,
+                        angle_max + pose_global_frame.rot,
+                        num_rays,
+                        &scan);
+  NP_CHECK(static_cast<int>(scan.size()) == num_rays);
+
+  int num_valid_observations = 0;
+  for (int i = 0; i < num_rays; ++i) {
+    float observed_depth = laser_scan.ros_laser_scan_.ranges[i];
+    if (!std::isfinite(observed_depth)) {
+      continue;
     }
-    range = math_util::Clamp(range, range_min, range_max);
-    NP_CHECK(range >= range_min);
-    NP_CHECK(range <= range_max);
-
-    const float angle =
-        math_util::AngleMod(min_angle + angle_delta * static_cast<float>(i) +
-                            pose_global_frame.rot);
-    const util::Pose ray(pose_global_frame.tra, angle);
-    const float distance_to_map_wall =
-        map_.MinDistanceAlongRay(ray, range_min, range_max);
-    NP_FINITE(distance_to_map_wall);
-    NP_CHECK(range_min - kEpsilon <= distance_to_map_wall);
-    NP_CHECK(distance_to_map_wall <= range_max + kEpsilon);
-
+    ++num_valid_observations;
+    observed_depth = math_util::Clamp(observed_depth, range_min, range_max);
+    const float& cast_depth = scan[i];
     const float depth_probability =
-        GetDepthProbability(range, distance_to_map_wall, range_min, range_max);
+        GetDepthProbability(observed_depth, cast_depth, range_min, range_max);
     probability_sum += depth_probability;
   }
-  return probability_sum / laser_scan.ros_laser_scan_.ranges.size();
+  if (num_valid_observations == 0) {
+    return 0;
+  }
+  return probability_sum / num_valid_observations;
 }
 
-ParticleFilter::ParticleFilter(const util::Map& map)
+ParticleFilter::ParticleFilter(const util::vector_map::VectorMap& map)
     : initialized_(false), rd_(), gen_(0), sensor_model_(map) {}
 
-ParticleFilter::ParticleFilter(const util::Map& map,
+ParticleFilter::ParticleFilter(const util::vector_map::VectorMap& map,
                                const util::Pose& start_pose)
     : initialized_(true), rd_(), gen_(0), sensor_model_(map) {
   InitalizePose(start_pose);
@@ -277,7 +284,10 @@ void ParticleFilter::UpdateObservation(const util::LaserScan& laser_scan,
     return;
   }
 
+  const auto prior_reweight = GetMonotonicTime();
   ReweightParticles(laser_scan);
+  std::cout << "Reweight update time: " << GetMonotonicTime() - prior_reweight
+            << std::endl;
 
   if (sampled_scan_pub != nullptr) {
     sampled_scan_pub->publish(laser_scan.ros_laser_scan_);

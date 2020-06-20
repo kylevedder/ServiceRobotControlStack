@@ -226,7 +226,7 @@ std::pair<bool, TrajectoryRollout> PIDController::IsCommandColliding(
       return {true, tr};
     }
   }
-  for (const auto& w : map_.walls) {
+  for (const auto& w : map_.lines) {
     if (tr.IsColliding(w, robot_radius + safety_margin)) {
       if (kDebug) {
         ROS_INFO("Current command: (%f, %f), %f",

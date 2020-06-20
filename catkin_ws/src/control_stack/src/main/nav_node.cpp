@@ -50,6 +50,7 @@
 #include "cs/util/visualization.h"
 #include "shared/math/geometry.h"
 #include "shared/math/math_util.h"
+#include "shared/util/timer.h"
 
 static constexpr bool kDebug = true;
 
@@ -74,7 +75,7 @@ CONFIG_BOOL(use_sim_ground_truth, "state_estimation.use_sim_ground_truth");
 }  // namespace params
 
 struct CallbackWrapper {
-  util::Map map_;
+  util::vector_map::VectorMap map_;
   std::unique_ptr<cs::state_estimation::StateEstimator> state_estimator_;
   cs::obstacle_avoidance::ObstacleDetector obstacle_detector_;
   cs::motion_planning::PIDController motion_planner_;
@@ -194,7 +195,8 @@ struct CallbackWrapper {
     goal_pub_.publish(goal_marker);
   }
 
-  void DrawRobot(const util::Map& full_map, util::Twist command) {
+  void DrawRobot(const util::vector_map::VectorMap& full_map,
+                 util::Twist command) {
     robot_size_pub_.publish(
         visualization::MakeCylinder({0, 0},
                                     params::CONFIG_kRobotRadius,
@@ -267,7 +269,7 @@ struct CallbackWrapper {
         0.05));
 
     std::vector<util::Wall> colliding_walls;
-    for (const auto& w : full_map.walls) {
+    for (const auto& w : full_map.lines) {
       if (tr.IsColliding(
               w, params::CONFIG_kRobotRadius + params::CONFIG_kSafetyMargin)) {
         colliding_walls.push_back(w);
@@ -330,9 +332,8 @@ struct CallbackWrapper {
     PublishTransforms();
     if (kDebug) {
       state_estimator_->Visualize(&particle_pub_);
-      map_pub_.publish(map_.ToMarker());
+      map_pub_.publish(visualization::DrawWalls(map_.lines, "map", "map_ns"));
       DrawRobot(map_, command);
-      map_pub_.publish(map_.ToMarker());
     }
   }
 

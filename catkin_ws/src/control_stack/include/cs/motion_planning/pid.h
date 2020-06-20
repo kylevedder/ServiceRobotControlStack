@@ -43,7 +43,7 @@ namespace motion_planning {
 
 class PIDController {
  private:
-  const util::Map& map_;
+  const util::vector_map::VectorMap& map_;
   const cs::state_estimation::StateEstimator& state_estimator_;
   util::DynamicFeatures dynamic_features_;
   util::Pose est_world_pose_;
@@ -61,7 +61,7 @@ class PIDController {
 
  public:
   PIDController() = delete;
-  PIDController(const util::Map& map,
+  PIDController(const util::vector_map::VectorMap& map,
                 const cs::state_estimation::StateEstimator& state_estimator)
       : map_(map),
         state_estimator_(state_estimator),

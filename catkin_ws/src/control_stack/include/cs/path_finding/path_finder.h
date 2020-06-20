@@ -74,7 +74,7 @@ using Path2f = Path<Eigen::Vector2f, float>;
 
 class PathFinder {
  protected:
-  const util::Map& map_;
+  const util::vector_map::VectorMap& map_;
   const float& robot_radius_;
   const float& safety_margin_;
   Path2f prev_path_;
@@ -95,7 +95,7 @@ class PathFinder {
                     Path2f path) const;
 
  public:
-  PathFinder(const util::Map& map,
+  PathFinder(const util::vector_map::VectorMap& map,
              const float& robot_radius,
              const float& safety_margin)
       : map_(map), robot_radius_(robot_radius), safety_margin_(safety_margin) {}

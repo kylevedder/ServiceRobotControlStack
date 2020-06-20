@@ -64,7 +64,8 @@ class PFStateEstimator : public StateEstimator {
 
  public:
   PFStateEstimator() = delete;
-  PFStateEstimator(const util::Map& map, const util::Pose& initial_pose)
+  PFStateEstimator(const util::vector_map::VectorMap& map,
+                   const util::Pose& initial_pose)
       : StateEstimator(), pf_(map, initial_pose) {}
   ~PFStateEstimator(){};
 

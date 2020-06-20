@@ -68,7 +68,7 @@ class GlobalPathFinder {
   }
 
  public:
-  GlobalPathFinder(const util::Map& map,
+  GlobalPathFinder(const util::vector_map::VectorMap& map,
                    const float& robot_radius,
                    const float& safety_margin)
       : path_finder_(map, robot_radius, safety_margin),
