@@ -31,8 +31,8 @@ state_estimation = {
 
 pf = {
   kLaserStdDev = 0.05;
-  kArcStdDev = 0.01;
-  kRotateStdDev = 0.04;
+  kArcStdDev = 0.025;
+  kRotateStdDev = 0.1;
   kTemporalConsistencyWeight = 0;
 
   map = "../rosbuild_ws/simulator/ut_multirobot_sim/maps/GDC3/GDC3.vectormap.txt";

@@ -71,18 +71,39 @@ bool IsMapObservation(const util::vector_map::VectorMap& map,
 util::DynamicFeatures ObstacleDetector::GetNonMapPoints(
     const util::Pose& observation_pose,
     const util::LaserScan& observation) const {
-  const float min_depth = od_params::CONFIG_kMinDistanceThreshold;
-  const float max_depth = observation.ros_laser_scan_.range_max -
-                          od_params::CONFIG_kDistanceFromMax;
-  const auto points = observation.TransformPointsFrameSparse(
-      observation_pose.ToAffine(), [min_depth, max_depth](const float& f) {
-        return f > min_depth && f < max_depth;
-      });
+  const float& range_max = observation.ros_laser_scan_.range_max;
+  const float& range_min = observation.ros_laser_scan_.range_min;
+  const float& angle_max = observation.ros_laser_scan_.angle_max;
+  const float& angle_min = observation.ros_laser_scan_.angle_min;
+  const float& angle_delta = observation.ros_laser_scan_.angle_increment;
+  const int num_rays = observation.ros_laser_scan_.ranges.size();
+
+  std::vector<float> scan;
+  scan.reserve(num_rays);
+  map_.GetPredictedScan(observation_pose.tra,
+                        range_min,
+                        range_max,
+                        angle_min + observation_pose.rot,
+                        angle_max + observation_pose.rot,
+                        num_rays,
+                        &scan);
+
+  NP_CHECK_EQ(static_cast<int>(scan.size()), num_rays);
 
   util::DynamicFeatures v;
-  for (const auto& p : points) {
-    if (!IsMapObservation(map_, p)) {
-      v.features.push_back(p);
+  for (int i = 0; i < num_rays; ++i) {
+    const float& observed_depth = observation.ros_laser_scan_.ranges[i];
+    const float& cast_depth = scan[i];
+    if (!std::isfinite(observed_depth)) {
+      continue;
+    }
+    if (std::abs(cast_depth - observed_depth) >
+        od_params::CONFIG_is_wall_threshold) {
+      const float angle = math_util::AngleMod(angle_delta * i + angle_min +
+                                              observation_pose.rot);
+      const Eigen::Vector2f position =
+          geometry::Heading(angle) * observed_depth + observation_pose.tra;
+      v.features.push_back(position);
     }
   }
   return v;

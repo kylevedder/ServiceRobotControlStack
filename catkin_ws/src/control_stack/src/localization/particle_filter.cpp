@@ -115,7 +115,7 @@ float SensorModel::GetProbability(const util::Pose& pose_global_frame,
   const int num_rays = laser_scan.ros_laser_scan_.ranges.size();
 
   NP_CHECK_GT(num_rays, 0);
-  NP_CHECK(range_min <= range_max);
+  NP_CHECK_LE(range_min, range_max);
 
   std::vector<float> scan;
   scan.reserve(num_rays);
@@ -228,16 +228,14 @@ float ParticleFilter::ScoreObservation(
 }
 
 void ParticleFilter::ReweightParticles(const util::LaserScan& laser_scan) {
-  for (Particle& p : particles_) {
-    p.weight = ScoreObservation(p.pose, laser_scan);
-
+#pragma omp parallel for
+  for (auto it = particles_.begin(); it != particles_.end(); ++it) {
+    Particle& p = *it;
     NP_FINITE(p.pose.tra.x());
     NP_FINITE(p.pose.tra.y());
     NP_FINITE(p.pose.rot);
+    p.weight = ScoreObservation(p.pose, laser_scan);
   }
-
-  const util::Pose centroid = WeightedCentroid();
-  sensor_model_.GetProbability(centroid, laser_scan);
 }
 
 void ParticleFilter::ResampleParticles() {
@@ -249,6 +247,7 @@ void ParticleFilter::ResampleParticles() {
     return sum;
   }();
 
+  static_assert(kNumParticles > 0, "Must have at least one particle.");
   const float low_variance_step_size = total_weights / kNumParticles;
   std::uniform_real_distribution<> distribution(0.0f, low_variance_step_size);
   const float low_variance_start = distribution(gen_);
@@ -284,10 +283,7 @@ void ParticleFilter::UpdateObservation(const util::LaserScan& laser_scan,
     return;
   }
 
-  const auto prior_reweight = GetMonotonicTime();
   ReweightParticles(laser_scan);
-  std::cout << "Reweight update time: " << GetMonotonicTime() - prior_reweight
-            << std::endl;
 
   if (sampled_scan_pub != nullptr) {
     sampled_scan_pub->publish(laser_scan.ros_laser_scan_);

@@ -79,9 +79,9 @@ struct CallbackWrapper {
   std::unique_ptr<cs::state_estimation::StateEstimator> state_estimator_;
   cs::obstacle_avoidance::ObstacleDetector obstacle_detector_;
   cs::motion_planning::PIDController motion_planner_;
-  cs::path_finding::GlobalPathFinder<cs::path_finding::AStar<3, 10000, false>>
+  cs::path_finding::GlobalPathFinder<cs::path_finding::AStar<3, 20000, true>>
       global_path_finder_;
-  cs::path_finding::AStar<5, 700, false> local_path_finder_;
+  cs::path_finding::AStar<5, 300, false> local_path_finder_;
   tf::TransformBroadcaster br_;
   util::Pose current_goal_;
   int current_goal_index_;
@@ -299,34 +299,54 @@ struct CallbackWrapper {
     return current_pose;
   }
 
+  util::Pose GetPoseFacingWaypoint(util::Pose p,
+                                   const Eigen::Vector2f& waypoint) {
+    const Eigen::Vector2f d = waypoint - p.tra;
+    p.rot = math_util::AngleMod(std::atan2(d.y(), d.x()));
+    return p;
+  }
+
   void LaserCallback(const sensor_msgs::LaserScan& msg) {
+    const auto laser_callback_start = GetMonotonicTime();
     util::LaserScan laser(msg);
     state_estimator_->UpdateLaser(laser, msg.header.stamp);
     const auto est_pose = state_estimator_->GetEstimatedPose();
+    const auto state_estimation_end = GetMonotonicTime();
     position_pub_.publish(est_pose.ToTwist());
+
     obstacle_detector_.UpdateObservation(est_pose, laser, &detected_walls_pub_);
-    global_path_finder_.PlanPath(est_pose.tra, current_goal_.tra);
-    const auto global_path = global_path_finder_.GetPath();
-    DrawPath(global_path);
+    const auto obstacle_detection_end = GetMonotonicTime();
+
     if (motion_planner_.AtPose(current_goal_)) {
       ++current_goal_index_;
       current_goal_ = util::Pose(
           params::CONFIG_goal_poses[current_goal_index_ %
                                     params::CONFIG_goal_poses.size()]);
     }
+    global_path_finder_.PlanPath(est_pose.tra, current_goal_.tra);
+    const auto global_path = global_path_finder_.GetPath();
+    DrawPath(global_path);
     const util::Pose global_waypoint = GetNextPose(est_pose, global_path);
+    const auto global_path_plan_end = GetMonotonicTime();
+
     const auto local_path =
         local_path_finder_.FindPath(obstacle_detector_.GetDynamicFeatures(),
                                     est_pose.tra,
                                     global_waypoint.tra);
+
+    const util::Pose local_waypoint = GetNextPose(
+        GetPoseFacingWaypoint(est_pose, global_waypoint.tra), local_path);
     if (local_path.waypoints.empty()) {
       ROS_INFO("Local path planner failed");
     }
-    const util::Pose local_waypoint = GetNextPose(est_pose, local_path);
+    const auto local_path_plan_end = GetMonotonicTime();
+
     DrawGoal(local_waypoint);
     util::Twist command = motion_planner_.DriveToPose(
         obstacle_detector_.GetDynamicFeatures(), local_waypoint);
     command_pub_.publish(command.ToTwist());
+    const auto drive_to_pose_end = GetMonotonicTime();
+
     state_estimator_->UpdateLastCommand(command);
 
     PublishTransforms();
@@ -335,6 +355,34 @@ struct CallbackWrapper {
       map_pub_.publish(visualization::DrawWalls(map_.lines, "map", "map_ns"));
       DrawRobot(map_, command);
     }
+
+    const auto laser_callback_end = GetMonotonicTime();
+
+    const auto total_time = laser_callback_end - laser_callback_start;
+    const auto state_estimation_time =
+        state_estimation_end - laser_callback_start;
+    const auto obstacle_detecton_time =
+        obstacle_detection_end - state_estimation_end;
+    const auto global_path_plan_time =
+        global_path_plan_end - obstacle_detection_end;
+    const auto local_path_plan_time =
+        local_path_plan_end - global_path_plan_end;
+    const auto drive_to_pose_time = drive_to_pose_end - local_path_plan_end;
+    const auto draw_and_transfornms = laser_callback_end - drive_to_pose_end;
+    std::cout << "total_time:             " << total_time << std::endl;
+    std::cout << "state_estimation_time:  "
+              << (state_estimation_time / total_time * 100) << "%" << std::endl;
+    std::cout << "obstacle_detecton_time: "
+              << (obstacle_detecton_time / total_time * 100) << "%"
+              << std::endl;
+    std::cout << "global_path_plan_time:  "
+              << (global_path_plan_time / total_time * 100) << "%" << std::endl;
+    std::cout << "local_path_plan_time:   "
+              << (local_path_plan_time / total_time * 100) << "%" << std::endl;
+    std::cout << "drive_to_pose_time:     "
+              << (drive_to_pose_time / total_time * 100) << "%" << std::endl;
+    std::cout << "draw_and_transfornms:   "
+              << (draw_and_transfornms / total_time * 100) << "%" << std::endl;
   }
 
   void OdomCallback(const nav_msgs::Odometry& msg) {

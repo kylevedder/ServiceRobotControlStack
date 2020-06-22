@@ -123,14 +123,17 @@ class Environment {
 
   float admissibleHeuristic(const State& s) const {
     if (UseEightGrid) {
+      static constexpr float kInflation = 1.05f;
       const Eigen::Vector2i delta = (goal_.pos - s.pos).cwiseAbs();
+      //      return delta.lpNorm<2>();
 
       if (delta.x() > delta.y()) {
-        return delta.y() * (kSqrtTwo - 1) + delta.x();
+        return kInflation * (delta.y() * (kSqrtTwo - 1) + delta.x());
       }
-      return delta.x() * (kSqrtTwo - 1) + delta.y();
+      return kInflation * (delta.x() * (kSqrtTwo - 1) + delta.y());
+    } else {
+      return Eigen::Vector2i(goal_.pos - s.pos).lpNorm<1>();
     }
-    return Eigen::Vector2i(goal_.pos - s.pos).lpNorm<1>();
   }
 
   bool isSolution(const State& s) const { return s == goal_; }

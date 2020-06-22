@@ -176,14 +176,12 @@ Path2f PathFinder::SmoothPath(const Eigen::Vector2f& start,
     return path;
   }
   for (int i = static_cast<int>(path.waypoints.size()) - 1; i > 0; --i) {
-    const auto& intermediate = path.waypoints[i];
+    const auto intermediate = path.waypoints[i];
     if (!IsLineColliding(dynamic_map, start, intermediate)) {
-      const auto intermediate_copy = intermediate;
       path = SlicePath(path, i);
       path.waypoints.front() = start;
       NP_CHECK(
           !IsLineColliding(dynamic_map, path.waypoints[0], path.waypoints[1]));
-      NP_CHECK(path.waypoints[1] == intermediate_copy);
       return path;
     }
   }
