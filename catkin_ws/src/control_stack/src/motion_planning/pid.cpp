@@ -150,7 +150,7 @@ util::Twist PIDController::ProposeCommand(const util::Pose& waypoint) const {
       std::atan2(robot_to_waypoint_delta.y(), robot_to_waypoint_delta.x());
 
   NP_FINITE(robot_angle);
-  NP_FINITE_VEC2(robot_to_waypoint_delta);
+  NP_FINITE_VEC(robot_to_waypoint_delta);
   NP_FINITE(robot_to_waypoint_angle);
 
   const float robot_to_waypoint_angle_delta =

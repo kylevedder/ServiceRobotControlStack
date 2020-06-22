@@ -57,10 +57,10 @@ Eigen::Vector2f CircleCenter(const util::Pose& pose,
   const int direction = math_util::Sign(velocity.rot);
   NP_FINITE(direction);
   const Eigen::Vector2f forward = geometry::Heading(pose.rot);
-  NP_FINITE_VEC2(forward);
+  NP_FINITE_VEC(forward);
   const Eigen::Vector2f towards_center =
       (Eigen::Rotation2Df(kPi * direction / 2) * forward);
-  NP_FINITE_VEC2(towards_center);
+  NP_FINITE_VEC(towards_center);
   return pose.tra + towards_center * radius;
 }
 

@@ -100,8 +100,7 @@ static constexpr int kAssertFailReturnCode = 1;
 
 #define FINITE_MSG(exp, msg) CHECK_MSG(std::isfinite(exp), msg)
 
-#define FINITE_VEC2(exp) \
-  CHECK_PRINT_VAL(std::isfinite(exp.x()) && std::isfinite(exp.x()), (exp));
+#define FINITE_VEC(exp) CHECK_PRINT_VAL((exp).allFinite(), (exp));
 
 #define NP_CHECK(exp) \
   if (!kProduction) { \
@@ -158,9 +157,9 @@ static constexpr int kAssertFailReturnCode = 1;
     FINITE_MSG(exp, msg);       \
   }
 
-#define NP_FINITE_VEC2(exp) \
-  if (!kProduction) {       \
-    FINITE_VEC2(exp);       \
+#define NP_FINITE_VEC(exp) \
+  if (!kProduction) {      \
+    FINITE_VEC(exp);       \
   }
 
 #define NP_NOT_NULL(exp)     \

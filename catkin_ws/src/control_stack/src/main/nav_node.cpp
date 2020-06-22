@@ -398,7 +398,7 @@ struct CallbackWrapper {
                                            params::CONFIG_base_link_tf_frame));
 
     const auto est_pose = state_estimator_->GetEstimatedPose();
-    NP_FINITE_VEC2(est_pose.tra);
+    NP_FINITE_VEC(est_pose.tra);
     NP_FINITE(est_pose.rot);
     tf::Transform transform;
     transform.setOrigin(tf::Vector3(est_pose.tra.x(), est_pose.tra.y(), 0.0));

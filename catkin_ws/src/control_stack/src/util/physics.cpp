@@ -62,7 +62,7 @@ util::Twist ApplyCommandLimits(util::Twist commanded_velocity,
   // m/s - m/s -> m/s / s = m/s^2
   const util::Twist acceleration =
       (commanded_velocity - current_velocity) / time_delta;
-  NP_FINITE_VEC2(acceleration.tra);
+  NP_FINITE_VEC(acceleration.tra);
   NP_FINITE(acceleration.rot);
   // Cap translational acceleration.
   if (acceleration.tra.squaredNorm() > math_util::Sq(max_tra_acceleration)) {
@@ -100,7 +100,7 @@ CommandDeltaStraight ComputeCommandDeltaStraight(
 }
 
 float RotationCircleRadius(const util::Twist& commanded_v) {
-  NP_FINITE_VEC2(commanded_v.tra);
+  NP_FINITE_VEC(commanded_v.tra);
   NP_FINITE(commanded_v.rot);
   const float linear_speed = commanded_v.tra.x();     // m/s
   const float rot_speed = std::abs(commanded_v.rot);  // rad / s
@@ -121,7 +121,7 @@ Eigen::Vector2f RotationCircleCenter(const util::Pose& pose,
   const Eigen::Vector2f forward = geometry::Heading(pose.rot);
   const Eigen::Vector2f towards_center =
       (Eigen::Rotation2Df(kPi * direction / 2) * forward);
-  NP_FINITE_VEC2(towards_center);
+  NP_FINITE_VEC(towards_center);
   return pose.tra + towards_center * radius;
 }
 
@@ -147,7 +147,7 @@ util::Pose RotationCircleDistancePose(const util::Pose& robot_wf,
   const Eigen::Vector2f final_pose_rf_tra(
       std::sin(angle_rf) * circle_radius,
       -std::cos(angle_rf) * signed_radius + signed_radius);
-  NP_FINITE_VEC2(final_pose_rf_tra);
+  NP_FINITE_VEC(final_pose_rf_tra);
 
   // Convert transform from robot frame to world frame.
   util::Pose result_wf = robot_wf;
