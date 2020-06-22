@@ -147,8 +147,8 @@ struct CallbackWrapper {
       particle_pub_ =
           n->advertise<visualization_msgs::MarkerArray>("particles", 10);
       map_pub_ = n->advertise<visualization_msgs::Marker>("robot_map", 10);
-      detected_walls_pub_ =
-          n->advertise<visualization_msgs::MarkerArray>("detected_obstacles", 10);
+      detected_walls_pub_ = n->advertise<visualization_msgs::MarkerArray>(
+          "detected_obstacles", 10);
       robot_size_pub_ =
           n->advertise<visualization_msgs::Marker>("robot_size", 10);
       goal_pub_ = n->advertise<visualization_msgs::MarkerArray>("goal", 10);
