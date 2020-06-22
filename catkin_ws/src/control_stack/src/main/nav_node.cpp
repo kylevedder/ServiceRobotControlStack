@@ -81,7 +81,7 @@ struct CallbackWrapper {
   cs::motion_planning::PIDController motion_planner_;
   cs::path_finding::GlobalPathFinder<cs::path_finding::AStar<3, 20000, true>>
       global_path_finder_;
-  cs::path_finding::AStar<5, 300, false> local_path_finder_;
+  cs::path_finding::AStar<5, 500, false> local_path_finder_;
   tf::TransformBroadcaster br_;
   util::Pose current_goal_;
   int current_goal_index_;
@@ -148,7 +148,7 @@ struct CallbackWrapper {
           n->advertise<visualization_msgs::MarkerArray>("particles", 10);
       map_pub_ = n->advertise<visualization_msgs::Marker>("robot_map", 10);
       detected_walls_pub_ =
-          n->advertise<visualization_msgs::Marker>("detected_obstacles", 10);
+          n->advertise<visualization_msgs::MarkerArray>("detected_obstacles", 10);
       robot_size_pub_ =
           n->advertise<visualization_msgs::Marker>("robot_size", 10);
       goal_pub_ = n->advertise<visualization_msgs::MarkerArray>("goal", 10);
@@ -309,6 +309,7 @@ struct CallbackWrapper {
   void LaserCallback(const sensor_msgs::LaserScan& msg) {
     const auto laser_callback_start = GetMonotonicTime();
     util::LaserScan laser(msg);
+    CleanLaserScan(&laser);
     state_estimator_->UpdateLaser(laser, msg.header.stamp);
     const auto est_pose = state_estimator_->GetEstimatedPose();
     const auto state_estimation_end = GetMonotonicTime();

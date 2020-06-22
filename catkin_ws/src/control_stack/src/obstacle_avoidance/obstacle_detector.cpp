@@ -92,11 +92,16 @@ util::DynamicFeatures ObstacleDetector::GetNonMapPoints(
 
   util::DynamicFeatures v;
   for (int i = 0; i < num_rays; ++i) {
-    const float& observed_depth = observation.ros_laser_scan_.ranges[i];
-    const float& cast_depth = scan[i];
+    float observed_depth = observation.ros_laser_scan_.ranges[i];
     if (!std::isfinite(observed_depth)) {
       continue;
     }
+    observed_depth = math_util::Clamp(observed_depth, range_min, range_max);
+    if (observed_depth == range_min) {
+      continue;
+    }
+    const float& cast_depth = scan[i];
+    NP_FINITE(cast_depth);
     if (std::abs(cast_depth - observed_depth) >
         od_params::CONFIG_is_wall_threshold) {
       const float angle = math_util::AngleMod(angle_delta * i + angle_min +
@@ -182,10 +187,10 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
 void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
                                          const util::LaserScan& observation,
                                          ros::Publisher* pub) {
-  static constexpr bool kDebug = false;
+  static constexpr bool kDebug = true;
   const bool should_publish = (pub != nullptr);
 
-  static visualization_msgs::Marker old_marker;
+  static visualization_msgs::MarkerArray old_marker;
 
   dynamic_features_ = GetNonMapPoints(observation_pose, observation);
   //  for (const auto& p : non_map_points) {
@@ -193,16 +198,15 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
   //  }
 
   if (kDebug && should_publish) {
+    visualization_msgs::MarkerArray new_marker;
     ROS_INFO("Rendering %zu non-map points", dynamic_features_.features.size());
-    visualization_msgs::Marker new_marker =
-        visualization::PointsToLineList(dynamic_features_.features,
-                                        observation_pose,
-                                        od_params::CONFIG_map_tf_frame,
-                                        "non_map_pts",
-                                        0,
-                                        0,
-                                        1);
-    old_marker.action = old_marker.DELETE;
+    visualization::PointsToSpheres(dynamic_features_.features,
+                                   od_params::CONFIG_map_tf_frame,
+                                   "non_map_pts",
+                                   &new_marker);
+    for (auto& m : old_marker.markers) {
+      m.action = m.DELETE;
+    }
     pub->publish(old_marker);
     pub->publish(new_marker);
     old_marker = new_marker;

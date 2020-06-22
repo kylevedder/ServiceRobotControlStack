@@ -128,15 +128,26 @@ Path2f PathFinder::UsePrevPathOrUpdate(const util::DynamicFeatures& dynamic_map,
 
 bool PathFinder::IsLineColliding(const util::DynamicFeatures& dynamic_map,
                                  const Eigen::Vector2f& p1,
-                                 const Eigen::Vector2f& p2) const {
+                                 const Eigen::Vector2f& p2,
+                                 const bool debug) const {
   for (const auto& w : dynamic_map.features) {
-    if (geometry::Line2f(p1, p2).CloserThan(
-            w, w, robot_radius_ + safety_margin_ + kEpsilon)) {
+    if (w.allFinite() && geometry::Line2f(p1, p2).CloserThan(
+                             w, w, robot_radius_ + safety_margin_ + kEpsilon)) {
+      if (debug) {
+        std::cout << "Colliding dynamic\n";
+        std::cout << p1.x() << ", " << p1.y() << " to " << p2.x() << ", "
+                  << p2.y() << " colliding with " << w.x() << ", " << w.y()
+                  << std::endl;
+      }
       return true;
     }
   }
   for (const auto& w : map_.lines) {
-    if (w.CloserThan(p1, p2, robot_radius_ + safety_margin_ + kEpsilon)) {
+    if (w.p0.allFinite() && w.p1.allFinite() &&
+        w.CloserThan(p1, p2, robot_radius_ + safety_margin_ + kEpsilon)) {
+      if (debug) {
+        std::cout << "Colliding wall\n";
+      }
       return true;
     }
   }
