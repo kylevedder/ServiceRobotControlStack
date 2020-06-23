@@ -36,7 +36,10 @@
 
 #include "config_reader/config_reader.h"
 #include "cs/localization/particle_filter.h"
+#include "cs/motion_planning/command_scaler.h"
+#include "cs/motion_planning/identity_command_scaler.h"
 #include "cs/motion_planning/pid.h"
+#include "cs/motion_planning/turtlebot_command_scaler.h"
 #include "cs/obstacle_avoidance/obstacle_detector.h"
 #include "cs/path_finding/astar.h"
 #include "cs/path_finding/global_path_finder.h"
@@ -79,6 +82,7 @@ struct CallbackWrapper {
   std::unique_ptr<cs::state_estimation::StateEstimator> state_estimator_;
   cs::obstacle_avoidance::ObstacleDetector obstacle_detector_;
   cs::motion_planning::PIDController motion_planner_;
+  std::unique_ptr<cs::motion_planning::CommandScaler> command_scaler_;
   cs::path_finding::GlobalPathFinder<cs::path_finding::AStar<3, 20000, true>>
       global_path_finder_;
   cs::path_finding::AStar<5, 500, false> local_path_finder_;
@@ -119,11 +123,19 @@ struct CallbackWrapper {
         map_, util::Pose(params::CONFIG_start_pose));
   }
 
+  cs::motion_planning::CommandScaler* MakeCommandScaler() {
+    if (params::CONFIG_use_sim_ground_truth) {
+      return new cs::motion_planning::IdentityCommandScaler();
+    }
+    return new cs::motion_planning::TurtlebotCommandScaler();
+  }
+
   CallbackWrapper(const std::string& map_file, ros::NodeHandle* n)
       : map_(map_file),
         state_estimator_(MakeStateEstimator(n)),
         obstacle_detector_(map_),
         motion_planner_(map_, *state_estimator_),
+        command_scaler_(MakeCommandScaler()),
         global_path_finder_(
             map_, params::CONFIG_kRobotRadius, params::CONFIG_kSafetyMargin),
         local_path_finder_(

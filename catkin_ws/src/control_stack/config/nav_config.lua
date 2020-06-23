@@ -101,3 +101,8 @@ control = {
   goal_deadzone_tra = 0.5; -- Meters.
   goal_deadzone_rot = 0.3; -- Radians.
 };
+
+cmd_scaler {
+  rotation_zero_threshold = 0.01;
+  rotation_min_effect_threshold = 0.1;
+};
