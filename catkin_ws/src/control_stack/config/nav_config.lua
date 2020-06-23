@@ -22,7 +22,7 @@
 -- ========================================================================
 
 laser = {
-  deadzones = {0, 80, 640, 725};
+  deadzones = {0, 85, 640, 725};
 };
 
 state_estimation = {
@@ -37,8 +37,8 @@ pf = {
 
   -- kMap = "../rosbuild_ws/simulator/f1tenth_simulator/maps/GDC3.txt";
   map = "src/control_stack/maps/outside_grasp.map";
-  start_pose = {-0.5, -1, 0};
-  goal_poses = {{-1, -3, 0}, {-1, -9, -3.14}};
+  start_pose = {-1, -1.95, 0};
+  goal_poses = {{-1, -1.95, 0}, {-1, -7.95, 0}};
 
   kRobotRadius = 0.1;
   kSafetyMargin = 0.2;
@@ -93,11 +93,11 @@ rrt = {
 };
 
 control = {
-  rotation_drive_threshold = 0.3; -- Radians.
-  rotation_p = 1.5;
+  rotation_drive_threshold = 0.7; -- Radians.
+  rotation_p = 0.75;
   translation_p = 0.5;
   stop_past_goal_threshold = 0.75;
   stop_past_goal_dampener = 5;
-  goal_deadzone_tra = 0.15; -- Meters.
-  goal_deadzone_rot = 0.05; -- Radians.
+  goal_deadzone_tra = 0.5; -- Meters.
+  goal_deadzone_rot = 0.3; -- Radians.
 };
