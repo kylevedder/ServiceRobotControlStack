@@ -34,6 +34,7 @@
 #include "cs/path_finding/path_finder.h"
 #include "cs/state_estimation/state_estimator.h"
 #include "cs/util/constants.h"
+#include "cs/util/datastructures/circular_buffer.h"
 #include "cs/util/visualization.h"
 #include "shared/math/geometry.h"
 #include "shared/math/math_util.h"
@@ -48,8 +49,10 @@ class PIDController {
   util::DynamicFeatures dynamic_features_;
   util::Pose est_world_pose_;
   util::Twist est_velocity_;
+  cs::datastructures::CircularBuffer<float, 20> rotational_error_buffer_;
+  util::Pose rotational_error_prev_pose_;
 
-  util::Twist ProposeCommand(const util::Pose& waypoint) const;
+  util::Twist ProposeCommand(const util::Pose& waypoint);
 
   util::Twist ApplyCommandLimits(util::Twist c) const;
 
@@ -67,7 +70,9 @@ class PIDController {
         state_estimator_(state_estimator),
         dynamic_features_(),
         est_world_pose_(),
-        est_velocity_() {}
+        est_velocity_(),
+        rotational_error_buffer_(),
+        rotational_error_prev_pose_() {}
 
   bool AtPose(const util::Pose& pose) const;
 

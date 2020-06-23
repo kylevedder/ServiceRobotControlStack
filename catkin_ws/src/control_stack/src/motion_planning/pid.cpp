@@ -37,6 +37,7 @@ namespace motion_planning {
 namespace params {
 CONFIG_FLOAT(rotation_drive_threshold, "control.rotation_drive_threshold");
 CONFIG_FLOAT(rotation_p, "control.rotation_p");
+CONFIG_FLOAT(rotation_i, "control.rotation_i");
 CONFIG_FLOAT(translation_p, "control.translation_p");
 CONFIG_FLOAT(goal_deadzone_tra, "control.goal_deadzone_tra");
 CONFIG_FLOAT(goal_deadzone_rot, "control.goal_deadzone_rot");
@@ -129,7 +130,11 @@ bool PIDController::AtPose(const util::Pose& pose) const {
   return false;
 }
 
-util::Twist PIDController::ProposeCommand(const util::Pose& waypoint) const {
+util::Twist PIDController::ProposeCommand(const util::Pose& waypoint) {
+  if (waypoint != rotational_error_prev_pose_) {
+    rotational_error_buffer_.clear();
+    rotational_error_prev_pose_ = waypoint;
+  }
   const Eigen::Vector2f tra_delta = est_world_pose_.tra - waypoint.tra;
 
   // Handle final turn to face waypoint's angle.
@@ -167,10 +172,17 @@ util::Twist PIDController::ProposeCommand(const util::Pose& waypoint) const {
     x = robot_to_waypoint_delta.norm();
   }
 
+  rotational_error_buffer_.push_back(robot_to_waypoint_angle);
+  float rotational_error_sum = 0;
+  for (const float& e : rotational_error_buffer_) {
+    rotational_error_sum += e;
+  }
+
   util::Twist proposed_command(
       x * params::CONFIG_translation_p,
       0,
-      -robot_to_waypoint_angle_delta * params::CONFIG_rotation_p);
+      -robot_to_waypoint_angle_delta * params::CONFIG_rotation_p -
+          rotational_error_sum * params::CONFIG_rotation_i);
 
   const TrajectoryRollout tr(state_estimator_.GetEstimatedPose(),
                              state_estimator_.GetEstimatedVelocity(),
