@@ -41,7 +41,7 @@ pf = {
   goal_poses = {{-1, -1.95, 0}, {-1, -7.95, 0}};
 
   kRobotRadius = 0.1;
-  kSafetyMargin = 0.2;
+  kSafetyMargin = 0.25;
   kCollisionRollout = 2;
 };
 
@@ -93,8 +93,8 @@ rrt = {
 };
 
 control = {
-  rotation_drive_threshold = 0.7; -- Radians.
-  rotation_p = 0.75;
+  rotation_drive_threshold = 0.4; -- Radians.
+  rotation_p = 0.95;
   translation_p = 0.5;
   stop_past_goal_threshold = 0.75;
   stop_past_goal_dampener = 5;
