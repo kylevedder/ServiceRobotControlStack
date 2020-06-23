@@ -102,6 +102,7 @@ rrt = {
 control = {
   rotation_drive_threshold = 0.3; -- Radians.
   rotation_p = 2.5;
+  rotation_i = 0;
   translation_p = 1.0;
   stop_past_goal_threshold = 0.75;
   stop_past_goal_dampener = 5;

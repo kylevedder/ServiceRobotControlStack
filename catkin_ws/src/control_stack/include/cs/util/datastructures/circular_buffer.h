@@ -45,6 +45,12 @@ class CircularBuffer {
 
   ~CircularBuffer() {}
 
+  void clear() {
+    current_size_ = 0;
+    head_index_ = 0;
+    tail_index_ = 0;
+  }
+
   Value& operator[](size_t i) {
     const auto idx = WrapIndex(head_index_ + i);
     NP_CHECK(idx < Size);
