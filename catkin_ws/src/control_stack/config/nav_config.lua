@@ -104,5 +104,5 @@ control = {
 
 cmd_scaler = {
   rotation_zero_threshold = 0.01;
-  rotation_min_effect_threshold = 0.1;
+  rotation_min_effect_threshold = 0.5;
 };
