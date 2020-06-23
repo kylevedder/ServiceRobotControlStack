@@ -334,7 +334,7 @@ struct CallbackWrapper {
         local_path_finder_.FindPath(obstacle_detector_.GetDynamicFeatures(),
                                     est_pose.tra,
                                     global_waypoint.tra);
-
+    DrawPath(local_path);
     const util::Pose local_waypoint = GetNextPose(
         GetPoseFacingWaypoint(est_pose, global_waypoint.tra), local_path);
     if (local_path.waypoints.empty()) {

@@ -50,7 +50,7 @@ namespace localization {
 
 MotionModel::MotionModel() : rd_(), gen_(0) {}
 
-//util::Pose FollowTrajectory(const util::Pose& pose_global_frame,
+// util::Pose FollowTrajectory(const util::Pose& pose_global_frame,
 //                            const float& delta_translation_rf,
 //                            const float& delta_rotation_rf) {
 //  const util::Twist command_rf(delta_translation_rf, 0, delta_rotation_rf);
