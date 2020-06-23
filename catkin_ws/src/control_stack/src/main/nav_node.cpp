@@ -357,7 +357,7 @@ struct CallbackWrapper {
     DrawGoal(local_waypoint);
     util::Twist command = motion_planner_.DriveToPose(
         obstacle_detector_.GetDynamicFeatures(), local_waypoint);
-    command_pub_.publish(command.ToTwist());
+    command_pub_.publish(command_scaler_->ScaleCommand(command).ToTwist());
     const auto drive_to_pose_end = GetMonotonicTime();
 
     state_estimator_->UpdateLastCommand(command);
