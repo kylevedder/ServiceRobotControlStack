@@ -50,15 +50,42 @@ namespace localization {
 
 MotionModel::MotionModel() : rd_(), gen_(0) {}
 
+//util::Pose FollowTrajectory(const util::Pose& pose_global_frame,
+//                            const float& delta_translation_rf,
+//                            const float& delta_rotation_rf) {
+//  const util::Twist command_rf(delta_translation_rf, 0, delta_rotation_rf);
+//  // Command delta t is hardcoded to 1 because the delta rotation and
+//  // translation have already been scaled to the single timestep.
+//  cs::motion_planning::TrajectoryRollout tr(
+//      pose_global_frame, command_rf, command_rf, 1);
+//  return tr.achieved_vel_pose;
+//}
+
 util::Pose FollowTrajectory(const util::Pose& pose_global_frame,
-                            const float& delta_translation_rf,
-                            const float& delta_rotation_rf) {
-  const util::Twist command_rf(delta_translation_rf, 0, delta_rotation_rf);
-  // Command delta t is hardcoded to 1 because the delta rotation and
-  // translation have already been scaled to the single timestep.
-  cs::motion_planning::TrajectoryRollout tr(
-      pose_global_frame, command_rf, command_rf, 1);
-  return tr.achieved_vel_pose;
+                            const float& distance_along_arc,
+                            const float& rotation) {
+  const Eigen::Rotation2Df robot_to_global_frame(pose_global_frame.rot);
+  const Eigen::Vector2f robot_forward_global_frame =
+      robot_to_global_frame * Eigen::Vector2f(1, 0);
+
+  if (rotation == 0) {
+    util::Pose updated_pose = pose_global_frame;
+    updated_pose.tra += robot_forward_global_frame * distance_along_arc;
+    return updated_pose;
+  }
+
+  const float circle_radius = distance_along_arc / rotation;
+
+  const float move_x_dist = std::sin(rotation) * circle_radius;
+  const float move_y_dist =
+      (std::cos(fabs(rotation)) * circle_radius - circle_radius);
+
+  const Eigen::Vector2f movement_arc_robot_frame(move_x_dist, move_y_dist);
+  const Eigen::Vector2f movement_arc_global_frame =
+      robot_to_global_frame * movement_arc_robot_frame;
+
+  return {movement_arc_global_frame + pose_global_frame.tra,
+          math_util::AngleMod(rotation + pose_global_frame.rot)};
 }
 
 util::Pose MotionModel::ForwardPredict(const util::Pose& pose_global_frame,
@@ -106,8 +133,6 @@ float SensorModel::GetProbability(const util::Pose& pose_global_frame,
     return 0;
   }
 
-  float probability_sum = 0;
-
   const float& angle_min = laser_scan.ros_laser_scan_.angle_min;
   const float& angle_max = laser_scan.ros_laser_scan_.angle_max;
   const float& range_min = laser_scan.ros_laser_scan_.range_min;
@@ -128,6 +153,7 @@ float SensorModel::GetProbability(const util::Pose& pose_global_frame,
                         &scan);
   NP_CHECK(static_cast<int>(scan.size()) == num_rays);
 
+  float probability_sum = 0;
   int num_valid_observations = 0;
   for (int i = 0; i < num_rays; ++i) {
     float observed_depth = laser_scan.ros_laser_scan_.ranges[i];
