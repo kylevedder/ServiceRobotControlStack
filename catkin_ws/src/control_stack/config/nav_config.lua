@@ -32,7 +32,7 @@ state_estimation = {
 pf = {
   kLaserStdDev = 0.1;
   kArcStdDev = 0.05;
-  kRotateStdDev = 0.04;
+  kRotateStdDev = 0.06;
   kTemporalConsistencyWeight = 0;
 
   -- kMap = "../rosbuild_ws/simulator/f1tenth_simulator/maps/GDC3.txt";
@@ -95,12 +95,12 @@ rrt = {
 control = {
   rotation_drive_threshold = 0.4; -- Radians.
   rotation_p = 0.95;
-  rotation_i = 0.05;
+  rotation_i = 0.0;
   translation_p = 0.5;
   stop_past_goal_threshold = 0.75;
   stop_past_goal_dampener = 5;
-  goal_deadzone_tra = 0.5; -- Meters.
-  goal_deadzone_rot = 0.3; -- Radians.
+  goal_deadzone_tra = 0.3; -- Meters.
+  goal_deadzone_rot = 0.2; -- Radians.
 };
 
 cmd_scaler = {
