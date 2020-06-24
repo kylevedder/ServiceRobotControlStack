@@ -57,7 +57,7 @@ CONFIG_FLOAT(translational_cost_scale_factor, "od.kTranslationCostScaleFactor");
 
 }  // namespace params
 
-util::Twist PIDController::EscapeCollision(
+util::Pose PIDController::EscapeCollisionPose(
     const util::DynamicFeatures& dynamic_features) {
   est_world_pose_ = state_estimator_.GetEstimatedPose();
   est_velocity_ = state_estimator_.GetEstimatedVelocity();
@@ -81,8 +81,11 @@ util::Twist PIDController::EscapeCollision(
       -cf_delta.normalized() *
           (params::CONFIG_robot_radius + params::CONFIG_safety_margin) +
       est_world_pose_.tra;
-  return ApplyCommandLimits(
-      ProposeCommand({waypoint_tra, est_world_pose_.rot}));
+  return {waypoint_tra, est_world_pose_.rot};
+}
+
+util::Twist PIDController::EscapeCollision(const util::Pose& pose) {
+  return ApplyCommandLimits(ProposeCommand(pose));
 }
 
 util::Twist PIDController::DriveToPose(

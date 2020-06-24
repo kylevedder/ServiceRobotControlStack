@@ -77,6 +77,13 @@ CONFIG_INTLIST(deadzones, "laser.deadzones");
 CONFIG_BOOL(use_sim_ground_truth, "state_estimation.use_sim_ground_truth");
 }  // namespace params
 
+struct StateMachineState {
+  enum class State { EXITOBSTACLE, NAVIGATE };
+  State state;
+  util::Pose exit_obstacle_waypoint;
+  StateMachineState() : state(State::NAVIGATE), exit_obstacle_waypoint() {}
+};
+
 struct CallbackWrapper {
   util::vector_map::VectorMap map_;
   std::unique_ptr<cs::state_estimation::StateEstimator> state_estimator_;
@@ -89,6 +96,8 @@ struct CallbackWrapper {
   tf::TransformBroadcaster br_;
   util::Pose current_goal_;
   int current_goal_index_;
+
+  StateMachineState state_;
 
   // Functionality pub/sub
   ros::Publisher position_pub_;
@@ -360,12 +369,21 @@ struct CallbackWrapper {
             est_pose.tra,
             obstacle_detector_.GetDynamicFeatures(),
             params::CONFIG_kRobotRadius + params::CONFIG_kSafetyMargin)) {
-      ROS_INFO("Starting in collision!");
-      const util::Twist command = motion_planner_.EscapeCollision(
+      state_.state = StateMachineState::State::EXITOBSTACLE;
+      state_.exit_obstacle_waypoint = motion_planner_.EscapeCollisionPose(
           obstacle_detector_.GetDynamicFeatures());
+    }
+
+    if (state_.state == StateMachineState::State::EXITOBSTACLE) {
+      ROS_INFO("Starting in collision!");
+      const util::Twist command =
+          motion_planner_.EscapeCollision(state_.exit_obstacle_waypoint);
       command_pub_.publish(command_scaler_->ScaleCommand(command).ToTwist());
       state_estimator_->UpdateLastCommand(command);
       PublishTransforms();
+      if (motion_planner_.AtPose(state_.exit_obstacle_waypoint)) {
+        state_.state = StateMachineState::State::NAVIGATE;
+      }
       return;
     }
     if (motion_planner_.AtPose(current_goal_)) {
