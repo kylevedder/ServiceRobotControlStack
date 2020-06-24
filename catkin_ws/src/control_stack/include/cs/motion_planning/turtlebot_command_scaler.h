@@ -50,8 +50,8 @@ class TurtlebotCommandScaler : public CommandScaler {
       cmd.rot = params::CONFIG_rotation_min_effect_threshold *
                 math_util::Sign(cmd.rot);
     }
-    cmd.rot *= (1 + std::abs(cmd.tra.x()) *
-                        params::CONFIG_rotation_translation_scaler);
+    cmd.rot *= (1 + math_util::Sq(std::abs(cmd.tra.x()) *
+                                  params::CONFIG_rotation_translation_scaler));
     return cmd;
   };
 };

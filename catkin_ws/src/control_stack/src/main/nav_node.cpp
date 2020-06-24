@@ -372,15 +372,22 @@ struct CallbackWrapper {
       state_.state = StateMachineState::State::EXITOBSTACLE;
       state_.exit_obstacle_waypoint = motion_planner_.EscapeCollisionPose(
           obstacle_detector_.GetDynamicFeatures());
+      ROS_INFO("Updated waypoint");
     }
 
     if (state_.state == StateMachineState::State::EXITOBSTACLE) {
       ROS_INFO("Starting in collision!");
       const util::Twist command =
           motion_planner_.EscapeCollision(state_.exit_obstacle_waypoint);
+      DrawGoal(state_.exit_obstacle_waypoint);
       command_pub_.publish(command_scaler_->ScaleCommand(command).ToTwist());
       state_estimator_->UpdateLastCommand(command);
       PublishTransforms();
+      if (kDebug) {
+        state_estimator_->Visualize(&particle_pub_);
+        map_pub_.publish(visualization::DrawWalls(map_.lines, "map", "map_ns"));
+        DrawRobot(map_, command);
+      }
       if (motion_planner_.AtPose(state_.exit_obstacle_waypoint)) {
         state_.state = StateMachineState::State::NAVIGATE;
       }

@@ -72,7 +72,7 @@ od = {
 limits = {
   kMaxTraAcc = 0.2;
   kMaxTraVel = 1;
-  kMaxRotAcc = 2;
+  kMaxRotAcc = 2.5;
   kMaxRotVel = 1;
 };
 
@@ -106,6 +106,6 @@ control = {
 
 cmd_scaler = {
   rotation_zero_threshold = 0.01;
-  rotation_min_effect_threshold = 0.5;
-  rotation_translation_scaler = 1;
+  rotation_min_effect_threshold = 0.4;
+  rotation_translation_scaler = 1.8;
 };
