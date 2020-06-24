@@ -37,8 +37,9 @@ pf = {
 
   -- kMap = "../rosbuild_ws/simulator/f1tenth_simulator/maps/GDC3.txt";
   map = "src/control_stack/maps/outside_grasp.map";
-  start_pose = {-1, -1.95, 0};
-  goal_poses = {{-1, -1.95, 0}, {-1, -7.95, 0}};
+  map = "src/control_stack/maps/fourthfloorloop.map";
+  start_pose = {18, -18, -3.14};
+  goal_poses = {{35, -40, 0}, {18, -18, -3.14}};
 
   kRobotRadius = 0.1;
   kSafetyMargin = 0.25;

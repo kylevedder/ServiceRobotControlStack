@@ -83,7 +83,7 @@ struct CallbackWrapper {
   cs::obstacle_avoidance::ObstacleDetector obstacle_detector_;
   cs::motion_planning::PIDController motion_planner_;
   std::unique_ptr<cs::motion_planning::CommandScaler> command_scaler_;
-  cs::path_finding::GlobalPathFinder<cs::path_finding::AStar<3, 20000, true>>
+  cs::path_finding::GlobalPathFinder<cs::path_finding::AStar<3, 20000, false>>
       global_path_finder_;
   cs::path_finding::AStar<5, 500, false> local_path_finder_;
   tf::TransformBroadcaster br_;
