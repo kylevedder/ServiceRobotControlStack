@@ -33,6 +33,8 @@ namespace params {
 CONFIG_FLOAT(rotation_zero_threshold, "cmd_scaler.rotation_zero_threshold");
 CONFIG_FLOAT(rotation_min_effect_threshold,
              "cmd_scaler.rotation_min_effect_threshold");
+CONFIG_FLOAT(rotation_translation_scaler,
+             "cmd_scaler.rotation_translation_scaler");
 }  // namespace params
 
 class TurtlebotCommandScaler : public CommandScaler {
@@ -48,6 +50,8 @@ class TurtlebotCommandScaler : public CommandScaler {
       cmd.rot = params::CONFIG_rotation_min_effect_threshold *
                 math_util::Sign(cmd.rot);
     }
+    cmd.rot *= (1 + std::abs(cmd.tra.x()) *
+                        params::CONFIG_rotation_translation_scaler);
     return cmd;
   };
 };
