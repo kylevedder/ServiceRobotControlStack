@@ -189,9 +189,9 @@ struct CallbackWrapper {
     }
   }
 
-  void DrawPath(const cs::path_finding::Path2f& p) {
+  void DrawPath(const cs::path_finding::Path2f& p, const std::string& ns) {
     robot_path_pub_.publish(
-        visualization::DrawPath(p, params::CONFIG_map_tf_frame, "path"));
+        visualization::DrawPath(p, params::CONFIG_map_tf_frame, ns));
   }
 
   void DrawGoal(const util::Pose& goal) {
@@ -306,7 +306,33 @@ struct CallbackWrapper {
   util::Pose GetNextPose(const util::Pose& current_pose,
                          const cs::path_finding::Path2f& path) {
     if (path.waypoints.size() > 1) {
-      return {path.waypoints[1], 0};
+      return {path.waypoints[1], current_pose.rot};
+    }
+    return current_pose;
+  }
+
+  bool IsPointCollisionFree(const Eigen::Vector2f& p,
+                            const util::DynamicFeatures& df,
+                            const float distance_from_df) {
+    for (const auto& f : df.features) {
+      if ((p - f).squaredNorm() <= math_util::Sq(distance_from_df)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  util::Pose GetNextCollisionFreePose(const util::Pose& current_pose,
+                                      const cs::path_finding::Path2f& path,
+                                      const util::DynamicFeatures& df,
+                                      const float distance_from_df) {
+    if (path.waypoints.size() > 1) {
+      for (size_t i = 1; i < path.waypoints.size(); ++i) {
+        const auto& w = path.waypoints[i];
+        if (IsPointCollisionFree(w, df, distance_from_df)) {
+          return {w, current_pose.rot};
+        }
+      }
     }
     return current_pose;
   }
@@ -338,15 +364,19 @@ struct CallbackWrapper {
     }
     global_path_finder_.PlanPath(est_pose.tra, current_goal_.tra);
     const auto global_path = global_path_finder_.GetPath();
-    DrawPath(global_path);
-    const util::Pose global_waypoint = GetNextPose(est_pose, global_path);
+    DrawPath(global_path, "global_path");
+    const util::Pose global_waypoint = GetNextCollisionFreePose(
+        est_pose,
+        global_path,
+        obstacle_detector_.GetDynamicFeatures(),
+        params::CONFIG_kRobotRadius + params::CONFIG_kSafetyMargin);
     const auto global_path_plan_end = GetMonotonicTime();
 
     const auto local_path =
         local_path_finder_.FindPath(obstacle_detector_.GetDynamicFeatures(),
                                     est_pose.tra,
                                     global_waypoint.tra);
-    DrawPath(local_path);
+    DrawPath(local_path, "local_path");
     const util::Pose local_waypoint = GetNextPose(
         GetPoseFacingWaypoint(est_pose, global_waypoint.tra), local_path);
     if (local_path.waypoints.empty()) {
