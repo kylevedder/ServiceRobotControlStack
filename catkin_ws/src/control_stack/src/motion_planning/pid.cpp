@@ -57,6 +57,34 @@ CONFIG_FLOAT(translational_cost_scale_factor, "od.kTranslationCostScaleFactor");
 
 }  // namespace params
 
+util::Twist PIDController::EscapeCollision(
+    const util::DynamicFeatures& dynamic_features) {
+  est_world_pose_ = state_estimator_.GetEstimatedPose();
+  est_velocity_ = state_estimator_.GetEstimatedVelocity();
+  dynamic_features_ = dynamic_features;
+  NP_CHECK(!dynamic_features.features.empty());
+  Eigen::Vector2f closest_feature = dynamic_features.features.front();
+  float closest_feature_distance_sq =
+      (est_world_pose_.tra - closest_feature).squaredNorm();
+  for (const auto& f : dynamic_features.features) {
+    const float dsq = (est_world_pose_.tra - f).squaredNorm();
+    if (dsq < closest_feature_distance_sq) {
+      closest_feature_distance_sq = dsq;
+      closest_feature = f;
+    }
+  }
+  NP_CHECK_LE(closest_feature_distance_sq,
+              math_util::Sq(params::CONFIG_robot_radius +
+                            params::CONFIG_safety_margin));
+  const Eigen::Vector2f cf_delta = closest_feature - est_world_pose_.tra;
+  const Eigen::Vector2f waypoint_tra =
+      -cf_delta.normalized() *
+          (params::CONFIG_robot_radius + params::CONFIG_safety_margin) +
+      est_world_pose_.tra;
+  return ApplyCommandLimits(
+      ProposeCommand({waypoint_tra, est_world_pose_.rot}));
+}
+
 util::Twist PIDController::DriveToPose(
     const util::DynamicFeatures& dynamic_features, const util::Pose& waypoint) {
   est_world_pose_ = state_estimator_.GetEstimatedPose();

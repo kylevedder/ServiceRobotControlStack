@@ -356,6 +356,18 @@ struct CallbackWrapper {
     obstacle_detector_.UpdateObservation(est_pose, laser, &detected_walls_pub_);
     const auto obstacle_detection_end = GetMonotonicTime();
 
+    if (!IsPointCollisionFree(
+            est_pose.tra,
+            obstacle_detector_.GetDynamicFeatures(),
+            params::CONFIG_kRobotRadius + params::CONFIG_kSafetyMargin)) {
+      ROS_INFO("Starting in collision!");
+      const util::Twist command = motion_planner_.EscapeCollision(
+          obstacle_detector_.GetDynamicFeatures());
+      command_pub_.publish(command_scaler_->ScaleCommand(command).ToTwist());
+      state_estimator_->UpdateLastCommand(command);
+      PublishTransforms();
+      return;
+    }
     if (motion_planner_.AtPose(current_goal_)) {
       ++current_goal_index_;
       current_goal_ = util::Pose(
@@ -385,13 +397,11 @@ struct CallbackWrapper {
     const auto local_path_plan_end = GetMonotonicTime();
 
     DrawGoal(local_waypoint);
-    util::Twist command = motion_planner_.DriveToPose(
+    const util::Twist command = motion_planner_.DriveToPose(
         obstacle_detector_.GetDynamicFeatures(), local_waypoint);
     command_pub_.publish(command_scaler_->ScaleCommand(command).ToTwist());
     const auto drive_to_pose_end = GetMonotonicTime();
-
     state_estimator_->UpdateLastCommand(command);
-
     PublishTransforms();
     if (kDebug) {
       state_estimator_->Visualize(&particle_pub_);

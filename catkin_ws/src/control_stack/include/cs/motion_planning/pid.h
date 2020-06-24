@@ -76,6 +76,8 @@ class PIDController {
 
   bool AtPose(const util::Pose& pose) const;
 
+  util::Twist EscapeCollision(const util::DynamicFeatures& dynamic_features);
+
   util::Twist DriveToPose(const util::DynamicFeatures& dynamic_features,
                           const util::Pose& waypoint);
 };
