@@ -33,7 +33,7 @@
 
 namespace util {
 
-void PrintCurrentWorkingDirectory() {
+inline void PrintCurrentWorkingDirectory() {
   char cwd[1024 * 1024] = {0};
   if (getcwd(cwd, sizeof(cwd)) != nullptr) {
     std::cout << "Current working dir: " << cwd << std::endl;
@@ -42,7 +42,7 @@ void PrintCurrentWorkingDirectory() {
   }
 }
 
-std::string GetCurrentWorkingDirectory() {
+inline std::string GetCurrentWorkingDirectory() {
   char cwd[1024 * 1024] = {0};
   if (getcwd(cwd, sizeof(cwd)) != nullptr) {
     return std::string(cwd);
@@ -50,7 +50,7 @@ std::string GetCurrentWorkingDirectory() {
   return "Error calling getcwd()";
 }
 
-tf::Transform EigenAffineToTFTransform(const Eigen::Affine3f& aff) {
+inline tf::Transform EigenAffineToTFTransform(const Eigen::Affine3f& aff) {
   tf::Transform tf = tf::Transform::getIdentity();
   tf::transformEigenToTF(aff.cast<double>(), tf);
   return tf;

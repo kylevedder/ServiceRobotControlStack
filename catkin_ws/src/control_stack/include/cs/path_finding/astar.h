@@ -77,7 +77,7 @@ enum class Action {
   DownRight,
 };
 
-std::ostream& operator<<(std::ostream& os, const Action& a) {
+inline std::ostream& operator<<(std::ostream& os, const Action& a) {
   switch (a) {
     case Action::Up:
       os << "Up";
