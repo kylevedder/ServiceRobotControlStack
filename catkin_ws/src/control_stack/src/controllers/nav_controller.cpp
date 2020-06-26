@@ -81,34 +81,41 @@ bool IsPointCollisionFree(const Eigen::Vector2f& p,
   return true;
 }
 
-util::Pose GetNextCollisionFreePose(const util::Pose& current_pose,
-                                    const path_finding::Path2f& path,
-                                    const std::vector<Eigen::Vector2f>& obs,
-                                    const float distance_from_df) {
+Eigen::Vector2f GetGlobalPathWaypoint(const util::Pose& current_pose,
+                                      const path_finding::Path2f& path,
+                                      const std::vector<Eigen::Vector2f>& obs,
+                                      const float distance_from_df) {
   if (path.waypoints.size() > 1) {
     for (size_t i = 1; i < path.waypoints.size(); ++i) {
       const auto& w = path.waypoints[i];
       if (IsPointCollisionFree(w, obs, distance_from_df)) {
-        return {w, current_pose.rot};
+        return w;
       }
     }
   }
-  return current_pose;
+  return current_pose.tra;
 }
 
-util::Pose GetPoseFacingWaypoint(util::Pose p,
-                                 const Eigen::Vector2f& waypoint) {
-  const Eigen::Vector2f d = waypoint - p.tra;
-  p.rot = math_util::AngleMod(std::atan2(d.y(), d.x()));
-  return p;
+float GetAngleFacingWaypoint(const Eigen::Vector2f& p,
+                             const Eigen::Vector2f& waypoint) {
+  const Eigen::Vector2f d = waypoint - p;
+  return math_util::AngleMod(std::atan2(d.y(), d.x()));
 }
 
-util::Pose GetNextPose(const util::Pose& current_pose,
-                       const path_finding::Path2f& path) {
-  if (path.waypoints.size() > 1) {
-    return {path.waypoints[1], current_pose.rot};
+util::Pose GetLocalPathPose(const util::Pose& current_pose,
+                            const util::Pose& goal_pose,
+                            const path_finding::Path2f& path) {
+  if (path.waypoints.size() <= 1) {
+    return current_pose;
   }
-  return current_pose;
+
+  const Eigen::Vector2f& next_waypoint = path.waypoints[1];
+  if (next_waypoint == goal_pose.tra) {
+    return goal_pose;
+  }
+
+  return {next_waypoint,
+          GetAngleFacingWaypoint(current_pose.tra, next_waypoint)};
 }
 
 void NavController::RefreshGoal() {
@@ -136,21 +143,17 @@ std::pair<ControllerType, util::Twist> NavController::Execute() {
 
   RefreshGoal();
 
-  std::cout << "Current goal: " << current_goal_ << std::endl;
-
   global_path_finder_.PlanPath(est_pose.tra, current_goal_.tra);
   const auto global_path = global_path_finder_.GetPath();
   DrawPath(dpw_, global_path, "global_path");
-  const util::Pose global_waypoint = GetNextCollisionFreePose(
+  const Eigen::Vector2f global_waypoint = GetGlobalPathWaypoint(
       est_pose, global_path, laser_points_wf, total_margin);
 
-  const auto local_path =
-      local_path_finder_.FindPath(obstacle_detector_.GetDynamicFeatures(),
-                                  est_pose.tra,
-                                  global_waypoint.tra);
+  const auto local_path = local_path_finder_.FindPath(
+      obstacle_detector_.GetDynamicFeatures(), est_pose.tra, global_waypoint);
   DrawPath(dpw_, local_path, "local_path");
-  const util::Pose local_waypoint = GetNextPose(
-      GetPoseFacingWaypoint(est_pose, global_waypoint.tra), local_path);
+  const util::Pose local_waypoint =
+      GetLocalPathPose(est_pose, current_goal_, local_path);
   if (local_path.waypoints.empty()) {
     ROS_INFO("Local path planner failed");
   }

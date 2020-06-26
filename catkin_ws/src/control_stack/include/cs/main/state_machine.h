@@ -234,24 +234,6 @@ class StateMachine {
                                            params::CONFIG_map_tf_frame));
   }
 
-  bool IsCurrentPoseFreeFromLaser() {
-    const auto est_pose = state_estimator_->GetEstimatedPose();
-    const auto& est_point = est_pose.tra;
-    const auto points = laser_.TransformPointsFrameSparse(
-        est_pose.ToAffine(), [this](const float& f) {
-          return (f > laser_.ros_laser_scan_.range_min) &&
-                 (f <= laser_.ros_laser_scan_.range_max);
-        });
-    const float min_dist = math_util::Sq(params::CONFIG_robot_radius +
-                                         params::CONFIG_safety_margin);
-    for (const auto& p : points) {
-      if ((est_point - p).squaredNorm() <= min_dist) {
-        return false;
-      }
-    }
-    return true;
-  }
-
  public:
   StateMachine() = delete;
   StateMachine(cs::main::DebugPubWrapper* dpw, ros::NodeHandle* n)
@@ -294,7 +276,7 @@ class StateMachine {
     dpw_->position_pub_.publish(est_pose.ToTwist());
     obstacle_detector_.UpdateObservation(
         est_pose, laser_, &(dpw_->detected_walls_pub_));
-    util::Twist command = controller_list_.Execute();
+    const util::Twist command = controller_list_.Execute();
     state_estimator_->UpdateLastCommand(command);
     PublishTransforms();
     if (kDebug) {
