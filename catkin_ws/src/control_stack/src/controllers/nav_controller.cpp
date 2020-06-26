@@ -53,7 +53,7 @@ NavController::NavController(
           map_, params::CONFIG_robot_radius, params::CONFIG_safety_margin),
       local_path_finder_(
           map_, params::CONFIG_robot_radius, params::CONFIG_safety_margin),
-      current_goal_(),
+      current_goal_(params::CONFIG_goal_poses.front()),
       current_goal_index_(0) {}
 
 void DrawPath(cs::main::DebugPubWrapper* dpw,
@@ -135,6 +135,8 @@ std::pair<ControllerType, util::Twist> NavController::Execute() {
   }
 
   RefreshGoal();
+
+  std::cout << "Current goal: " << current_goal_ << std::endl;
 
   global_path_finder_.PlanPath(est_pose.tra, current_goal_.tra);
   const auto global_path = global_path_finder_.GetPath();
