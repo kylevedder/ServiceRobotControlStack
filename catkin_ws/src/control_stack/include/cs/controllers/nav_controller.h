@@ -35,6 +35,8 @@ class NavController : public Controller {
   util::Pose current_goal_;
   size_t current_goal_index_;
 
+  void RefreshGoal();
+
  public:
   NavController() = delete;
   NavController(cs::main::DebugPubWrapper* dpw,

@@ -111,6 +111,15 @@ util::Pose GetNextPose(const util::Pose& current_pose,
   return current_pose;
 }
 
+void NavController::RefreshGoal() {
+  if (motion_planner_.AtPose(current_goal_)) {
+    ++current_goal_index_;
+    current_goal_ =
+        util::Pose(params::CONFIG_goal_poses[current_goal_index_ %
+                                             params::CONFIG_goal_poses.size()]);
+  }
+}
+
 std::pair<ControllerType, util::Twist> NavController::Execute() {
   const auto est_pose = state_estimator_.GetEstimatedPose();
   const auto laser_points_wf = laser_.TransformPointsFrameSparse(
@@ -125,12 +134,8 @@ std::pair<ControllerType, util::Twist> NavController::Execute() {
     return {ControllerType::ESCAPE_COLLISION, {}};
   }
 
-  if (motion_planner_.AtPose(current_goal_)) {
-    ++current_goal_index_;
-    current_goal_ =
-        util::Pose(params::CONFIG_goal_poses[current_goal_index_ %
-                                             params::CONFIG_goal_poses.size()]);
-  }
+  RefreshGoal();
+
   global_path_finder_.PlanPath(est_pose.tra, current_goal_.tra);
   const auto global_path = global_path_finder_.GetPath();
   DrawPath(dpw_, global_path, "global_path");

@@ -39,7 +39,7 @@ pf = {
   map = "src/control_stack/maps/outside_grasp.map";
   map = "src/control_stack/maps/fourthfloorloop.map";
   start_pose = {18, -18, -3.14};
-  goal_poses = {{17, -18, -3.14}, {18, -18, -3.14}};
+  goal_poses = {{35, -40, 0}, {18, -18, -3.14}};
 
   kRobotRadius = 0.1;
   kSafetyMargin = 0.25;
