@@ -47,7 +47,7 @@ EscapeCollisionController::EscapeCollisionController(
     const motion_planning::PIDController& motion_planner)
     : Controller(
           dpw, laser, map, state_estimator, obstacle_detector, motion_planner),
-      escape_waypoint_({false, Eigen::Vector2f::Zero()}) {}
+      escape_waypoint_() {}
 
 void DrawWaypoint(cs::main::DebugPubWrapper* dpw, const util::Pose& goal) {
   visualization_msgs::MarkerArray goal_marker;
@@ -56,13 +56,13 @@ void DrawWaypoint(cs::main::DebugPubWrapper* dpw, const util::Pose& goal) {
   dpw->goal_pub_.publish(goal_marker);
 }
 
-std::pair<bool, Eigen::Vector2f> ComputeEscapeWaypoint(
+EscapeCollisionWaypoint ComputeEscapeWaypoint(
     const Eigen::Vector2f& point_wf,
     const std::vector<Eigen::Vector2f>& laser_points_wf) {
   const float robot_margin =
       params::CONFIG_robot_radius + params::CONFIG_safety_margin;
   if (laser_points_wf.empty()) {
-    return {false, point_wf};
+    return {false, point_wf, point_wf};
   }
 
   Eigen::Vector2f closest_point = laser_points_wf.front();
@@ -76,31 +76,37 @@ std::pair<bool, Eigen::Vector2f> ComputeEscapeWaypoint(
   }
 
   if (closest_point_dist > math_util::Sq(robot_margin)) {
-    return {false, point_wf};
+    return {false, point_wf, point_wf};
   }
 
   const Eigen::Vector2f waypoint_wf =
       -(closest_point - point_wf).normalized() * robot_margin + point_wf;
-  return {true, waypoint_wf};
+  return {true, waypoint_wf, closest_point};
 }
 
 std::pair<ControllerType, util::Twist> EscapeCollisionController::Execute() {
   const auto est_pose = state_estimator_.GetEstimatedPose();
-  const auto laser_points_wf = laser_.TransformPointsFrameSparse(
+  auto laser_points_wf = laser_.TransformPointsFrameSparse(
       est_pose.ToAffine(), [this](const float& d) {
         return (d > laser_.ros_laser_scan_.range_min) &&
                (d <= laser_.ros_laser_scan_.range_max);
       });
 
+  // Ensure that the prior colliding point is not forgotten to prevent
+  // flip-flopping.
+  if (escape_waypoint_.initialized) {
+    laser_points_wf.push_back(escape_waypoint_.colliding_point);
+  }
+
   auto escape_waypoint = ComputeEscapeWaypoint(est_pose.tra, laser_points_wf);
-  if (!escape_waypoint.first) {
-    if (!escape_waypoint_.first) {
+  if (!escape_waypoint.initialized) {
+    if (!escape_waypoint_.initialized) {
       return {ControllerType::NAVIGATION, {}};
     }
     escape_waypoint = escape_waypoint_;
   }
 
-  const util::Pose desired_pose(escape_waypoint.second, est_pose.rot);
+  const util::Pose desired_pose(escape_waypoint.waypoint, est_pose.rot);
 
   DrawWaypoint(dpw_, desired_pose);
 
@@ -114,9 +120,7 @@ std::pair<ControllerType, util::Twist> EscapeCollisionController::Execute() {
   return {ControllerType::ESCAPE_COLLISION, command};
 }
 
-void EscapeCollisionController::Reset() {
-  escape_waypoint_ = {false, Eigen::Vector2f::Zero()};
-}
+void EscapeCollisionController::Reset() { escape_waypoint_ = {}; }
 
 }  // namespace controllers
 }  // namespace cs

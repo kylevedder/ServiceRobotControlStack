@@ -113,7 +113,6 @@ struct ControllerList {
   util::Twist Execute() {
     NP_NOT_NULL(controller_array[current_controller_]);
     for (int num_transitions = 0; num_transitions < 50; ++num_transitions) {
-      std::cout << "Executing controller " << current_controller_ << std::endl;
       const auto execute_result =
           controller_array[current_controller_]->Execute();
       if (execute_result.first == current_controller_) {

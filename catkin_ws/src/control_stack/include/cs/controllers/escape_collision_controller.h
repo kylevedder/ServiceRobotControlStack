@@ -28,8 +28,26 @@
 namespace cs {
 namespace controllers {
 
+struct EscapeCollisionWaypoint {
+  bool initialized;
+  Eigen::Vector2f waypoint;
+  Eigen::Vector2f colliding_point;
+
+  EscapeCollisionWaypoint()
+      : initialized(false),
+        waypoint(Eigen::Vector2f::Zero()),
+        colliding_point(Eigen::Vector2f::Zero()) {}
+
+  EscapeCollisionWaypoint(bool initialized,
+                          const Eigen::Vector2f& waypoint,
+                          const Eigen::Vector2f& colliding_point)
+      : initialized(initialized),
+        waypoint(waypoint),
+        colliding_point(colliding_point) {}
+};
+
 class EscapeCollisionController : public Controller {
-  std::pair<bool, Eigen::Vector2f> escape_waypoint_;
+  EscapeCollisionWaypoint escape_waypoint_;
 
  public:
   EscapeCollisionController() = delete;
