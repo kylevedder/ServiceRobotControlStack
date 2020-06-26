@@ -37,7 +37,6 @@ namespace motion_planning {
 namespace params {
 CONFIG_FLOAT(rotation_drive_threshold, "control.rotation_drive_threshold");
 CONFIG_FLOAT(rotation_p, "control.rotation_p");
-CONFIG_FLOAT(rotation_i, "control.rotation_i");
 CONFIG_FLOAT(translation_p, "control.translation_p");
 CONFIG_FLOAT(goal_deadzone_tra, "control.goal_deadzone_tra");
 CONFIG_FLOAT(goal_deadzone_rot, "control.goal_deadzone_rot");
@@ -58,10 +57,8 @@ CONFIG_FLOAT(translational_cost_scale_factor, "od.kTranslationCostScaleFactor");
 }  // namespace params
 
 util::Pose PIDController::EscapeCollisionPose(
-    const util::DynamicFeatures& dynamic_features) {
-  est_world_pose_ = state_estimator_.GetEstimatedPose();
-  est_velocity_ = state_estimator_.GetEstimatedVelocity();
-  dynamic_features_ = dynamic_features;
+    const util::DynamicFeatures& dynamic_features) const {
+  const auto est_world_pose_ = state_estimator_.GetEstimatedPose();
   NP_CHECK(!dynamic_features.features.empty());
   Eigen::Vector2f closest_feature = dynamic_features.features.front();
   float closest_feature_distance_sq =
@@ -84,20 +81,20 @@ util::Pose PIDController::EscapeCollisionPose(
   return {waypoint_tra, est_world_pose_.rot};
 }
 
-util::Twist PIDController::EscapeCollision(const util::Pose& pose) {
+util::Twist PIDController::EscapeCollision(const util::Pose& pose) const {
   return ApplyCommandLimits(ProposeCommand(pose));
 }
 
 util::Twist PIDController::DriveToPose(
-    const util::DynamicFeatures& dynamic_features, const util::Pose& waypoint) {
-  est_world_pose_ = state_estimator_.GetEstimatedPose();
-  est_velocity_ = state_estimator_.GetEstimatedVelocity();
-  dynamic_features_ = dynamic_features;
+    const util::DynamicFeatures& dynamic_features,
+    const util::Pose& waypoint) const {
+  const auto est_velocity_ = state_estimator_.GetEstimatedVelocity();
 
   const auto proposed_command = ProposeCommand(waypoint);
   const auto limited_command = ApplyCommandLimits(proposed_command);
 
-  const auto limited_command_res = IsCommandColliding(limited_command);
+  const auto limited_command_res =
+      IsCommandColliding(limited_command, dynamic_features);
   if (!limited_command_res.first) {
     return limited_command;
   }
@@ -124,7 +121,8 @@ util::Twist PIDController::DriveToPose(
   }
 
   for (size_t i = 0; i < alternate_commands.size(); ++i) {
-    costs[i] = AlternateCommandCost(limited_command_tr, alternate_commands[i]);
+    costs[i] = AlternateCommandCost(
+        limited_command_tr, alternate_commands[i], dynamic_features);
   }
 
   size_t best_idx = array_util::ArgMin(costs);
@@ -137,9 +135,11 @@ util::Twist PIDController::DriveToPose(
   return alternate_commands[best_idx];
 }
 
-float PIDController::AlternateCommandCost(const TrajectoryRollout& desired_tr,
-                                          const util::Twist& alternate) const {
-  const auto collide_result = IsCommandColliding(alternate);
+float PIDController::AlternateCommandCost(
+    const TrajectoryRollout& desired_tr,
+    const util::Twist& alternate,
+    const util::DynamicFeatures& dynamic_features) const {
+  const auto collide_result = IsCommandColliding(alternate, dynamic_features);
   if (collide_result.first) {
     return std::numeric_limits<float>::max();
   }
@@ -149,6 +149,7 @@ float PIDController::AlternateCommandCost(const TrajectoryRollout& desired_tr,
 }
 
 bool PIDController::AtPose(const util::Pose& pose) const {
+  const auto est_world_pose_ = state_estimator_.GetEstimatedPose();
   const Eigen::Vector2f tra_delta = est_world_pose_.tra - pose.tra;
   if (tra_delta.squaredNorm() < Sq(params::CONFIG_goal_deadzone_tra)) {
     const float waypoint_angle_delta =
@@ -161,11 +162,8 @@ bool PIDController::AtPose(const util::Pose& pose) const {
   return false;
 }
 
-util::Twist PIDController::ProposeCommand(const util::Pose& waypoint) {
-  if (waypoint != rotational_error_prev_pose_) {
-    rotational_error_buffer_.clear();
-    rotational_error_prev_pose_ = waypoint;
-  }
+util::Twist PIDController::ProposeCommand(const util::Pose& waypoint) const {
+  const auto est_world_pose_ = state_estimator_.GetEstimatedPose();
   const Eigen::Vector2f tra_delta = est_world_pose_.tra - waypoint.tra;
 
   // Handle final turn to face waypoint's angle.
@@ -203,17 +201,10 @@ util::Twist PIDController::ProposeCommand(const util::Pose& waypoint) {
     x = robot_to_waypoint_delta.norm();
   }
 
-  rotational_error_buffer_.push_back(robot_to_waypoint_angle);
-  float rotational_error_sum = 0;
-  for (const float& e : rotational_error_buffer_) {
-    rotational_error_sum += e;
-  }
-
   util::Twist proposed_command(
       x * params::CONFIG_translation_p,
       0,
-      -robot_to_waypoint_angle_delta * params::CONFIG_rotation_p -
-          rotational_error_sum * params::CONFIG_rotation_i);
+      -robot_to_waypoint_angle_delta * params::CONFIG_rotation_p);
 
   const TrajectoryRollout tr(state_estimator_.GetEstimatedPose(),
                              state_estimator_.GetEstimatedVelocity(),
@@ -235,6 +226,7 @@ util::Twist PIDController::ProposeCommand(const util::Pose& waypoint) {
 }
 
 util::Twist PIDController::ApplyCommandLimits(util::Twist c) const {
+  const auto est_velocity_ = state_estimator_.GetEstimatedVelocity();
   return util::physics::ApplyCommandLimits(c,
                                            state_estimator_.GetLaserTimeDelta(),
                                            est_velocity_,
@@ -245,15 +237,19 @@ util::Twist PIDController::ApplyCommandLimits(util::Twist c) const {
 }
 
 std::pair<bool, TrajectoryRollout> PIDController::IsCommandColliding(
-    const util::Twist& commanded_velocity) const {
+    const util::Twist& commanded_velocity,
+    const util::DynamicFeatures& dynamic_features) const {
   const float rollout_duration = state_estimator_.GetLaserTimeDelta();
   const float& robot_radius = params::CONFIG_robot_radius;
   const float& safety_margin = params::CONFIG_safety_margin;
 
+  const auto est_world_pose_ = state_estimator_.GetEstimatedPose();
+  const auto est_velocity_ = state_estimator_.GetEstimatedVelocity();
+
   static constexpr bool kDebug = false;
   const TrajectoryRollout tr(
       est_world_pose_, est_velocity_, commanded_velocity, rollout_duration);
-  for (const auto& p : dynamic_features_.features) {
+  for (const auto& p : dynamic_features.features) {
     if (tr.IsColliding({p, p}, robot_radius + safety_margin)) {
       if (kDebug) {
         ROS_INFO("Current command: (%f, %f), %f",

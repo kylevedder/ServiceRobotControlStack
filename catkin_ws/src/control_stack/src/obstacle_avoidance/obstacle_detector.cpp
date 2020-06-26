@@ -199,7 +199,8 @@ void ObstacleDetector::UpdateObservation(const util::Pose& observation_pose,
 
   if (kDebug && should_publish) {
     visualization_msgs::MarkerArray new_marker;
-    ROS_INFO("Rendering %zu non-map points", dynamic_features_.features.size());
+    //    ROS_INFO("Rendering %zu non-map points",
+    //    dynamic_features_.features.size());
     visualization::PointsToSpheres(dynamic_features_.features,
                                    od_params::CONFIG_map_tf_frame,
                                    "non_map_pts",

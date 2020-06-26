@@ -105,6 +105,7 @@ control = {
 };
 
 cmd_scaler = {
+  command_scaler = "turtlebot";
   rotation_zero_threshold = 0.01;
   rotation_min_effect_threshold = 0.4;
   rotation_translation_scaler = 1.8;

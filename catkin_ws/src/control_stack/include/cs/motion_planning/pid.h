@@ -46,42 +46,35 @@ class PIDController {
  private:
   const util::vector_map::VectorMap& map_;
   const cs::state_estimation::StateEstimator& state_estimator_;
-  util::DynamicFeatures dynamic_features_;
-  util::Pose est_world_pose_;
-  util::Twist est_velocity_;
-  cs::datastructures::CircularBuffer<float, 20> rotational_error_buffer_;
-  util::Pose rotational_error_prev_pose_;
 
-  util::Twist ProposeCommand(const util::Pose& waypoint);
+  util::Twist ProposeCommand(const util::Pose& waypoint) const;
 
   util::Twist ApplyCommandLimits(util::Twist c) const;
 
-  float AlternateCommandCost(const TrajectoryRollout& desired_tr,
-                             const util::Twist& alternate) const;
+  float AlternateCommandCost(
+      const TrajectoryRollout& desired_tr,
+      const util::Twist& alternate,
+      const util::DynamicFeatures& dynamic_features) const;
 
   std::pair<bool, TrajectoryRollout> IsCommandColliding(
-      const util::Twist& commanded_velocity) const;
+      const util::Twist& commanded_velocity,
+      const util::DynamicFeatures& dynamic_features) const;
 
  public:
   PIDController() = delete;
   PIDController(const util::vector_map::VectorMap& map,
                 const cs::state_estimation::StateEstimator& state_estimator)
-      : map_(map),
-        state_estimator_(state_estimator),
-        dynamic_features_(),
-        est_world_pose_(),
-        est_velocity_(),
-        rotational_error_buffer_(),
-        rotational_error_prev_pose_() {}
+      : map_(map), state_estimator_(state_estimator) {}
 
   bool AtPose(const util::Pose& pose) const;
 
-  util::Pose EscapeCollisionPose(const util::DynamicFeatures& dynamic_features);
+  util::Pose EscapeCollisionPose(
+      const util::DynamicFeatures& dynamic_features) const;
 
-  util::Twist EscapeCollision(const util::Pose& pose);
+  util::Twist EscapeCollision(const util::Pose& pose) const;
 
   util::Twist DriveToPose(const util::DynamicFeatures& dynamic_features,
-                          const util::Pose& waypoint);
+                          const util::Pose& waypoint) const;
 };
 
 }  // namespace motion_planning

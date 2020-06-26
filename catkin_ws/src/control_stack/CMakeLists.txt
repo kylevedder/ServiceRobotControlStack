@@ -189,7 +189,10 @@ add_executable(sine_controller src/util/sine_controller.cpp)
 target_link_libraries(sine_controller util_lib nav_lib lua5.1 amrl_shared_lib ${catkin_LIBRARIES})
 
 add_executable(nav_node src/main/nav_node.cpp
-        src/main/callback_wrapper.cpp)
+        src/main/callback_wrapper.cpp
+        src/controllers/escape_collision_controller.cpp
+        src/controllers/nav_controller.cpp
+        )
 target_link_libraries(nav_node util_lib nav_lib lua5.1 amrl_shared_lib ${catkin_LIBRARIES})
 
 ADD_EXECUTABLE(control_stack_unit_tests

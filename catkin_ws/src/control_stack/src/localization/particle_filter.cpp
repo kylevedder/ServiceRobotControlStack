@@ -254,7 +254,6 @@ float ParticleFilter::ScoreObservation(
 }
 
 void ParticleFilter::ReweightParticles(const util::LaserScan& laser_scan) {
-#pragma omp parallel for
   for (auto it = particles_.begin(); it != particles_.end(); ++it) {
     Particle& p = *it;
     NP_FINITE(p.pose.tra.x());

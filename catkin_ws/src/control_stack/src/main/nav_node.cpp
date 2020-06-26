@@ -26,6 +26,8 @@
 
 #include "config_reader/config_reader.h"
 #include "cs/main/callback_wrapper.h"
+#include "cs/main/debug_pub_wrapper.h"
+#include "cs/main/state_machine.h"
 
 namespace params {
 CONFIG_STRING(map, "pf.map");
@@ -40,7 +42,26 @@ int main(int argc, char** argv) {
   config_reader::ConfigReader reader({config_file});
   ros::init(argc, argv, "nav_node");
   ros::NodeHandle n;
-  cs::main::CallbackWrapper cw(params::CONFIG_map, &n);
-  ros::spin();
+
+  cs::main::DebugPubWrapper dpw(&n);
+  cs::main::StateMachine state_machine(&dpw, &n);
+
+  ros::Subscriber laser_sub = n.subscribe(constants::kLaserTopic,
+                                          1,
+                                          &cs::main::StateMachine::UpdateLaser,
+                                          &state_machine);
+  ros::Subscriber odom_sub = n.subscribe(constants::kOdomTopic,
+                                         1,
+                                         &cs::main::StateMachine::UpdateOdom,
+                                         &state_machine);
+  ros::Publisher command_pub =
+      n.advertise<geometry_msgs::Twist>(constants::kCommandVelocityTopic, 1);
+
+  RateLoop rate(40.0);
+  while (ros::ok()) {
+    ros::spinOnce();
+    command_pub.publish(state_machine.ExecuteController().ToTwist());
+    rate.Sleep();
+  }
   return 0;
 }
