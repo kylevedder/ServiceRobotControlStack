@@ -148,27 +148,20 @@ float PIDController::AlternateCommandCost(
       .squaredNorm();
 }
 
+bool PIDController::AtPoint(const Eigen::Vector2f& point) const {
+  const auto est_world_pose_ = state_estimator_.GetEstimatedPose();
+  const Eigen::Vector2f tra_delta = est_world_pose_.tra - point;
+  return (tra_delta.squaredNorm() < Sq(params::CONFIG_goal_deadzone_tra));
+}
+
 bool PIDController::AtPose(const util::Pose& pose) const {
   const auto est_world_pose_ = state_estimator_.GetEstimatedPose();
-  //  std::cout << "Current pose: " << est_world_pose_ << " Goal pose: " << pose
-  //            << std::endl;
-  const Eigen::Vector2f tra_delta = est_world_pose_.tra - pose.tra;
-  //  std::cout << "translation distance: " << tra_delta.norm() << std::endl;
-  if (tra_delta.squaredNorm() < Sq(params::CONFIG_goal_deadzone_tra)) {
-    //    std::cout << "In tra zone" << std::endl;
-    const float waypoint_angle_delta =
-        math_util::AngleDiff(est_world_pose_.rot, pose.rot);
-    //    std::cout << est_world_pose_.rot << " vs " << pose.rot << std::endl;
-    //    std::cout << "angle delta: " << waypoint_angle_delta << " max allowed
-    //    "
-    //              << params::CONFIG_goal_deadzone_rot << std::endl;
-    NP_FINITE(waypoint_angle_delta);
-    if (std::abs(waypoint_angle_delta) < params::CONFIG_goal_deadzone_rot) {
-      //      std::cout << "In rot zone" << std::endl;
-      return true;
-    }
+  if (!AtPoint(pose.tra)) {
+    return false;
   }
-  return false;
+  const float waypoint_angle_delta =
+      math_util::AngleDiff(est_world_pose_.rot, pose.rot);
+  return (std::abs(waypoint_angle_delta) < params::CONFIG_goal_deadzone_rot);
 }
 
 util::Twist PIDController::ProposeCommand(const util::Pose& waypoint) const {

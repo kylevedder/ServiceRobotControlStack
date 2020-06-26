@@ -36,7 +36,7 @@ pf = {
   kTemporalConsistencyWeight = 0;
 
   map = "../rosbuild_ws/simulator/ut_multirobot_sim/maps/GDC3/GDC3.vectormap.txt";
-  start_pose = {33, 17, 0};
+  start_pose = {33, 22.5, 0};
   goal_poses = {{33, 16, 0}, {-25, -17, 0}, {-10, -17, 0}, {5, -17, 0}};
 
 --   map = "src/control_stack/maps/outside_grasp.map";

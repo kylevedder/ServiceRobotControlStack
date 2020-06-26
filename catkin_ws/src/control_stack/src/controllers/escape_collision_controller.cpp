@@ -106,14 +106,12 @@ std::pair<ControllerType, util::Twist> EscapeCollisionController::Execute() {
     escape_waypoint = escape_waypoint_;
   }
 
-  const util::Pose desired_pose(escape_waypoint.waypoint, est_pose.rot);
-
-  DrawWaypoint(dpw_, desired_pose);
-
-  if (motion_planner_.AtPose(desired_pose)) {
+  if (motion_planner_.AtPoint(escape_waypoint.waypoint)) {
     return {ControllerType::NAVIGATION, {}};
   }
 
+  const util::Pose desired_pose(escape_waypoint.waypoint, est_pose.rot);
+  DrawWaypoint(dpw_, desired_pose);
   const util::Twist command = motion_planner_.EscapeCollision(desired_pose);
   escape_waypoint_ = escape_waypoint;
 

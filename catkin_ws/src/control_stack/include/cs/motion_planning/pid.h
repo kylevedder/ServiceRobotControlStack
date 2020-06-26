@@ -66,6 +66,8 @@ class PIDController {
                 const cs::state_estimation::StateEstimator& state_estimator)
       : map_(map), state_estimator_(state_estimator) {}
 
+  bool AtPoint(const Eigen::Vector2f& point) const;
+
   bool AtPose(const util::Pose& pose) const;
 
   util::Pose EscapeCollisionPose(

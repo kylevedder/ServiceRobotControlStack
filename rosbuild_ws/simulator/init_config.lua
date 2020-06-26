@@ -5,7 +5,7 @@
 
 map_name =  "rosbuild_ws/simulator/ut_multirobot_sim/maps/GDC3/GDC3.vectormap.txt";
 start_x = 33
-start_y = 17
+start_y = 22.5
 start_angle = 0.0
 
 -- map_name = "catkin_ws/src/control_stack/maps/loop.map";
