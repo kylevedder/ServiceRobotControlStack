@@ -46,6 +46,7 @@ class PFStateEstimator : public StateEstimator {
   cs::localization::ParticleFilter pf_;
   util::Twist last_command_;
   util::Twist last_odom_velocity_;
+  util::Pose estimated_pose_;
 
   static constexpr size_t kTimeBufferSize = 5;
   cs::datastructures::CircularBuffer<ros::Time, kTimeBufferSize> odom_times_;
@@ -67,12 +68,13 @@ class PFStateEstimator : public StateEstimator {
   PFStateEstimator(const util::vector_map::VectorMap& map,
                    const util::Pose& initial_pose)
       : StateEstimator(), pf_(map, initial_pose) {}
-  ~PFStateEstimator(){};
+  ~PFStateEstimator() = default;
 
   void UpdateLaser(const util::LaserScan& laser, const ros::Time& time) {
     pf_.UpdateObservation(laser);
     NP_CHECK(laser.ros_laser_scan_.header.stamp == time);
     laser_times_.push_back(time);
+    estimated_pose_ = pf_.WeightedCentroid();
   }
 
   void UpdateOdom(const util::Twist& odom_velocity, const ros::Time& time) {
@@ -82,11 +84,12 @@ class PFStateEstimator : public StateEstimator {
     const auto delta = GetEstimatedVelocity() * GetOdomTimeDelta();
     pf_.UpdateOdom(delta.tra.x(), delta.rot);
     odom_times_.push_back(time);
+    estimated_pose_ = pf_.WeightedCentroid();
   }
 
   void UpdateLastCommand(const util::Twist& cmd) { last_command_ = cmd; }
 
-  util::Pose GetEstimatedPose() const { return pf_.WeightedCentroid(); }
+  util::Pose GetEstimatedPose() const { return estimated_pose_; }
 
   util::Twist GetEstimatedVelocity() const {
     return last_command_ * params::CONFIG_command_bias +
