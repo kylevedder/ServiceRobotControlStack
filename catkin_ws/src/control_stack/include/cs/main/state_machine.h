@@ -281,12 +281,10 @@ class StateMachine {
     const util::Twist command = controller_list_.Execute();
     state_estimator_->UpdateLastCommand(command);
     PublishTransforms();
-    if (kDebug) {
-      state_estimator_->Visualize(&(dpw_->particle_pub_));
-      dpw_->map_pub_.publish(
-          visualization::DrawWalls(map_.lines, "map", "map_ns"));
-      DrawRobot(map_, command);
-    }
+    state_estimator_->Visualize(&(dpw_->particle_pub_));
+    dpw_->map_pub_.publish(
+        visualization::DrawWalls(map_.lines, "map", "map_ns"));
+    DrawRobot(map_, command);
     return command_scaler_->ScaleCommand(command);
   }
 };
