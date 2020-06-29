@@ -84,7 +84,8 @@ class LaserScan {
                                          sin(theta) * depth);
       NP_FINITE(point.x());
       NP_FINITE(point.y());
-      const Eigen::Matrix<T, 2, 1> transformed_point = transform * point;
+      const Eigen::Matrix<T, 2, 1> transformed_point =
+          transform * (robot_frame_transform_ * point);
       NP_FINITE(transformed_point.x());
       NP_FINITE(transformed_point.y());
       robot_frame_points.push_back(transformed_point);
@@ -109,7 +110,8 @@ class LaserScan {
       const Eigen::Vector2f point(cos(theta) * depth, sin(theta) * depth);
       NP_FINITE(point.x());
       NP_FINITE(point.y());
-      const Eigen::Vector2f transformed_point = transform * point;
+      const Eigen::Vector2f transformed_point =
+          transform * (robot_frame_transform_ * point);
       NP_FINITE(transformed_point.x());
       NP_FINITE(transformed_point.y());
       robot_frame_points.push_back(transformed_point);
