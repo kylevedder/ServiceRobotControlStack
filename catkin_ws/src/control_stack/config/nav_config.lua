@@ -88,7 +88,8 @@ path_finding = {
   goal_delta_change = 0.8; -- Meters
   switch_historesis_threshold = 0.4; -- Meters
   max_distance_off_path = 0.2; -- Meters
-  robot_inflation = 1.2;
+  local_robot_inflation = 1.1;
+  global_robot_inflation = 1.4;
 };
 
 rrt = {

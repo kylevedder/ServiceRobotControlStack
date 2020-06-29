@@ -31,7 +31,8 @@ namespace params {
 
 CONFIG_FLOAT(robot_radius, "pf.kRobotRadius");
 CONFIG_FLOAT(safety_margin, "pf.kSafetyMargin");
-CONFIG_FLOAT(inflation, "path_finding.robot_inflation");
+CONFIG_FLOAT(local_inflation, "path_finding.local_robot_inflation");
+CONFIG_FLOAT(global_inflation, "path_finding.global_robot_inflation");
 
 CONFIG_STRING(map_tf_frame, "frames.map_tf_frame");
 CONFIG_STRING(base_link_tf_frame, "frames.base_tf_frame");
@@ -53,11 +54,11 @@ NavController::NavController(
       global_path_finder_(map_,
                           params::CONFIG_robot_radius,
                           params::CONFIG_safety_margin,
-                          params::CONFIG_inflation),
+                          params::CONFIG_global_inflation),
       local_path_finder_(map_,
                          params::CONFIG_robot_radius,
                          params::CONFIG_safety_margin,
-                         params::CONFIG_inflation),
+                         params::CONFIG_local_inflation),
       current_goal_(params::CONFIG_goal_poses.front()),
       current_goal_index_(0) {}
 
@@ -141,7 +142,8 @@ std::pair<ControllerType, util::Twist> NavController::Execute() {
       });
 
   const float total_margin =
-      params::CONFIG_robot_radius + params::CONFIG_safety_margin;
+      (params::CONFIG_robot_radius + params::CONFIG_safety_margin) *
+      params::CONFIG_local_inflation;
   if (!IsPointCollisionFree(est_pose.tra, laser_points_wf, total_margin)) {
     return {ControllerType::ESCAPE_COLLISION, {}};
   }
