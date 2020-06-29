@@ -29,20 +29,24 @@ state_estimation = {
   use_sim_ground_truth = false;
 };
 
+function get_goals()
+  return {{35, -40, 0}, {18, -18, -3.14}}
+end
+
 pf = {
   kLaserStdDev = 0.1;
-  kArcStdDev = 0.05;
+  kArcStdDev = 0.07;
   kRotateStdDev = 0.06;
   kTemporalConsistencyWeight = 0;
 
   -- kMap = "../rosbuild_ws/simulator/f1tenth_simulator/maps/GDC3.txt";
   map = "src/control_stack/maps/outside_grasp.map";
   map = "src/control_stack/maps/fourthfloorloop.map";
-  start_pose = {18, -18, -3.14};
-  goal_poses = {{35, -40, 0}, {18, -18, -3.14}};
+  goal_poses = get_goals();
+  start_pose = get_goals()[2];
 
   kRobotRadius = 0.1;
-  kSafetyMargin = 0.25;
+  kSafetyMargin = 0.16;
   kCollisionRollout = 2;
 };
 
@@ -112,5 +116,5 @@ cmd_scaler = {
 };
 
 esc_collision = {
-  num_safety_margins = 1.5;
+  num_safety_margins = 2;
 };
