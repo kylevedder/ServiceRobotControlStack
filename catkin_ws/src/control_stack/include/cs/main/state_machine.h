@@ -57,6 +57,8 @@ namespace main {
 namespace params {
 CONFIG_STRING(map, "pf.map");
 CONFIG_INTLIST(deadzones, "laser.deadzones");
+CONFIG_VECTOR2F(laser_offset, "laser.center_offset");
+
 CONFIG_BOOL(use_sim_ground_truth, "state_estimation.use_sim_ground_truth");
 CONFIG_STRING(command_scaler, "cmd_scaler.command_scaler");
 CONFIG_VECTOR3F(start_pose, "pf.start_pose");
@@ -253,14 +255,23 @@ class StateMachine {
                          motion_planner_,
                          cs::controllers::ControllerType::NAVIGATION) {}
 
-  void UpdateLaser(const sensor_msgs::LaserScan& msg) {
-    util::LaserScan laser(msg);
-    // Remove deadzones.
+  Eigen::Affine2f GetLaserOffset() {
+    Eigen::Affine2f a = Eigen::Affine2f::Identity();
+    a.translate(params::CONFIG_laser_offset);
+    return a;
+  }
+
+  void RemoveDeadzones(util::LaserScan* laser) {
     NP_CHECK_EQ(params::CONFIG_deadzones.size() % 2, 0);
     for (size_t i = 0; i < params::CONFIG_deadzones.size(); i += 2) {
-      laser.ClearDataInIndexRange(params::CONFIG_deadzones[i],
-                                  params::CONFIG_deadzones[i + 1]);
+      laser->ClearDataInIndexRange(params::CONFIG_deadzones[i],
+                                   params::CONFIG_deadzones[i + 1]);
     }
+  }
+
+  void UpdateLaser(const sensor_msgs::LaserScan& msg) {
+    util::LaserScan laser(msg, GetLaserOffset());
+    RemoveDeadzones(&laser);
     dpw_->modified_laser_pub_.publish(laser.ros_laser_scan_);
     laser_ = laser;
     laser_update_time_ = msg.header.stamp;

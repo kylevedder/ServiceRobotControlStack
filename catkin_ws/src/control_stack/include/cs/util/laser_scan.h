@@ -37,10 +37,16 @@ namespace util {
 class LaserScan {
  public:
   sensor_msgs::LaserScan ros_laser_scan_;
+  Eigen::Affine2f robot_frame_transform_;
 
   LaserScan() = default;
   explicit LaserScan(const sensor_msgs::LaserScan& ros_laser_scan)
-      : ros_laser_scan_(ros_laser_scan) {}
+      : ros_laser_scan_(ros_laser_scan),
+        robot_frame_transform_(Eigen::Affine2f::Identity()) {}
+  LaserScan(const sensor_msgs::LaserScan& ros_laser_scan,
+            const Eigen::Affine2f& robot_frame_transform)
+      : ros_laser_scan_(ros_laser_scan),
+        robot_frame_transform_(robot_frame_transform) {}
 
   bool IsEmpty() const { return ros_laser_scan_.ranges.empty(); }
 

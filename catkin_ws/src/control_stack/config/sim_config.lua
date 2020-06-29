@@ -23,6 +23,7 @@
 
 laser = {
   deadzones = {};
+  center_offset = {0, 0};
 };
 
 state_estimation = {
