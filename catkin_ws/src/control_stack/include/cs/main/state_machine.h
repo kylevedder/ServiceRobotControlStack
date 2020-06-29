@@ -111,8 +111,10 @@ struct ControllerList {
   }
 
   util::Twist Execute() {
-    NP_NOT_NULL(controller_array[current_controller_]);
-    for (int num_transitions = 0; num_transitions < 50; ++num_transitions) {
+    for (int num_transitions = 0; num_transitions < 8; ++num_transitions) {
+      NP_NOT_NULL(controller_array[current_controller_]);
+      ROS_INFO("Controller: %s",
+               cs::controllers::to_string(current_controller_).c_str());
       const auto execute_result =
           controller_array[current_controller_]->Execute();
       if (execute_result.first == current_controller_) {

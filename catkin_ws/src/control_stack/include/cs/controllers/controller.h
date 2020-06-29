@@ -35,6 +35,18 @@ namespace controllers {
 
 enum ControllerType { NAVIGATION, ESCAPE_COLLISION, CONTROLLER_NUM };
 
+static std::string to_string(const ControllerType& t) {
+  switch (t) {
+    case cs::controllers::ControllerType::NAVIGATION:
+      return "NAVIGATION";
+    case cs::controllers::ControllerType::ESCAPE_COLLISION:
+      return "ESCAPE_COLLISION";
+    default:
+      NP_CHECK_MSG(false, "Unknown ControllerType " << t);
+  }
+  return "";
+}
+
 class Controller {
  protected:
   cs::main::DebugPubWrapper* dpw_;
@@ -72,16 +84,7 @@ namespace std {
 
 inline std::ostream& operator<<(std::ostream& os,
                                 const cs::controllers::ControllerType& t) {
-  switch (t) {
-    case cs::controllers::ControllerType::NAVIGATION:
-      os << "NAVIGATION";
-      break;
-    case cs::controllers::ControllerType::ESCAPE_COLLISION:
-      os << "ESCAPE_COLLISION";
-      break;
-    default:
-      NP_CHECK_MSG(false, "Unknown ControllerType " << t);
-  }
+  os << cs::controllers::to_string(t);
   return os;
 }
 
