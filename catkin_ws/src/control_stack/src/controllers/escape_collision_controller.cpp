@@ -31,6 +31,7 @@ namespace params {
 
 CONFIG_FLOAT(robot_radius, "pf.kRobotRadius");
 CONFIG_FLOAT(safety_margin, "pf.kSafetyMargin");
+CONFIG_FLOAT(local_inflation, "path_finding.local_robot_inflation");
 CONFIG_FLOAT(num_safety_margins, "esc_collision.num_safety_margins");
 
 CONFIG_STRING(map_tf_frame, "frames.map_tf_frame");
@@ -60,8 +61,9 @@ void DrawWaypoint(cs::main::DebugPubWrapper* dpw, const util::Pose& goal) {
 EscapeCollisionWaypoint ComputeEscapeWaypoint(
     const Eigen::Vector2f& point_wf,
     const std::vector<Eigen::Vector2f>& laser_points_wf) {
-  const float robot_margin =
-      params::CONFIG_robot_radius + params::CONFIG_safety_margin;
+  const float total_margin =
+      (params::CONFIG_robot_radius + params::CONFIG_safety_margin) *
+      params::CONFIG_local_inflation;
   if (laser_points_wf.empty()) {
     return {false, point_wf, point_wf};
   }
@@ -76,12 +78,12 @@ EscapeCollisionWaypoint ComputeEscapeWaypoint(
     }
   }
 
-  if (closest_point_dist > math_util::Sq(robot_margin)) {
+  if (closest_point_dist > math_util::Sq(total_margin)) {
     return {false, point_wf, point_wf};
   }
 
   const Eigen::Vector2f waypoint_wf = -(closest_point - point_wf).normalized() *
-                                          robot_margin *
+                                          total_margin *
                                           params::CONFIG_num_safety_margins +
                                       point_wf;
   return {true, waypoint_wf, closest_point};
