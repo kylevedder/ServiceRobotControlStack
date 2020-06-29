@@ -72,6 +72,7 @@ class LaserScan {
       const Eigen::Transform<T, 2, Eigen::Affine>& transform,
       const T non_finite_depth = 0) const {
     std::vector<Eigen::Matrix<T, 2, 1>> robot_frame_points;
+    robot_frame_points.reserve(ros_laser_scan_.ranges.size());
     for (size_t i = 0; i < ros_laser_scan_.ranges.size(); ++i) {
       T depth = ros_laser_scan_.ranges[i];
       if (!std::isfinite(depth)) {

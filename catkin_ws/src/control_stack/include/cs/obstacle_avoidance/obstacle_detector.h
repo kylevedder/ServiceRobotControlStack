@@ -46,8 +46,6 @@ class ObstacleDetector {
                          const util::LaserScan& observation,
                          ros::Publisher* pub);
 
-  void DrawDynamic(ros::Publisher* pub) const;
-
   const util::DynamicFeatures& GetDynamicFeatures() const;
 
  private:
@@ -57,7 +55,7 @@ class ObstacleDetector {
 
   //  bool StartedInCollision(const float robot_radius) const;
 
-  const util::vector_map::VectorMap& map_;
+  __attribute__((unused)) const util::vector_map::VectorMap& map_;
   util::DynamicFeatures dynamic_features_;
   //  util::Pose estimated_pose_;
   //  util::Twist odom_velocity_;
