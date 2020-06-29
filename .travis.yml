@@ -31,3 +31,4 @@ before_install:
 script:
 - cd "$CI_SOURCE_PATH/"
 - ./build.sh
+- ./clean.sh
