@@ -25,7 +25,6 @@
 #include <ros/ros.h>
 
 #include "config_reader/config_reader.h"
-#include "cs/main/callback_wrapper.h"
 #include "cs/main/debug_pub_wrapper.h"
 #include "cs/main/state_machine.h"
 
