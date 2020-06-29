@@ -130,6 +130,7 @@ util::Twist PIDController::DriveToPose(
   // If every command causes a crash, we command full brakes, limited by
   // acceleration constraints.
   if (costs[best_idx] >= std::numeric_limits<float>::max()) {
+    ROS_ERROR("All proposed commands colliding!");
     best_idx = 0;
   }
   return alternate_commands[best_idx];
