@@ -170,8 +170,6 @@ std::pair<ControllerType, util::Twist> NavController::Execute() {
   const util::Twist command = motion_planner_.DriveToPose(
       obstacle_detector_.GetDynamicFeatures(), local_waypoint);
 
-  std::cout << "Command: " << command << std::endl;
-
   return {ControllerType::NAVIGATION, command};
 }
 
