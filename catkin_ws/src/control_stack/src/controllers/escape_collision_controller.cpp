@@ -31,6 +31,7 @@ namespace params {
 
 CONFIG_FLOAT(robot_radius, "pf.kRobotRadius");
 CONFIG_FLOAT(safety_margin, "pf.kSafetyMargin");
+CONFIG_FLOAT(num_safety_margins, "esc_collision.num_safety_margins");
 
 CONFIG_STRING(map_tf_frame, "frames.map_tf_frame");
 CONFIG_STRING(base_link_tf_frame, "frames.base_tf_frame");
@@ -79,8 +80,10 @@ EscapeCollisionWaypoint ComputeEscapeWaypoint(
     return {false, point_wf, point_wf};
   }
 
-  const Eigen::Vector2f waypoint_wf =
-      -(closest_point - point_wf).normalized() * robot_margin + point_wf;
+  const Eigen::Vector2f waypoint_wf = -(closest_point - point_wf).normalized() *
+                                          robot_margin *
+                                          params::CONFIG_num_safety_margins +
+                                      point_wf;
   return {true, waypoint_wf, closest_point};
 }
 

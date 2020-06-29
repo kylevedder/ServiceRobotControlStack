@@ -110,3 +110,7 @@ cmd_scaler = {
   rotation_min_effect_threshold = 0.4;
   rotation_translation_scaler = 1.8;
 };
+
+esc_collision = {
+  num_safety_margins = 1.5;
+};
