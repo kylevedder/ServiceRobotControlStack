@@ -70,8 +70,9 @@ class GlobalPathFinder {
  public:
   GlobalPathFinder(const util::vector_map::VectorMap& map,
                    const float& robot_radius,
-                   const float& safety_margin)
-      : path_finder_(map, robot_radius, safety_margin),
+                   const float& safety_margin,
+                   const float& inflation)
+      : path_finder_(map, robot_radius, safety_margin, inflation),
         start_goal_({Eigen::Vector2f::Zero(), Eigen::Vector2f::Zero()}),
         path_(cs::path_finding::Path2f()),
         last_path_(),

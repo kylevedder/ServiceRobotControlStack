@@ -31,6 +31,7 @@ namespace params {
 
 CONFIG_FLOAT(robot_radius, "pf.kRobotRadius");
 CONFIG_FLOAT(safety_margin, "pf.kSafetyMargin");
+CONFIG_FLOAT(inflation, "path_finding.robot_inflation");
 
 CONFIG_STRING(map_tf_frame, "frames.map_tf_frame");
 CONFIG_STRING(base_link_tf_frame, "frames.base_tf_frame");
@@ -49,10 +50,14 @@ NavController::NavController(
     const motion_planning::PIDController& motion_planner)
     : Controller(
           dpw, laser, map, state_estimator, obstacle_detector, motion_planner),
-      global_path_finder_(
-          map_, params::CONFIG_robot_radius, params::CONFIG_safety_margin),
-      local_path_finder_(
-          map_, params::CONFIG_robot_radius, params::CONFIG_safety_margin),
+      global_path_finder_(map_,
+                          params::CONFIG_robot_radius,
+                          params::CONFIG_safety_margin,
+                          params::CONFIG_inflation),
+      local_path_finder_(map_,
+                         params::CONFIG_robot_radius,
+                         params::CONFIG_safety_margin,
+                         params::CONFIG_inflation),
       current_goal_(params::CONFIG_goal_poses.front()),
       current_goal_index_(0) {}
 

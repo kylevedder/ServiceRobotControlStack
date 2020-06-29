@@ -224,8 +224,9 @@ class AStar : public PathFinder {
  public:
   explicit AStar(const util::vector_map::VectorMap& map,
                  const float& robot_radius,
-                 const float& safety_margin)
-      : PathFinder(map, robot_radius, safety_margin) {}
+                 const float& safety_margin,
+                 const float& inflation)
+      : PathFinder(map, robot_radius, safety_margin, inflation) {}
 
   Path2f FindPath(const util::DynamicFeatures& dynamic_map,
                   const Eigen::Vector2f& start,
@@ -246,7 +247,7 @@ class AStar : public PathFinder {
     Env env(goal_state,
             map_,
             dynamic_map,
-            robot_radius_ + safety_margin_ + kEpsilon);
+            (robot_radius_ + safety_margin_) * inflation_ + kEpsilon);
     libMultiRobotPlanning::BoundedAStar<astar::State, astar::Action, float, Env>
         astar(env, MaxExpansions);
     libMultiRobotPlanning::PlanResult<astar::State, astar::Action, float>

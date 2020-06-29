@@ -77,6 +77,7 @@ class PathFinder {
   const util::vector_map::VectorMap& map_;
   const float& robot_radius_;
   const float& safety_margin_;
+  const float& inflation_;
   Path2f prev_path_;
   double prev_path_time_;
 
@@ -97,8 +98,12 @@ class PathFinder {
  public:
   PathFinder(const util::vector_map::VectorMap& map,
              const float& robot_radius,
-             const float& safety_margin)
-      : map_(map), robot_radius_(robot_radius), safety_margin_(safety_margin) {}
+             const float& safety_margin,
+             const float& inflation)
+      : map_(map),
+        robot_radius_(robot_radius),
+        safety_margin_(safety_margin),
+        inflation_(inflation) {}
 
   virtual Path2f FindPath(const util::DynamicFeatures& dynamic_map,
                           const Eigen::Vector2f& start,
