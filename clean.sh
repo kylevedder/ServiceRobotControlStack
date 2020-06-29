@@ -7,13 +7,8 @@ rm -rf build/ devel/
 popd
 
 pushd rosbuild_ws
-pushd robot_status_gui/robot_status_gui
-rm -rf build/ bin/ lib/
-popd
-
 pushd simulator/ut_multirobot_sim
 rm -rf build/ bin/ lib/
 popd
-
 popd
 
