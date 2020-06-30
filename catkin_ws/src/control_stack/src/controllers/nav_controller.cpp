@@ -109,10 +109,13 @@ float GetAngleFacingWaypoint(const Eigen::Vector2f& p,
 }
 
 util::Pose GetLocalPathPose(const util::Pose& current_pose,
+                            const Eigen::Vector2f& global_waypoint,
                             const util::Pose& goal_pose,
                             const path_finding::Path2f& path) {
   if (path.waypoints.size() <= 1) {
-    return current_pose;
+    const auto delta = (global_waypoint - current_pose.tra);
+    const float angle = std::atan2(delta.y(), delta.x());
+    return {global_waypoint, angle};
   }
 
   const Eigen::Vector2f& next_waypoint = path.waypoints[1];
@@ -158,11 +161,11 @@ std::pair<ControllerType, util::Twist> NavController::Execute() {
 
   const auto local_path = local_path_finder_.FindPath(
       obstacle_detector_.GetDynamicFeatures(), est_pose.tra, global_waypoint);
+  util::Pose local_waypoint =
+      GetLocalPathPose(est_pose, global_waypoint, current_goal_, local_path);
   DrawPath(dpw_, local_path, "local_path");
-  const util::Pose local_waypoint =
-      GetLocalPathPose(est_pose, current_goal_, local_path);
   if (local_path.waypoints.empty()) {
-    ROS_INFO("Local path planner failed");
+    ROS_INFO("Local path planner failed.");
   }
 
   DrawGoal(dpw_, local_waypoint);
