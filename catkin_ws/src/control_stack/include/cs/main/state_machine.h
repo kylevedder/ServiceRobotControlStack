@@ -220,8 +220,9 @@ class StateMachine {
 
   void PublishTransforms() {
     tf::Transform laser_transform = tf::Transform::getIdentity();
-    laser_transform.setOrigin(
-        {params::CONFIG_laser_offset.x(), params::CONFIG_laser_offset.y(), 0});
+    laser_transform.setOrigin({-params::CONFIG_laser_offset.x(),
+                               -params::CONFIG_laser_offset.y(),
+                               0});
     br_.sendTransform(tf::StampedTransform(laser_transform,
                                            ros::Time::now(),
                                            params::CONFIG_laser_tf_frame,
