@@ -48,7 +48,7 @@ struct EscapeCollisionWaypoint {
 
 class EscapeCollisionController : public Controller {
   EscapeCollisionWaypoint escape_waypoint_;
-
+  visualization_msgs::Marker colliding_marker_;
  public:
   EscapeCollisionController() = delete;
   EscapeCollisionController(
