@@ -35,7 +35,7 @@ function get_goals()
 end
 
 pf = {
-  kLaserStdDev = 0.1;
+  kLaserStdDev = 0.15;
   kArcStdDev = 0.07;
   kRotateStdDev = 0.06;
   kTemporalConsistencyWeight = 0;

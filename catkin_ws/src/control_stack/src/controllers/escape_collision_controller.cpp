@@ -114,7 +114,10 @@ std::pair<ControllerType, util::Twist> EscapeCollisionController::Execute() {
   colliding_marker_ =
       visualization::PointToSphere(escape_waypoint.colliding_point,
                                    params::CONFIG_map_tf_frame,
-                                   "colliding_point");
+                                   "colliding_point",
+                                   0,
+                                   0,
+                                   1);
   dpw_->colliding_point_pub_.publish(colliding_marker_);
 
   if (motion_planner_.AtPoint(escape_waypoint.waypoint)) {
