@@ -17,13 +17,16 @@ map_path, out_path, scale = get_args()
 drawn_lines = []
 
 def draw_image():
-    plt.imshow(plt.imread(map_path), cmap='bone')
+    data = plt.imread(map_path)
+    # data = np.flip(data, 0)
+    print(data.shape)
+    plt.imshow(data, cmap='bone')
 
 def save_line(start_pt, end_pt):
     f = open(out_path, 'a')
     x1, y1 = start_pt
     x2, y2 = end_pt
-    f.write("{}, {}, {}, {}\n".format(x1 * scale, y1 * scale, x2 * scale, y2 * scale))
+    f.write("{}, {}, {}, {}\n".format(x1 * scale, y1 * -scale, x2 * scale, y2 * -scale))
     f.close()
     print("Added line")
 
@@ -49,7 +52,7 @@ def plot_lines():
         colors = ['r', 'g', 'b', 'y']
         for idx, l in enumerate(ls):
             x1, y1, x2, y2 = [float(e) for e in l.split(', ')]
-            l = plt.plot([x1 / scale, x2 / scale], [y1 / scale, y2 / scale], c=colors[idx % len(colors)])
+            l = plt.plot([x1 / scale, x2 / scale], [y1 / -scale, y2 / -scale], c=colors[idx % len(colors)])
             drawn_lines.append(l)
     except:
         pass
