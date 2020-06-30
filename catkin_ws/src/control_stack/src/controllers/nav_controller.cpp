@@ -146,7 +146,7 @@ std::pair<ControllerType, util::Twist> NavController::Execute() {
       });
 
   const float total_margin =
-      (params::CONFIG_robot_radius + params::CONFIG_safety_margin) *
+      (params::CONFIG_robot_radius + params::CONFIG_safety_margin + kEpsilon) *
       params::CONFIG_local_inflation;
   if (!IsPointCollisionFree(est_pose.tra, laser_points_wf, total_margin)) {
     return {ControllerType::ESCAPE_COLLISION, {}};

@@ -137,7 +137,7 @@ bool PathFinder::IsLineColliding(const util::DynamicFeatures& dynamic_map,
       continue;
     }
     if (geometry::Line2f(p1, p2).CloserThan(
-            w, w, robot_radius_ + safety_margin_ + kEpsilon)) {
+            w, w, (robot_radius_ + safety_margin_ + kEpsilon) * inflation_)) {
       return true;
     }
   }
@@ -145,7 +145,7 @@ bool PathFinder::IsLineColliding(const util::DynamicFeatures& dynamic_map,
     if (!w.p0.allFinite() || !w.p1.allFinite()) {
       continue;
     }
-    if (w.CloserThan(p1, p2, robot_radius_ + safety_margin_ + kEpsilon)) {
+    if (w.CloserThan(p1, p2, (robot_radius_ + safety_margin_ + kEpsilon) * inflation_)) {
       return true;
     }
   }
