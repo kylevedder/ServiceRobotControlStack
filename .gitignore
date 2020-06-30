@@ -6,3 +6,6 @@ build/
 catkin_ws/devel/
 catkin_ws/build/
 catkin_ws/.catkin_workspace
+*/threethirdfile.txt
+*/twothirdfile.txt
+*/onethirdfile.txt

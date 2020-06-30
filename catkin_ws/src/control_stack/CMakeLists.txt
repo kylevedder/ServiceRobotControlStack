@@ -188,6 +188,9 @@ target_link_libraries(nav_lib
 add_executable(sine_controller src/util/sine_controller.cpp)
 target_link_libraries(sine_controller util_lib nav_lib lua5.1 amrl_shared_lib ${catkin_LIBRARIES})
 
+add_executable(command_scale_plotter src/util/command_scale_plotter.cpp)
+target_link_libraries(command_scale_plotter util_lib nav_lib lua5.1 amrl_shared_lib ${catkin_LIBRARIES})
+
 add_executable(nav_node src/main/nav_node.cpp
         src/controllers/escape_collision_controller.cpp
         src/controllers/nav_controller.cpp
