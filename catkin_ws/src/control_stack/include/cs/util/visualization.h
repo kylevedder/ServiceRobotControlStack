@@ -288,6 +288,35 @@ inline std::tuple<float, float, float> IndexToDistinctRBG(const size_t idx) {
   return std::make_tuple(r, g, b);
 }
 
+inline visualization_msgs::Marker PointToSphere(const Eigen::Vector2f& v,
+                                                const std::string& frame_id,
+                                                const std::string& ns,
+                                                const float r = 1,
+                                                const float g = 0,
+                                                const float b = 0,
+                                                const float z = 0,
+                                                const float radius = 0.1,
+                                                const int id = 0) {
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = frame_id;
+  marker.header.stamp = ros::Time();
+  marker.ns = ns;
+  marker.id = id;
+  marker.type = visualization_msgs::Marker::SPHERE;
+  marker.action = visualization_msgs::Marker::ADD;
+  marker.pose.position.x = v.x();
+  marker.pose.position.y = v.y();
+  marker.pose.position.z = z;
+  marker.scale.x = radius;
+  marker.scale.y = radius;
+  marker.scale.z = radius;
+  marker.color.a = 1;
+  marker.color.r = r;
+  marker.color.g = g;
+  marker.color.b = b;
+  return marker;
+}
+
 inline void PointsToSpheres(const std::vector<Eigen::Vector2f>& points,
                             const std::string& frame_id,
                             const std::string& ns,
@@ -297,25 +326,10 @@ inline void PointsToSpheres(const std::vector<Eigen::Vector2f>& points,
                             const float b = 0,
                             const float z = 0,
                             const float radius = 0.1) {
-  for (const auto& v : points) {
-    visualization_msgs::Marker marker;
-    marker.header.frame_id = frame_id;
-    marker.header.stamp = ros::Time();
-    marker.ns = ns;
-    marker.id = arr->markers.size();
-    marker.type = visualization_msgs::Marker::SPHERE;
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.pose.position.x = v.x();
-    marker.pose.position.y = v.y();
-    marker.pose.position.z = z;
-    marker.scale.x = radius;
-    marker.scale.y = radius;
-    marker.scale.z = radius;
-    marker.color.a = 1;
-    marker.color.r = r;
-    marker.color.g = g;
-    marker.color.b = b;
-    arr->markers.push_back(marker);
+  for (size_t i = 0; i < points.size(); ++i) {
+    const auto& v = points[i];
+    arr->markers.push_back(
+        PointToSphere(v, frame_id, ns, r, g, b, z, radius, i));
   }
 }
 

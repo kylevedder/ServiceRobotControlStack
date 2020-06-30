@@ -68,6 +68,7 @@ struct DebugPubWrapper {
   ros::Publisher robot_size_pub_;
   ros::Publisher goal_pub_;
   ros::Publisher robot_path_pub_;
+  ros::Publisher colliding_point_pub_;
 
   DebugPubWrapper() = delete;
 
@@ -90,6 +91,8 @@ struct DebugPubWrapper {
     goal_pub_ = n->advertise<visualization_msgs::MarkerArray>("goal", 10);
     robot_path_pub_ =
         n->advertise<visualization_msgs::Marker>("robot_path", 10);
+    colliding_point_pub_ =
+        n->advertise<visualization_msgs::Marker>("colliding_point", 10);
   }
 };
 
