@@ -31,7 +31,7 @@ state_estimation = {
 };
 
 function get_goals()
-  return {{35, -40, 0}, {44, -26, -3.14}, {8, -2.8, -3.14}, {17, -14, -3.14}}
+  return {{35, -40, 0}, {8, -2.8, -3.14}, {17, -14, -3.14}}
 end
 
 pf = {
@@ -44,7 +44,7 @@ pf = {
   map = "src/control_stack/maps/outside_grasp.map";
   map = "src/control_stack/maps/fourthfloorloop.map";
   goal_poses = get_goals();
-  start_pose = get_goals()[4];
+  start_pose = get_goals()[3];
 
   kRobotRadius = 0.1;
   kSafetyMargin = 0.16;
@@ -90,7 +90,7 @@ path_finding = {
   switch_historesis_threshold = 0.4; -- Meters
   max_distance_off_path = 0.2; -- Meters
   local_robot_inflation = 1.1;
-  global_robot_inflation = 1.4;
+  global_robot_inflation = 1.5;
 };
 
 rrt = {
@@ -115,7 +115,7 @@ cmd_scaler = {
   command_scaler = "turtlebot";
   rotation_zero_threshold = 0.01;
   rotation_min_effect_threshold = 0.4;
-  rotation_translation_scaler = 1.8;
+  rotation_translation_scaler = 1.9;
   rotation_translation_exponent = 2.8;
 };
 
