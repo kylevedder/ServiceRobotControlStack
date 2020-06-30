@@ -31,7 +31,7 @@ state_estimation = {
 };
 
 function get_goals()
-  return {{35, -40, 0}, {8, -2.8, -3.14}, {17, -14, -3.14}}
+  return {{35, -40, 0}, {-51, 3, -3.14}, {17, -14, -3.14}}
 end
 
 pf = {
