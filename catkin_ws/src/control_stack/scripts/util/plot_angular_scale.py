@@ -10,12 +10,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot(data):
+def plot(data, label):
     data = [float(e) for e in data]
-    plt.plot(np.linspace(0, data[0], 100), data[2:])
+    plt.plot(np.linspace(0, data[0], 100), data[2:], label=label)
 
-plot(f1)
-plot(f2)
-plot(f3)
+plot(f1, "1/3rd max angular")
+plot(f2, "2/3rds max angular")
+plot(f3, "Max angular")
+plt.legend()
+plt.xlabel("Translational m/s")
+plt.ylabel("Radians/s")
 plt.show()
 
