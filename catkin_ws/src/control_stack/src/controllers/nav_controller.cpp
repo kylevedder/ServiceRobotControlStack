@@ -114,8 +114,9 @@ util::Pose GetLocalPathPose(const util::Pose& current_pose,
                             const path_finding::Path2f& path) {
   if (path.waypoints.size() <= 1) {
     const auto delta = (global_waypoint - current_pose.tra);
+    const float delta_dist = delta.norm();
     const float angle = std::atan2(delta.y(), delta.x());
-    return {global_waypoint, angle};
+    return {current_pose.tra + delta.normalized() * (delta_dist * 0.66), angle};
   }
 
   const Eigen::Vector2f& next_waypoint = path.waypoints[1];
