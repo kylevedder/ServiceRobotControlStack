@@ -1,5 +1,8 @@
 #!/bin/bash
-src/ServiceRobotControlStack/ci/cpplint.py $(find src/ServiceRobotControlStack/control_stack -name '*.cpp' -o -name '*.h')
+find catkin_ws/src/control_stack/src/ -name '*.cpp' -o -name '*.h' > /tmp/lint_files
+find catkin_ws/src/control_stack/include/ -name '*.cpp' -o -name '*.h' >> /tmp/lint_files
+find catkin_ws/src/control_stack/test/ -name '*.cpp' -o -name '*.h' >> /tmp/lint_files
+ci/cpplint.py $(cat /tmp/lint_files)
 ret=$?
 if [ $ret -ne 0 ]; then
     echo -e "CI Lint Failures!!!";
