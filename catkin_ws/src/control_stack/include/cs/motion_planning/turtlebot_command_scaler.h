@@ -41,7 +41,7 @@ CONFIG_FLOAT(rotation_translation_exponent,
 
 class TurtlebotCommandScaler : public CommandScaler {
  public:
-  TurtlebotCommandScaler() : CommandScaler(){};
+  TurtlebotCommandScaler() : CommandScaler() {}
   ~TurtlebotCommandScaler() = default;
 
   util::Twist ScaleCommand(util::Twist cmd) const {
@@ -56,7 +56,7 @@ class TurtlebotCommandScaler : public CommandScaler {
                                  params::CONFIG_rotation_translation_scaler,
                              params::CONFIG_rotation_translation_exponent));
     return cmd;
-  };
+  }
 };
 
 }  // namespace motion_planning

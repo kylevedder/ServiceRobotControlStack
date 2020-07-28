@@ -23,6 +23,7 @@
 // ========================================================================
 
 #include "cs/util/dynamic_features.h"
+#include <vector>
 
 namespace util {
 

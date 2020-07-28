@@ -23,6 +23,9 @@
 // SOFTWARE.
 // ========================================================================
 
+#include <memory>
+#include <vector>
+
 #include "cs/main/debug_pub_wrapper.h"
 #include "cs/util/constants.h"
 #include "cs/util/laser_scan.h"

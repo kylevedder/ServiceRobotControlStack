@@ -1,5 +1,5 @@
 #pragma once
-// Copyright 2019 kvedder@seas.upenn.edu
+// Copyright 2019 - 2020 kvedder@seas.upenn.edu
 // School of Engineering and Applied Sciences,
 // University of Pennsylvania
 //
@@ -25,6 +25,7 @@
 
 #include <ros/ros.h>
 #include <eigen3/Eigen/Core>
+#include <utility>
 #include <vector>
 
 #include "cs/obstacle_avoidance/obstacle_detector.h"
@@ -51,12 +52,12 @@ struct Path {
     this->waypoints = p.waypoints;
     this->cost = p.cost;
     return *this;
-  };
+  }
   Path& operator=(Path&& p) {
     this->waypoints = std::move(p.waypoints);
     this->cost = std::move(p.cost);
     return *this;
-  };
+  }
 
   bool IsValid() const { return !waypoints.empty(); }
 

@@ -1,5 +1,5 @@
 #pragma once
-// Copyright 2018 - 2020 kvedder@umass.edu
+// Copyright 2018 - 2020 kvedder@umass.edu, kvedder@seas.upenn.edu
 // College of Information and Computer Sciences,
 // University of Massachusetts Amherst
 //

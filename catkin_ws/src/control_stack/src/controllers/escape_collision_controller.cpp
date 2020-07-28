@@ -24,6 +24,9 @@
 
 #include "cs/controllers/escape_collision_controller.h"
 
+#include <utility>
+#include <vector>
+
 namespace cs {
 namespace controllers {
 

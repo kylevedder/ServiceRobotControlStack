@@ -1,4 +1,4 @@
-// Copyright 2019 kvedder@seas.upenn.edu
+// Copyright 2019 - 2020 kvedder@seas.upenn.edu
 // School of Engineering and Applied Sciences,
 // University of Pennsylvania
 //
@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <limits>
+#include <vector>
 
 #include "config_reader/config_reader.h"
 #include "cs/localization/particle_filter.h"

@@ -1,3 +1,4 @@
+// Copyright 2019 - 2020 joydeepb@cs.utexas.edu, kvedder@seas.upenn.edu
 //========================================================================
 //  This software is free: you can redistribute it and/or modify
 //  it under the terms of the GNU Lesser General Public License Version 3,
@@ -24,6 +25,8 @@
 #include <sstream>
 #include <string>
 
+#include <utility>
+#include <vector>
 #include "cs/util/map.h"
 #include "cs/util/visualization.h"
 #include "shared/math/geometry.h"
@@ -324,7 +327,7 @@ void VectorMap::RayCast(const Vector2f& loc,
         const Vector2f l2 = r2.ray_end - loc;
         return (Cross(l1, l2) > 0.0);
         return false;
-      };
+      }
       Vector2f loc;
     };
     Comparator comparator;

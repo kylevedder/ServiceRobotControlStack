@@ -64,7 +64,7 @@ class SimStateEstimator : public StateEstimator {
 
  public:
   SimStateEstimator() = delete;
-  SimStateEstimator(ros::NodeHandle* n)
+  explicit SimStateEstimator(ros::NodeHandle* n)
       : ground_truth_pose_(), last_odom_velocity_() {
     ground_truth_pose_sub_ =
         n->subscribe("/simulator_true_pose",

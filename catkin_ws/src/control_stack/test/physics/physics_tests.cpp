@@ -32,7 +32,6 @@ using util::physics::ComputeCommandDelta;
 using util::physics::ComputeFullStop;
 using util::physics::StopDelta;
 
-// clang-format off
 TEST(ApplyCommandLimits, ZeroZero) {
   const util::Twist cmd(0, 0, 0);
   const util::Twist limited_cmd =
@@ -44,13 +43,7 @@ TEST(ApplyCommandLimits, OverMaxAccNotVel) {
   const util::Twist cmd(2, 0, 0);
   const util::Twist expected_cmd(0.2, 0, 0);
   const util::Twist limited_cmd =
-      ApplyCommandLimits(cmd,
-                         0.1,
-                         {0, 0, 0},
-                         1.0f,
-                         2.0f,
-                         1.0f,
-                         1.0f);
+      ApplyCommandLimits(cmd, 0.1, {0, 0, 0}, 1.0f, 2.0f, 1.0f, 1.0f);
   EXPECT_EQ(limited_cmd, expected_cmd);
 }
 
@@ -58,13 +51,7 @@ TEST(ApplyCommandLimits, OverMaxVelNotAcc) {
   const util::Twist cmd(2, 0, 0);
   const util::Twist expected_cmd(0.1, 0, 0);
   const util::Twist limited_cmd =
-      ApplyCommandLimits(cmd,
-                         0.1,
-                         {0, 0, 0},
-                         0.1f,
-                         2.0f,
-                         1.0f,
-                         1.0f);
+      ApplyCommandLimits(cmd, 0.1, {0, 0, 0}, 0.1f, 2.0f, 1.0f, 1.0f);
   EXPECT_EQ(limited_cmd, expected_cmd);
 }
 
@@ -72,13 +59,7 @@ TEST(ApplyCommandLimits, NegOverMaxAccNotVel) {
   const util::Twist cmd(-2, 0, 0);
   const util::Twist expected_cmd(-0.2, 0, 0);
   const util::Twist limited_cmd =
-      ApplyCommandLimits(cmd,
-                         0.1,
-                         {0, 0, 0},
-                         1.0f,
-                         2.0f,
-                         1.0f,
-                         1.0f);
+      ApplyCommandLimits(cmd, 0.1, {0, 0, 0}, 1.0f, 2.0f, 1.0f, 1.0f);
   EXPECT_EQ(limited_cmd, expected_cmd);
 }
 
@@ -86,13 +67,7 @@ TEST(ApplyCommandLimits, NegOverMaxVelNotAcc) {
   const util::Twist cmd(-2, 0, 0);
   const util::Twist expected_cmd(-0.1, 0, 0);
   const util::Twist limited_cmd =
-      ApplyCommandLimits(cmd,
-                         0.1,
-                         {0, 0, 0},
-                         0.1f,
-                         2.0f,
-                         1.0f,
-                         1.0f);
+      ApplyCommandLimits(cmd, 0.1, {0, 0, 0}, 0.1f, 2.0f, 1.0f, 1.0f);
   EXPECT_EQ(limited_cmd, expected_cmd);
 }
 
@@ -100,7 +75,8 @@ TEST(ComputeCommandDelta, NoMove) {
   const util::Twist current_velocity(0, 0, 0);
   const util::Pose current_pose(0, 0, 0);
   const float time_delta = 0.5;
-  const CommandDelta command_delta = ComputeCommandDelta(current_pose, current_velocity, current_velocity, time_delta);
+  const CommandDelta command_delta = ComputeCommandDelta(
+      current_pose, current_velocity, current_velocity, time_delta);
   EXPECT_EQ(command_delta.GetEndVelocity(), current_velocity);
   EXPECT_EQ(command_delta.GetEndPosition(), util::Pose(0, 0, 0));
 }
@@ -109,7 +85,8 @@ TEST(ComputeCommandDelta, MoveConstant) {
   const util::Twist current_velocity(1, 0, 0);
   const util::Pose current_pose(0, 0, 0);
   const float time_delta = 0.5;
-  const CommandDelta command_delta = ComputeCommandDelta(current_pose, current_velocity, current_velocity, time_delta);
+  const CommandDelta command_delta = ComputeCommandDelta(
+      current_pose, current_velocity, current_velocity, time_delta);
   EXPECT_EQ(command_delta.GetEndVelocity(), current_velocity);
   EXPECT_EQ(command_delta.GetEndPosition(), util::Pose(0.5, 0, 0));
 }
@@ -118,7 +95,8 @@ TEST(ComputeCommandDelta, MoveConstantBackwards) {
   const util::Twist current_velocity(-1, 0, 0);
   const util::Pose current_pose(0, 0, 0);
   const float time_delta = 0.5;
-  const CommandDelta command_delta = ComputeCommandDelta(current_pose, current_velocity, current_velocity, time_delta);
+  const CommandDelta command_delta = ComputeCommandDelta(
+      current_pose, current_velocity, current_velocity, time_delta);
   EXPECT_EQ(command_delta.GetEndVelocity(), current_velocity);
   EXPECT_EQ(command_delta.GetEndPosition(), util::Pose(-0.5, 0, 0));
 }
@@ -127,7 +105,8 @@ TEST(ComputeCommandDelta, MoveConstantTurnLeft180) {
   const util::Twist current_velocity(1, 0, 1);
   const util::Pose current_pose(0, 0, 0);
   const float time_delta = M_PI;
-  const CommandDelta command_delta = ComputeCommandDelta(current_pose, current_velocity, current_velocity, time_delta);
+  const CommandDelta command_delta = ComputeCommandDelta(
+      current_pose, current_velocity, current_velocity, time_delta);
   EXPECT_EQ(command_delta.GetEndVelocity(), current_velocity);
   EXPECT_NEAR(command_delta.GetEndPosition().tra.x(), 0, 0.0001);
   EXPECT_FLOAT_EQ(command_delta.GetEndPosition().tra.y(), 2);
@@ -138,7 +117,8 @@ TEST(ComputeCommandDelta, MoveConstantTurnRight180) {
   const util::Twist current_velocity(1, 0, -1);
   const util::Pose current_pose(0, 0, 0);
   const float time_delta = M_PI;
-  const CommandDelta command_delta = ComputeCommandDelta(current_pose, current_velocity, current_velocity, time_delta);
+  const CommandDelta command_delta = ComputeCommandDelta(
+      current_pose, current_velocity, current_velocity, time_delta);
   EXPECT_EQ(command_delta.GetEndVelocity(), current_velocity);
   EXPECT_NEAR(command_delta.GetEndPosition().tra.x(), 0, 0.0001);
   EXPECT_FLOAT_EQ(command_delta.GetEndPosition().tra.y(), -2);
@@ -149,7 +129,8 @@ TEST(ComputeCommandDelta, MoveConstantTurnLeft90) {
   const util::Twist current_velocity(1, 0, 0.5);
   const util::Pose current_pose(0, 0, 0);
   const float time_delta = M_PI;
-  const CommandDelta command_delta = ComputeCommandDelta(current_pose, current_velocity, current_velocity, time_delta);
+  const CommandDelta command_delta = ComputeCommandDelta(
+      current_pose, current_velocity, current_velocity, time_delta);
   EXPECT_EQ(command_delta.GetEndVelocity(), current_velocity);
   EXPECT_NEAR(command_delta.GetEndPosition().tra.x(), 2, 0.0001);
   EXPECT_FLOAT_EQ(command_delta.GetEndPosition().tra.y(), 2);
@@ -161,7 +142,8 @@ TEST(ComputeCommandDelta, MoveConstantStraightTurnLeft90) {
   const util::Twist commanded_velocity(1, 0, 0.5);
   const util::Pose current_pose(0, 0, 0);
   const float time_delta = M_PI;
-  const CommandDelta command_delta = ComputeCommandDelta(current_pose, current_velocity, commanded_velocity, time_delta);
+  const CommandDelta command_delta = ComputeCommandDelta(
+      current_pose, current_velocity, commanded_velocity, time_delta);
   EXPECT_EQ(command_delta.GetEndVelocity(), commanded_velocity);
   EXPECT_NEAR(command_delta.GetEndPosition().tra.x(), 2, 0.0001);
   EXPECT_FLOAT_EQ(command_delta.GetEndPosition().tra.y(), 2);
@@ -172,7 +154,8 @@ TEST(ComputeCommandDelta, MoveConstantTurnRight90) {
   const util::Twist current_velocity(1, 0, -0.5);
   const util::Pose current_pose(0, 0, 0);
   const float time_delta = M_PI;
-  const CommandDelta command_delta = ComputeCommandDelta(current_pose, current_velocity, current_velocity, time_delta);
+  const CommandDelta command_delta = ComputeCommandDelta(
+      current_pose, current_velocity, current_velocity, time_delta);
   EXPECT_EQ(command_delta.GetEndVelocity(), current_velocity);
   EXPECT_NEAR(command_delta.GetEndPosition().tra.x(), 2, 0.0001);
   EXPECT_FLOAT_EQ(command_delta.GetEndPosition().tra.y(), -2);
@@ -184,7 +167,8 @@ TEST(ComputeCommandDelta, MoveConstantStraightTurnRight90) {
   const util::Twist commanded_velocity(1, 0, -0.5);
   const util::Pose current_pose(0, 0, 0);
   const float time_delta = M_PI;
-  const CommandDelta command_delta = ComputeCommandDelta(current_pose, current_velocity, commanded_velocity, time_delta);
+  const CommandDelta command_delta = ComputeCommandDelta(
+      current_pose, current_velocity, commanded_velocity, time_delta);
   EXPECT_EQ(command_delta.GetEndVelocity(), commanded_velocity);
   EXPECT_NEAR(command_delta.GetEndPosition().tra.x(), 2, 0.0001);
   EXPECT_FLOAT_EQ(command_delta.GetEndPosition().tra.y(), -2);
@@ -196,7 +180,8 @@ TEST(ComputeCommandDelta, MoveAccel) {
   const util::Twist command_velocity(2, 0, 0);
   const util::Pose current_pose(0, 0, 0);
   const float time_delta = 0.5;
-  const CommandDelta command_delta = ComputeCommandDelta(current_pose, current_velocity, command_velocity, time_delta);
+  const CommandDelta command_delta = ComputeCommandDelta(
+      current_pose, current_velocity, command_velocity, time_delta);
   EXPECT_EQ(command_delta.GetEndVelocity(), command_velocity);
 
   // dx = vi dt * 0.5 a t^2
@@ -211,7 +196,8 @@ TEST(ComputeCommandDelta, MoveDecel) {
   const util::Twist command_velocity(-1, 0, 0);
   const util::Pose current_pose(0, 0, 0);
   const float time_delta = 0.5;
-  const CommandDelta command_delta = ComputeCommandDelta(current_pose, current_velocity, command_velocity, time_delta);
+  const CommandDelta command_delta = ComputeCommandDelta(
+      current_pose, current_velocity, command_velocity, time_delta);
   EXPECT_EQ(command_delta.GetEndVelocity(), command_velocity);
 
   // dx = vi dt * 0.5 a t^2
@@ -226,7 +212,8 @@ TEST(ComputeFullStop, MoveConstantDecel) {
   const util::Twist command_velocity(2, 0, 0);
   const util::Pose current_pose(0, 0, 0);
   const float command_time_delta = 0.5;
-  const CommandDelta command_delta = ComputeCommandDelta(current_pose, current_velocity, command_velocity, command_time_delta);
+  const CommandDelta command_delta = ComputeCommandDelta(
+      current_pose, current_velocity, command_velocity, command_time_delta);
 
   // dx = vi dt * 0.5 a t^2
   // dx = vi dt * 0.5 (a * t) t
@@ -252,7 +239,8 @@ TEST(ComputeFullStop, MoveReverseDecel) {
   const util::Twist command_velocity(-1, 0, 0);
   const util::Pose current_pose(0, 0, 0);
   const float time_delta = 0.5;
-  const CommandDelta command_delta = ComputeCommandDelta(current_pose, current_velocity, command_velocity, time_delta);
+  const CommandDelta command_delta = ComputeCommandDelta(
+      current_pose, current_velocity, command_velocity, time_delta);
   EXPECT_EQ(command_delta.GetEndVelocity(), command_velocity);
 
   // dx = vi dt * 0.5 a t^2
@@ -279,7 +267,8 @@ TEST(ComputeFullStop, MoveReverseDecel2) {
   const util::Twist command_velocity(-1, 0, 0);
   const util::Pose current_pose(0, 0, 0);
   const float time_delta = 0.5;
-  const CommandDelta command_delta = ComputeCommandDelta(current_pose, current_velocity, command_velocity, time_delta);
+  const CommandDelta command_delta = ComputeCommandDelta(
+      current_pose, current_velocity, command_velocity, time_delta);
   EXPECT_EQ(command_delta.GetEndVelocity(), command_velocity);
 
   // dx = vi dt * 0.5 a t^2
@@ -314,28 +303,31 @@ TEST(PhysicsIntegration, DecelToStopPositionIteration) {
 
   // vf^2 = vi^2 + 2 a dx
   // -vi^2 / (2a) = dx
-  const float expected_total_dx = math_util::Sq(current_velocity.tra.x()) / (2 * max_accel_tra);
+  const float expected_total_dx =
+      math_util::Sq(current_velocity.tra.x()) / (2 * max_accel_tra);
 
-  ASSERT_FLOAT_EQ(current_velocity.tra.x() / max_accel_tra / time_step_delta, 20);
+  ASSERT_FLOAT_EQ(current_velocity.tra.x() / max_accel_tra / time_step_delta,
+                  20);
 
-  for (int i = 0; i < 20; ++i ) {
+  for (int i = 0; i < 20; ++i) {
     const util::Twist command_velocity =
-      util::physics::ApplyCommandLimits(
-          desired_velocity,
-          time_step_delta,
-          current_velocity,
-          max_vel_tra,
-          max_accel_tra,
-          max_vel_rot,
-          max_accel_rot);
+        util::physics::ApplyCommandLimits(desired_velocity,
+                                          time_step_delta,
+                                          current_velocity,
+                                          max_vel_tra,
+                                          max_accel_tra,
+                                          max_vel_rot,
+                                          max_accel_rot);
     const float exp_cmd_vel = 1.0 - (i + 1) * max_accel_tra * time_step_delta;
     EXPECT_NEAR(command_velocity.tra.x(), exp_cmd_vel, 0.0001);
 
     // dx = vi dt + 0.5 a t^2
 
-    const float dx = current_velocity.tra.x() * time_step_delta - 0.5 * max_accel_tra * math_util::Sq(time_step_delta);
+    const float dx = current_velocity.tra.x() * time_step_delta -
+                     0.5 * max_accel_tra * math_util::Sq(time_step_delta);
 
-    auto cd = ComputeCommandDelta(current_pose, current_velocity, command_velocity, time_step_delta);
+    auto cd = ComputeCommandDelta(
+        current_pose, current_velocity, command_velocity, time_step_delta);
     auto stop = ComputeFullStop(cd, max_accel_tra);
     EXPECT_NEAR(stop.stop_position_wf.tra.x(), expected_total_dx, 0.0001);
 
@@ -349,5 +341,3 @@ TEST(PhysicsIntegration, DecelToStopPositionIteration) {
   EXPECT_NEAR(current_velocity.tra.x(), 0, 0.0001);
   EXPECT_NEAR(expected_total_dx, current_pose.tra.x(), 0.0001);
 }
-
-// clang-format on

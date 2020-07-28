@@ -1,4 +1,5 @@
 #pragma once
+// Copyright kvedder@seas.upenn.edu
 //========================================================================
 //  This software is free: you can redistribute it and/or modify
 //  it under the terms of the GNU Lesser General Public License Version 3,

@@ -30,10 +30,10 @@ namespace motion_planning {
 
 class IdentityCommandScaler : public CommandScaler {
  public:
-  IdentityCommandScaler() : CommandScaler(){};
+  IdentityCommandScaler() : CommandScaler() {}
   ~IdentityCommandScaler() = default;
 
-  util::Twist ScaleCommand(util::Twist cmd) const { return cmd; };
+  util::Twist ScaleCommand(util::Twist cmd) const { return cmd; }
 };
 
 }  // namespace motion_planning

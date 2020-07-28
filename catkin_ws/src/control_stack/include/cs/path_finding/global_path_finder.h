@@ -23,9 +23,10 @@
 // SOFTWARE.
 // ========================================================================
 
+#include <eigen3/Eigen/Core>
+
 #include <atomic>
 #include <condition_variable>
-#include <eigen3/Eigen/Core>
 #include <mutex>
 #include <thread>
 #include <utility>

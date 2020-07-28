@@ -24,11 +24,13 @@
 // ========================================================================
 
 #include <math.h>
-#include <algorithm>
 #include <boost/functional/hash.hpp>
+
+#include <algorithm>
 #include <limits>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "cs/path_finding/path_finder.h"
@@ -137,7 +139,7 @@ class Environment {
   }
 
   bool isSolution(const State& s) const { return s == goal_; }
-
+  // NOLINTNEXTLINE
   void getNeighbors(const State& s, std::vector<Neigh>& neighbors) {
     neighbors.clear();
 

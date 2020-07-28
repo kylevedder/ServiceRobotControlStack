@@ -22,9 +22,10 @@
 // SOFTWARE.
 // ========================================================================
 
-#include "cs/motion_planning/turtlebot_command_scaler.h"
-
+#include <string>
+#include <vector>
 #include "config_reader/config_reader.h"
+#include "cs/motion_planning/turtlebot_command_scaler.h"
 
 namespace params {
 CONFIG_FLOAT(max_tra_vel, "limits.kMaxTraVel");

@@ -23,6 +23,9 @@
 // SOFTWARE.
 // ========================================================================
 
+#include <string>
+#include <utility>
+
 #include "config_reader/macros.h"
 #include "cs/main/debug_pub_wrapper.h"
 #include "cs/util/laser_scan.h"

@@ -24,6 +24,10 @@
 
 #include "cs/controllers/nav_controller.h"
 
+#include <string>
+#include <utility>
+#include <vector>
+
 namespace cs {
 namespace controllers {
 

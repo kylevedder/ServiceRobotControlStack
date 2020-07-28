@@ -65,7 +65,7 @@ struct CommandDeltaStraight {
   util::Twist end_velocity_rf;
   util::Pose end_position_wf;
   CommandDeltaStraight()
-      : current_position_wf(), end_velocity_rf(), end_position_wf(){};
+      : current_position_wf(), end_velocity_rf(), end_position_wf() {}
 };
 
 struct CommandDelta {
