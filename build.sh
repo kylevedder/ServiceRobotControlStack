@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 
-export CC=`which clang`
-export CXX=`which clang++`
+if [ "$CC_FOR_BUILD" == "gcc" ]; then
+    echo "Using GCC"
+    export CC=`which gcc`
+    export CXX=`which g++`
+else
+    echo "Using Clang"
+    export CC=`which clang`
+    export CXX=`which clang++`
+fi
 source /opt/ros/$ROS_DISTRO/setup.bash
 failed=0
 pushd catkin_ws
