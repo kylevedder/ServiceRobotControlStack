@@ -251,7 +251,7 @@ class StateMachine {
       : dpw_(dpw),
         map_(params::CONFIG_map),
         state_estimator_(MakeStateEstimator(n)),
-        obstacle_detector_(map_),
+        obstacle_detector_(),
         motion_planner_(map_, *state_estimator_),
         command_scaler_(MakeCommandScaler()),
         controller_list_(dpw,

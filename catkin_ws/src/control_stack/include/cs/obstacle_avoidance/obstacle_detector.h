@@ -37,8 +37,7 @@ namespace obstacle_avoidance {
 
 class ObstacleDetector {
  public:
-  ObstacleDetector() = delete;
-  explicit ObstacleDetector(const util::vector_map::VectorMap& map);
+  ObstacleDetector();
 
   void UpdateObservation(const util::Pose& observation_pose,
                          const util::LaserScan& observation);
@@ -55,7 +54,7 @@ class ObstacleDetector {
 
   //  bool StartedInCollision(const float robot_radius) const;
 
-  __attribute__((unused)) const util::vector_map::VectorMap& map_;
+  //  const util::vector_map::VectorMap& map_;
   util::DynamicFeatures dynamic_features_;
   //  util::Pose estimated_pose_;
   //  util::Twist odom_velocity_;

@@ -55,8 +55,7 @@ CONFIG_STRING(map_tf_frame, "frames.map_tf_frame");
 CONFIG_FLOAT(is_wall_threshold, "od.is_wall_threshold");
 }  // namespace od_params
 
-ObstacleDetector::ObstacleDetector(const util::vector_map::VectorMap& map)
-    : map_(map), random_gen_(0) {}
+ObstacleDetector::ObstacleDetector() : random_gen_(0) {}
 
 util::DynamicFeatures ObstacleDetector::GetNonMapPoints(
     const util::Pose& observation_pose,
