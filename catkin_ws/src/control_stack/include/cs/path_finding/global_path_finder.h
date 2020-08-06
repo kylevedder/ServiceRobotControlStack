@@ -62,7 +62,11 @@ class GlobalPathFinder {
       auto path =
           path_finder_.FindPath({}, start_goal.first, start_goal.second);
       if (path.waypoints.empty()) {
-        ROS_INFO("Global path planner failed");
+        ROS_INFO("Global path planner from (%f, %f) to (%f, %f) failed",
+                 start_goal.first.x(),
+                 start_goal.first.y(),
+                 start_goal.second.x(),
+                 start_goal.second.y());
       }
       path_.Write(path);
     }

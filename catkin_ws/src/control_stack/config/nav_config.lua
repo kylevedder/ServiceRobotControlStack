@@ -93,13 +93,6 @@ path_finding = {
   global_robot_inflation = 1.5;
 };
 
-rrt = {
-  max_iterations = 1000;
-  goal_bias = 0.1;
-  is_goal_threshold = 0.4; -- Meters
-  delta_q = 0.25; -- Meters
-};
-
 control = {
   rotation_drive_threshold = 0.4; -- Radians.
   rotation_p = 0.95;

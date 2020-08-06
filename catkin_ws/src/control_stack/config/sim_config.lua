@@ -92,14 +92,7 @@ path_finding = {
   switch_historesis_threshold = 0.4; -- Meters
   max_distance_off_path = 0.2; -- Meters
   local_robot_inflation = 1.1;
-  global_robot_inflation = 1.4;
-};
-
-rrt = {
-  max_iterations = 1000;
-  goal_bias = 0.1;
-  is_goal_threshold = 0.4; -- Meters
-  delta_q = 0.25; -- Meters
+  global_robot_inflation = 1.1;
 };
 
 control = {
@@ -114,7 +107,13 @@ control = {
 };
 
 cmd_scaler = {
+  command_scaler = "identity";
   rotation_zero_threshold = 0;
   rotation_min_effect_threshold = 0;
   rotation_translation_scaler = 0;
+  rotation_translation_exponent = 0;
+};
+
+esc_collision = {
+  num_safety_margins = 2;
 };
