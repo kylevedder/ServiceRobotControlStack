@@ -59,10 +59,10 @@ run("ci/lint.sh", "Lint failed!")
 
 # Integration Tests
 run_under_sim("cd catkin_ws/ && devel/lib/control_stack/nav_node src/control_stack/config/sim_config.lua && cd ..", 
-              "Starting nav_node failed!", 5)
+              "Starting nav_node failed!", 30)
 
 valgrid_out_file = "valgrind_result.out"
 run_under_sim("cd catkin_ws/ && valgrind devel/lib/control_stack/nav_node src/control_stack/config/sim_config.lua > {} 2>&1".format(valgrid_out_file), 
-              "Starting valgrind'd nav_node failed!", 15)
+              "Starting valgrind'd nav_node failed!", 30)
 check_valigrind_out_file("catkin_ws/" + valgrid_out_file)
 
