@@ -62,7 +62,7 @@ run_under_sim("cd catkin_ws/ && devel/lib/control_stack/nav_node src/control_sta
               "Starting nav_node failed!", 5)
 
 valgrid_out_file = "valgrind_result.out"
-run_under_sim('export ROS_HOME=`pwd` && roslaunch src/ServiceRobotControlStack/ci/launch_files/nav_node_valgrind.launch > {} 2>&1'.format(valgrid_out_file), 
+run_under_sim("cd catkin_ws/ && valgrind devel/lib/control_stack/nav_node src/control_stack/config/sim_config.lua > {} 2>&1".format(valgrid_out_file), 
               "Starting nav_node failed!", 30)
 check_valigrind_out_file(valgrid_out_file)
 
