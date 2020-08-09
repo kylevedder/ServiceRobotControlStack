@@ -1,5 +1,4 @@
 dist: bionic
-sudo: required
 language:
   - cpp
 git:
@@ -37,6 +36,7 @@ before_install:
 - source /opt/ros/melodic/setup.bash
 - sudo rosdep init
 - rosdep update
+- export LD_LIBRARY_PATH=/usr/local/clang/lib:$LD_LIBRARY_PATH
 script:
 - cd "$CI_SOURCE_PATH/"
 - ./build.sh
