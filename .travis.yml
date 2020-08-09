@@ -40,4 +40,6 @@ before_install:
 script:
 - cd "$CI_SOURCE_PATH/"
 - ./build.sh
+- ./ci/ci_tasks.py
 - ./clean.sh
+
