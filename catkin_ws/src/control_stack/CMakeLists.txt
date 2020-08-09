@@ -7,7 +7,7 @@ message( "C++ Compiler: ${CMAKE_CXX_COMPILER}" )
 message( "C Compiler: ${CMAKE_C_COMPILER}" )
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11 -march=native -g -O3)
+add_compile_options(-std=c++11 -g -O3)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)

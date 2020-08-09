@@ -2,4 +2,4 @@
 sudo apt-get install -y clang g++ cmake \
     libeigen3-dev libgoogle-perftools-dev kcachegrind valgrind \
     clang-format cimg-dev massif-visualizer libceres-dev  libglfw3-dev \
-    libpopt-dev libglfw3 freeglut3-dev libqt4-dev liblua5.1-dev
+    libpopt-dev libglfw3 freeglut3-dev libqt4-dev liblua5.1-dev valgrind

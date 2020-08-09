@@ -63,7 +63,6 @@ run_under_sim("cd catkin_ws/ && devel/lib/control_stack/nav_node src/control_sta
 
 valgrid_out_file = "valgrind_result.out"
 run_under_sim("cd catkin_ws/ && valgrind devel/lib/control_stack/nav_node src/control_stack/config/sim_config.lua > {} 2>&1".format(valgrid_out_file), 
-              "Starting nav_node failed!", 30)
+              "Starting valgrind'd nav_node failed!", 15)
 check_valigrind_out_file("catkin_ws/" + valgrid_out_file)
 
-              
