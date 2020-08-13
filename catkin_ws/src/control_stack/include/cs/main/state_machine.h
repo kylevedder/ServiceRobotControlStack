@@ -24,6 +24,7 @@
 // ========================================================================
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "cs/main/debug_pub_wrapper.h"
@@ -150,6 +151,7 @@ class StateMachine {
   std::unique_ptr<motion_planning::CommandScaler> command_scaler_;
   tf::TransformBroadcaster br_;
   ControllerList controller_list_;
+  std::string pub_sub_prefix_;
 
   // ===========================================================================
 
@@ -177,14 +179,17 @@ class StateMachine {
     // clang-format off
     dpw_->robot_size_pub_.publish(visualization::MakeCylinder(
         {0, 0}, params::CONFIG_robot_radius, 0.1,
-        params::CONFIG_base_link_tf_frame, "robot_size", 0, 1, 0, 1, 0.05));
+        pub_sub_prefix_ + params::CONFIG_base_link_tf_frame,
+    "robot_size", 0, 1, 0, 1, 0.05));
     dpw_->robot_size_pub_.publish(visualization::MakeCylinder(
         {params::CONFIG_robot_radius + params::CONFIG_safety_margin, 0}, 0.05,
-        0.1, params::CONFIG_base_link_tf_frame, "forward_bump", 1, 0, 0, 1,
+        0.1, pub_sub_prefix_ + params::CONFIG_base_link_tf_frame,
+        "forward_bump", 1, 0, 0, 1,
         0.05));
     dpw_->robot_size_pub_.publish(visualization::MakeCylinder(
         {0, 0}, params::CONFIG_robot_radius + params::CONFIG_safety_margin, 0.1,
-        params::CONFIG_base_link_tf_frame, "safety_size", 0, 0, 1, 0.1, 0.05));
+        pub_sub_prefix_ + params::CONFIG_base_link_tf_frame,
+        "safety_size", 0, 0, 1, 0.1, 0.05));
 
     const auto cd = util::physics::ComputeCommandDelta(
         state_estimator_->GetEstimatedPose(),
@@ -229,10 +234,11 @@ class StateMachine {
     laser_transform.setOrigin({-params::CONFIG_laser_offset.x(),
                                -params::CONFIG_laser_offset.y(),
                                0});
-    br_.sendTransform(tf::StampedTransform(laser_transform,
-                                           ros::Time::now(),
-                                           params::CONFIG_laser_tf_frame,
-                                           params::CONFIG_base_link_tf_frame));
+    br_.sendTransform(tf::StampedTransform(
+        laser_transform,
+        ros::Time::now(),
+        pub_sub_prefix_ + params::CONFIG_laser_tf_frame,
+        pub_sub_prefix_ + params::CONFIG_base_link_tf_frame));
 
     const auto est_pose = state_estimator_->GetEstimatedPose();
     NP_FINITE_VEC(est_pose.tra);
@@ -242,15 +248,18 @@ class StateMachine {
     tf::Quaternion q;
     q.setRPY(0, 0, est_pose.rot);
     transform.setRotation(q);
-    br_.sendTransform(tf::StampedTransform(transform.inverse(),
-                                           ros::Time::now(),
-                                           params::CONFIG_base_link_tf_frame,
-                                           params::CONFIG_map_tf_frame));
+    br_.sendTransform(tf::StampedTransform(
+        transform.inverse(),
+        ros::Time::now(),
+        pub_sub_prefix_ + params::CONFIG_base_link_tf_frame,
+        params::CONFIG_map_tf_frame));
   }
 
  public:
   StateMachine() = delete;
-  StateMachine(cs::main::DebugPubWrapper* dpw, ros::NodeHandle* n)
+  StateMachine(cs::main::DebugPubWrapper* dpw,
+               ros::NodeHandle* n,
+               const std::string& pub_sub_prefix)
       : dpw_(dpw),
         map_(params::CONFIG_map),
         state_estimator_(MakeStateEstimator(n)),
@@ -263,7 +272,8 @@ class StateMachine {
                          *state_estimator_,
                          obstacle_detector_,
                          motion_planner_,
-                         cs::controllers::ControllerType::NAVIGATION) {}
+                         cs::controllers::ControllerType::NAVIGATION),
+        pub_sub_prefix_(pub_sub_prefix) {}
 
   Eigen::Affine2f GetLaserOffset() {
     Eigen::Affine2f a = Eigen::Affine2f::Identity();

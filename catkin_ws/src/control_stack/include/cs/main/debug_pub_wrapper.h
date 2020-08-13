@@ -76,23 +76,26 @@ struct DebugPubWrapper {
   //  void (T::*laser_callback)(const sensor_msgs::LaserScan&),
   //  void (T::*odom_callback)(const nav_msgs::Odometry&),
   //      T* obj
-  explicit DebugPubWrapper(ros::NodeHandle* n) {
-    position_pub_ =
-        n->advertise<geometry_msgs::Twist>(constants::kPositionTopic, 1);
-    modified_laser_pub_ =
-        n->advertise<sensor_msgs::LaserScan>("scan_modified", 10);
-    particle_pub_ =
-        n->advertise<visualization_msgs::MarkerArray>("particles", 10);
-    map_pub_ = n->advertise<visualization_msgs::Marker>("robot_map", 10);
-    detected_walls_pub_ =
-        n->advertise<visualization_msgs::MarkerArray>("detected_obstacles", 10);
-    robot_size_pub_ =
-        n->advertise<visualization_msgs::Marker>("robot_size", 10);
-    goal_pub_ = n->advertise<visualization_msgs::MarkerArray>("goal", 10);
-    robot_path_pub_ =
-        n->advertise<visualization_msgs::Marker>("robot_path", 10);
-    colliding_point_pub_ =
-        n->advertise<visualization_msgs::Marker>("colliding_point", 10);
+  explicit DebugPubWrapper(ros::NodeHandle* n,
+                           const std::string& pub_sub_prefix) {
+    position_pub_ = n->advertise<geometry_msgs::Twist>(
+        pub_sub_prefix + constants::kPositionTopic, 1);
+    modified_laser_pub_ = n->advertise<sensor_msgs::LaserScan>(
+        pub_sub_prefix + "/scan_modified", 10);
+    particle_pub_ = n->advertise<visualization_msgs::MarkerArray>(
+        pub_sub_prefix + "/particles", 10);
+    map_pub_ = n->advertise<visualization_msgs::Marker>(
+        pub_sub_prefix + "/robot_map", 10);
+    detected_walls_pub_ = n->advertise<visualization_msgs::MarkerArray>(
+        pub_sub_prefix + "/detected_obstacles", 10);
+    robot_size_pub_ = n->advertise<visualization_msgs::Marker>(
+        pub_sub_prefix + "/robot_size", 10);
+    goal_pub_ = n->advertise<visualization_msgs::MarkerArray>(
+        pub_sub_prefix + "/goal", 10);
+    robot_path_pub_ = n->advertise<visualization_msgs::Marker>(
+        pub_sub_prefix + "/robot_path", 10);
+    colliding_point_pub_ = n->advertise<visualization_msgs::Marker>(
+        pub_sub_prefix + "/colliding_point", 10);
   }
 };
 
