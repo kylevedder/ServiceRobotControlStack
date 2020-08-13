@@ -38,6 +38,14 @@ laser_noise_stddev = 0.01
 angular_error_bias = DegToRad(0);
 angular_error_rate = 0.1;
 
+-- Laser rangefinder parameters.
+laser_noise_stddev = 0.01;
+laser_angle_min = DegToRad(-135.0);
+laser_angle_max = DegToRad(135.0);
+laser_angle_increment = DegToRad(1);
+laser_min_range = 0.02;
+laser_max_range = 6.0;
+
 robot_type = "DIFF_DRIVE"
 robot_config = "rosbuild_ws/simulator/turtlebot_config.lua"
 laser_topic = "/Cobot/scan"
