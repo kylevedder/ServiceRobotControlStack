@@ -176,19 +176,26 @@ class StateMachine {
 
   void DrawRobot(const util::vector_map::VectorMap& full_map,
                  util::Twist command) {
+    static constexpr bool kShowRotateCenter = false;
     // clang-format off
     dpw_->robot_size_pub_.publish(visualization::MakeCylinder(
-        {0, 0}, params::CONFIG_robot_radius, 0.1,
-        pub_sub_prefix_ + params::CONFIG_base_link_tf_frame,
+        state_estimator_->GetEstimatedPose().tra,
+        params::CONFIG_robot_radius, 0.1,
+        params::CONFIG_map_tf_frame,
     "robot_size", 0, 1, 0, 1, 0.05));
+    const Eigen::Vector2f front_offset =
+        Eigen::Rotation2Df(state_estimator_->GetEstimatedPose().rot) *
+        Eigen::Vector2f(
+        params::CONFIG_robot_radius + params::CONFIG_safety_margin, 0);
     dpw_->robot_size_pub_.publish(visualization::MakeCylinder(
-        {params::CONFIG_robot_radius + params::CONFIG_safety_margin, 0}, 0.05,
-        0.1, pub_sub_prefix_ + params::CONFIG_base_link_tf_frame,
+        state_estimator_->GetEstimatedPose().tra + front_offset, 0.05,
+        0.1, params::CONFIG_map_tf_frame,
         "forward_bump", 1, 0, 0, 1,
         0.05));
     dpw_->robot_size_pub_.publish(visualization::MakeCylinder(
-        {0, 0}, params::CONFIG_robot_radius + params::CONFIG_safety_margin, 0.1,
-        pub_sub_prefix_ + params::CONFIG_base_link_tf_frame,
+        state_estimator_->GetEstimatedPose().tra,
+        params::CONFIG_robot_radius + params::CONFIG_safety_margin,
+        0.1, params::CONFIG_map_tf_frame,
         "safety_size", 0, 0, 1, 0.1, 0.05));
 
     const auto cd = util::physics::ComputeCommandDelta(
@@ -196,7 +203,8 @@ class StateMachine {
         state_estimator_->GetEstimatedVelocity(), command,
         state_estimator_->GetLaserTimeDelta());
 
-    if (cd.type == util::physics::CommandDelta::Type::CURVE) {
+    if (kShowRotateCenter &&
+            cd.type == util::physics::CommandDelta::Type::CURVE) {
       dpw_->robot_size_pub_.publish(visualization::MakeCylinder(
           cd.curve.rotate_circle_center_wf, 0.1, 0.1,
           params::CONFIG_map_tf_frame, "rotatecenter", 1, 0, 0, 1));

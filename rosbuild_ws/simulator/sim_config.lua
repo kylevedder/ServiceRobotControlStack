@@ -46,7 +46,7 @@ laser_angle_increment = DegToRad(1);
 laser_min_range = 0.02;
 laser_max_range = 6.0;
 
-robot_types = {"DIFF_DRIVE", "DIFF_DRIVE"}
+robot_types = {"DIFF_DRIVE", "DIFF_DRIVE", "DIFF_DRIVE", "DIFF_DRIVE", "DIFF_DRIVE"}
 robot_config = "rosbuild_ws/simulator/turtlebot_config.lua"
 laser_topic = "/Cobot/scan"
 laser_frame = "/laser"

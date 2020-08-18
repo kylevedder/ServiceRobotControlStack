@@ -4,7 +4,7 @@
 -- start_angle = 0.0
 
 map_name =  "rosbuild_ws/simulator/ut_multirobot_sim/maps/GDC3/GDC3.vectormap.txt";
-start_poses = {{33, 22.5, 0}, {33, 22.5, 0}}
+start_poses = {{33, 22.5, 0}, {33, 22.5, 0}, {33, 22.5, 0}, {33, 22.5, 0}, {33, 22.5, 0}}
 
 -- map_name = "catkin_ws/src/control_stack/maps/loop.map";
 -- start_x = -4
