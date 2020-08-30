@@ -14,7 +14,7 @@ f = open(map_file, 'r')
 lines = f.readlines()
 print("Read", len(lines), "walls")
 for l in lines:
-    elements = [float(e) for e in l.split(', ')]
+    elements = [float(e) for e in l.split(',')]
     if len(elements) != 4:
         print("Improper number coordinates given:", l)
         exit(-1)
