@@ -197,6 +197,10 @@ add_executable(nav_node src/main/nav_node.cpp
         )
 target_link_libraries(nav_node util_lib nav_lib lua5.1 amrl_shared_lib ${catkin_LIBRARIES})
 
+add_executable(getting_started src/main/getting_started_main.cpp
+        )
+target_link_libraries(getting_started util_lib nav_lib lua5.1 amrl_shared_lib ${catkin_LIBRARIES})
+
 ADD_EXECUTABLE(control_stack_unit_tests
         test/physics/physics_tests.cpp)
 TARGET_LINK_LIBRARIES(control_stack_unit_tests gtest gtest_main util_lib amrl_shared_lib)
