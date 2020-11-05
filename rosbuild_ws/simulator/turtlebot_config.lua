@@ -2,6 +2,10 @@ function Vector3(x, y, z)
   return {x = x, y = y, z = z}
 end
 
+-- ROBOT SHAPE
+robot_radius = 0.3
+num_segments = 5
+
 -- MODEL PARAMETERS
 invert_linear_vel_cmds = false
 invert_angular_vel_cmds = false
